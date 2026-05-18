@@ -516,7 +516,9 @@ function veriYukle(){
       veri=[];
       ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
       if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
+      etiketDropdownDoldur();
       markaDropdownDoldur();
+      kasaDropdownDoldur();
       sehirDropdownDoldur();
       goster();
     })
