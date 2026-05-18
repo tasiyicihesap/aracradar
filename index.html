@@ -194,8 +194,8 @@ function adGoster(il){
 }
 
 // gecmis: [eski...yeni] — push ile ekleniyor, [length-1] en yeni
-function sonFiyat(il){return il.gecmis&&il.gecmis.length?(il.gecmis[il.gecmis.length-1].fiyat||0):0;}
-function sonTarih(il){return il.gecmis&&il.gecmis.length?(il.gecmis[il.gecmis.length-1].tarih||0):0;}
+function sonFiyat(il){return il.gecmis&&il.gecmis.length?(parseInt(il.gecmis[il.gecmis.length-1].fiyat)||0):0;}
+function sonTarih(il){return il.gecmis&&il.gecmis.length?(parseInt(il.gecmis[il.gecmis.length-1].tarih)||0):0;}
 
 var MARKALAR=['Toyota','Honda','Ford','Volkswagen','BMW','Mercedes','Audi','Hyundai','Kia','Renault','Peugeot','Citroen','Fiat','Opel','Seat','Skoda','Volvo','Nissan','Mazda','Mitsubishi','Suzuki','Dacia','Alfa Romeo','Jeep','Land Rover','Porsche','Mini','Subaru','Chevrolet','Tofas','Saab','Smart','Infiniti','Lexus'];
 var SEHIRLER=['Adana','Ankara','Antalya','Bursa','Denizli','Diyarbakır','Eskişehir','Gaziantep','Istanbul','İstanbul','İzmir','Izmir','Kayseri','Kocaeli','Konya','Malatya','Mersin','Samsun','Sakarya','Trabzon','Urfa'];
@@ -246,7 +246,7 @@ function ilanKartHtml(il){
   var fiyatStr=sf?sf.toLocaleString('tr-TR')+' ₺':'—';
   var degisimBadge='';var fiyatClass='ilan-fiyat';
   if(g.length>=2){
-    var onceki=g[g.length-2].fiyat||0;var simdiki=g[g.length-1].fiyat||0;var fark=simdiki-onceki;
+    var onceki=parseInt(g[g.length-2].fiyat)||0;var simdiki=parseInt(g[g.length-1].fiyat)||0;var fark=simdiki-onceki;
     if(fark<0){degisimBadge='<span class="degisim-badge degisim-indi">▼ '+Math.abs(fark).toLocaleString('tr-TR')+' ₺</span>';fiyatClass='ilan-fiyat fiyat-dustu';}
     else if(fark>0){degisimBadge='<span class="degisim-badge degisim-yukseldi">▲ '+fark.toLocaleString('tr-TR')+' ₺</span>';fiyatClass='ilan-fiyat fiyat-yukseldi';}
     else{degisimBadge='<span class="degisim-badge degisim-ayni">Değişmedi</span>';}
@@ -256,7 +256,7 @@ function ilanKartHtml(il){
   if(g.length>1){
     gecmisHtml='<div class="gecmis"><div class="gecmis-l">Fiyat Geçmişi</div>';
     var bas=Math.max(0,g.length-5);
-    for(var i=bas;i<g.length;i++){gecmisHtml+='<div class="gecmis-sat"><span>'+zamanGoster(g[i].tarih)+'</span><span>'+(g[i].fiyat?(g[i].fiyat).toLocaleString('tr-TR')+' ₺':'—')+'</span></div>';}
+    for(var i=bas;i<g.length;i++){gecmisHtml+='<div class="gecmis-sat"><span>'+zamanGoster(parseInt(g[i].tarih)||0)+'</span><span>'+(g[i].fiyat?(parseInt(g[i].fiyat)||0).toLocaleString('tr-TR')+' ₺':'—')+'</span></div>';}
     gecmisHtml+='</div>';
   }
   var detay='';
@@ -292,14 +292,16 @@ function filtrele(liste){
     if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
     if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
     if(sehir){if(!ilanSehir(il).toLowerCase().includes(sehir))return false;}
-    if(degisim==='indi'){var g=il.gecmis||[];if(g.length<2||(g[g.length-1].fiyat||0)>=(g[g.length-2].fiyat||0))return false;}
-    if(degisim==='yukseldi'){var g2=il.gecmis||[];if(g2.length<2||(g2[g2.length-1].fiyat||0)<=(g2[g2.length-2].fiyat||0))return false;}
+    if(degisim==='indi'){var g=il.gecmis||[];if(g.length<2||(parseInt(g[g.length-1].fiyat)||0)>=(parseInt(g[g.length-2].fiyat)||0))return false;}
+    if(degisim==='yukseldi'){var g2=il.gecmis||[];if(g2.length<2||(parseInt(g2[g2.length-1].fiyat)||0)<=(parseInt(g2[g2.length-2].fiyat)||0))return false;}
     if(degisim==='yeni'){if(!il.gecmis||il.gecmis.length!==1)return false;}
     if(ara){if(!adGoster(il).toLowerCase().includes(ara)&&!(il.url||'').toLowerCase().includes(ara))return false;}
     if(_minDegisim>0){
       var g3=il.gecmis||[];
       if(g3.length<2)return false;
-      var fark=Math.abs((g3[g3.length-1].fiyat||0)-(g3[g3.length-2].fiyat||0));
+      var f1=parseInt(g3[g3.length-1].fiyat)||0;
+      var f2=parseInt(g3[g3.length-2].fiyat)||0;
+      var fark=Math.abs(f1-f2);
       if(fark<_minDegisim)return false;
     }
     return true;
@@ -358,8 +360,8 @@ function _gosterSayfa(){
   }
   liste=sirala(liste,srt);
   _filtreliListe=liste;
-  var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)<(g[g.length-2].fiyat||0);}).length;
-  var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)>(g[g.length-2].fiyat||0);}).length;
+  var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)<(parseInt(g[g.length-2].fiyat)||0);}).length;
+  var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)>(parseInt(g[g.length-2].fiyat)||0);}).length;
   var yeni24=veri.filter(function(i){
     var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
     return (simdi-eklenme)<gun24 && i.gecmis&&i.gecmis.length===1;
