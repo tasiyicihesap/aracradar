@@ -340,7 +340,12 @@ function _gosterSayfa(){
   var simdi=Date.now();var ks=48*3600000;var gun24=24*3600000;
   var liste;
   if(_aktifSekme==='degisim'){
-    liste=filtrele(veri).filter(function(il){return il.gecmis&&il.gecmis.length>1&&(simdi-sonTarih(il))<ks;});
+    liste=filtrele(veri).filter(function(il){
+      if(!il.gecmis||il.gecmis.length<2)return false;
+      // guncelleme alanı varsa onu kullan, yoksa gecmis son tarih
+      var sonGun=il.guncelleme?new Date(il.guncelleme).getTime():(sonTarih(il)||0);
+      return (simdi-sonGun)<ks;
+    });
   }else if(_aktifSekme==='takip'){
     liste=filtrele(veri).filter(function(il){return !!_takipSet[il.id];});
   }else if(_aktifSekme==='yeni'){
@@ -359,7 +364,11 @@ function _gosterSayfa(){
     var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
     return (simdi-eklenme)<gun24 && i.gecmis&&i.gecmis.length===1;
   }).length;
-  var deg48=veri.filter(function(i){return i.gecmis&&i.gecmis.length>1&&(simdi-sonTarih(i))<ks;}).length;
+  var deg48=veri.filter(function(i){
+    if(!i.gecmis||i.gecmis.length<2)return false;
+    var sonGun=i.guncelleme?new Date(i.guncelleme).getTime():(sonTarih(i)||0);
+    return (simdi-sonGun)<ks;
+  }).length;
   document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
   document.getElementById('st-dustu').textContent=dustu;
   document.getElementById('st-artti').textContent=artti;
