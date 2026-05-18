@@ -335,14 +335,21 @@ function goster(){
   }else if(_aktifSekme==='takip'){
     liste=filtrele(veri).filter(function(il){return !!_takipSet[il.id];});
   }else if(_aktifSekme==='yeni'){
-    liste=filtrele(veri).filter(function(il){return il.gecmis&&il.gecmis&&il.gecmis.length&&(simdi-(il.gecmis[0].tarih||0))<gun24;});
+    liste=filtrele(veri).filter(function(il){
+      var eklenme=il.guncelleme?new Date(il.guncelleme).getTime():(il.gecmis&&il.gecmis.length?(il.gecmis[0].tarih||0):0);
+      return (simdi-eklenme)<gun24 && il.gecmis&&il.gecmis.length===1;
+    });
   }else{
     liste=filtrele(veri);
   }
   liste=sirala(liste,srt);
   var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)<(g[g.length-2].fiyat||0);}).length;
   var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)>(g[g.length-2].fiyat||0);}).length;
-  var yeni24=veri.filter(function(i){return i.gecmis&&i.gecmis.length&&(simdi-(i.gecmis[0].tarih||0))<gun24;}).length;
+  var yeni24=veri.filter(function(i){
+    // Supabase'den gelen guncelleme alanını kullan, yoksa gecmis[0].tarih
+    var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
+    return (simdi-eklenme)<gun24 && i.gecmis&&i.gecmis.length===1;
+  }).length;
   var deg48=veri.filter(function(i){return i.gecmis&&i.gecmis.length>1&&(simdi-sonTarih(i))<ks;}).length;
   document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
   document.getElementById('st-dustu').textContent=dustu;
