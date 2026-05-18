@@ -104,6 +104,9 @@ select:focus,input:focus{border-color:var(--blu)}
 
   <div class="filtre-panel">
     <div class="filtre-sat">
+      <select id="f-etiket" style="min-width:140px">
+        <option value="">Tüm Gruplar</option>
+      </select>
       <select id="f-kaynak" style="min-width:140px">
         <option value="">Tüm Siteler</option>
         <option value="sahibinden">🟠 Sahibinden</option>
@@ -112,6 +115,9 @@ select:focus,input:focus{border-color:var(--blu)}
       </select>
       <select id="f-marka" style="min-width:160px">
         <option value="">Tüm Markalar</option>
+      </select>
+      <select id="f-kasa" style="min-width:160px">
+        <option value="">Tüm Kasa/Nesil</option>
       </select>
       <select id="f-sehir" style="min-width:150px">
         <option value="">Tüm Şehirler</option>
@@ -217,7 +223,51 @@ function ilanSehir(il){
   return '';
 }
 
-function markaDropdownDoldur(){
+var KASA_DB={
+  'Renault':{'Clio':[{n:'Clio II',y1:1998,y2:2005},{n:'Clio III',y1:2005,y2:2012},{n:'Clio IV',y1:2012,y2:2019},{n:'Clio V',y1:2019,y2:2030}],'Megane':[{n:'Megane II',y1:2002,y2:2008},{n:'Megane III',y1:2008,y2:2016},{n:'Megane IV',y1:2016,y2:2030}],'Fluence':[{n:'Fluence',y1:2009,y2:2017}],'Symbol':[{n:'Symbol I',y1:1999,y2:2008},{n:'Symbol II',y1:2008,y2:2013},{n:'Symbol III',y1:2013,y2:2021}],'Kadjar':[{n:'Kadjar I',y1:2015,y2:2022},{n:'Kadjar II',y1:2022,y2:2030}],'Captur':[{n:'Captur I',y1:2013,y2:2019},{n:'Captur II',y1:2019,y2:2030}]},
+  'Volkswagen':{'Golf':[{n:'Golf IV',y1:1997,y2:2003},{n:'Golf V',y1:2003,y2:2008},{n:'Golf VI',y1:2008,y2:2012},{n:'Golf VII',y1:2012,y2:2019},{n:'Golf VIII',y1:2019,y2:2030}],'Polo':[{n:'Polo IV (9N)',y1:2001,y2:2009},{n:'Polo V (6R)',y1:2009,y2:2017},{n:'Polo VI (AW)',y1:2017,y2:2030}],'Passat':[{n:'Passat B6',y1:2005,y2:2010},{n:'Passat B7',y1:2010,y2:2014},{n:'Passat B8',y1:2014,y2:2023}],'Tiguan':[{n:'Tiguan I',y1:2007,y2:2016},{n:'Tiguan II',y1:2016,y2:2023},{n:'Tiguan III',y1:2023,y2:2030}],'Jetta':[{n:'Jetta V',y1:2005,y2:2010},{n:'Jetta VI',y1:2010,y2:2018},{n:'Jetta VII',y1:2018,y2:2030}]},
+  'Toyota':{'Corolla':[{n:'E120 (9.nesil)',y1:2001,y2:2006},{n:'E150 (10.nesil)',y1:2006,y2:2013},{n:'E170 (11.nesil)',y1:2013,y2:2019},{n:'E210 (12.nesil)',y1:2019,y2:2030}],'Yaris':[{n:'Yaris II',y1:2005,y2:2011},{n:'Yaris III',y1:2011,y2:2020},{n:'Yaris IV',y1:2020,y2:2030}],'C-HR':[{n:'C-HR I',y1:2016,y2:2023},{n:'C-HR II',y1:2023,y2:2030}],'RAV4':[{n:'RAV4 IV',y1:2013,y2:2018},{n:'RAV4 V',y1:2018,y2:2030}]},
+  'Fiat':{'Egea':[{n:'Egea I',y1:2015,y2:2022},{n:'Egea II',y1:2022,y2:2030}],'Linea':[{n:'Linea',y1:2007,y2:2017}],'Doblo':[{n:'Doblo II',y1:2009,y2:2022},{n:'Doblo III',y1:2022,y2:2030}],'500':[{n:'500 (312)',y1:2007,y2:2019},{n:'500e',y1:2020,y2:2030}]},
+  'Ford':{'Focus':[{n:'Focus II',y1:2004,y2:2011},{n:'Focus III',y1:2011,y2:2018},{n:'Focus IV',y1:2018,y2:2030}],'Fiesta':[{n:'Fiesta VI',y1:2008,y2:2017},{n:'Fiesta VII',y1:2017,y2:2023}],'Kuga':[{n:'Kuga I',y1:2008,y2:2012},{n:'Kuga II',y1:2012,y2:2019},{n:'Kuga III',y1:2019,y2:2030}],'Mondeo':[{n:'Mondeo IV',y1:2007,y2:2014},{n:'Mondeo V',y1:2014,y2:2022}]},
+  'Opel':{'Astra':[{n:'Astra G',y1:1998,y2:2004},{n:'Astra H',y1:2004,y2:2009},{n:'Astra J',y1:2009,y2:2015},{n:'Astra K',y1:2015,y2:2021},{n:'Astra L',y1:2021,y2:2030}],'Corsa':[{n:'Corsa C',y1:2000,y2:2006},{n:'Corsa D',y1:2006,y2:2014},{n:'Corsa E',y1:2014,y2:2019},{n:'Corsa F',y1:2019,y2:2030}],'Insignia':[{n:'Insignia A',y1:2008,y2:2017},{n:'Insignia B',y1:2017,y2:2030}]},
+  'Hyundai':{'i20':[{n:'i20 I',y1:2008,y2:2014},{n:'i20 II',y1:2014,y2:2020},{n:'i20 III',y1:2020,y2:2030}],'i30':[{n:'i30 I',y1:2007,y2:2012},{n:'i30 II',y1:2012,y2:2017},{n:'i30 III',y1:2017,y2:2030}],'Tucson':[{n:'Tucson II',y1:2009,y2:2015},{n:'Tucson III',y1:2015,y2:2020},{n:'Tucson IV',y1:2020,y2:2030}],'Elantra':[{n:'Elantra V',y1:2010,y2:2016},{n:'Elantra VI',y1:2016,y2:2020},{n:'Elantra VII',y1:2020,y2:2030}]},
+  'Honda':{'Civic':[{n:'Civic VIII',y1:2005,y2:2011},{n:'Civic IX',y1:2011,y2:2015},{n:'Civic X',y1:2015,y2:2021},{n:'Civic XI',y1:2021,y2:2030}],'CR-V':[{n:'CR-V III',y1:2006,y2:2011},{n:'CR-V IV',y1:2011,y2:2017},{n:'CR-V V',y1:2017,y2:2023}]},
+  'BMW':{'3 Serisi':[{n:'E46',y1:1998,y2:2005},{n:'E90',y1:2005,y2:2012},{n:'F30',y1:2012,y2:2018},{n:'G20',y1:2018,y2:2030}],'5 Serisi':[{n:'E60',y1:2003,y2:2010},{n:'F10',y1:2010,y2:2016},{n:'G30',y1:2016,y2:2023}],'1 Serisi':[{n:'E87',y1:2004,y2:2011},{n:'F20',y1:2011,y2:2019},{n:'F40',y1:2019,y2:2030}]},
+  'Mercedes-Benz':{'C Serisi':[{n:'W203',y1:2000,y2:2007},{n:'W204',y1:2007,y2:2014},{n:'W205',y1:2014,y2:2021},{n:'W206',y1:2021,y2:2030}],'E Serisi':[{n:'W211',y1:2002,y2:2009},{n:'W212',y1:2009,y2:2016},{n:'W213',y1:2016,y2:2023}],'A Serisi':[{n:'W168',y1:1997,y2:2004},{n:'W169',y1:2004,y2:2012},{n:'W176',y1:2012,y2:2018},{n:'W177',y1:2018,y2:2030}]},
+  'Audi':{'A3':[{n:'8P',y1:2003,y2:2012},{n:'8V',y1:2012,y2:2020},{n:'8Y',y1:2020,y2:2030}],'A4':[{n:'B7',y1:2004,y2:2008},{n:'B8',y1:2008,y2:2015},{n:'B9',y1:2015,y2:2023}],'Q5':[{n:'8R',y1:2008,y2:2017},{n:'FY',y1:2017,y2:2030}]},
+  'Skoda':{'Octavia':[{n:'Mk2',y1:2004,y2:2013},{n:'Mk3',y1:2013,y2:2020},{n:'Mk4',y1:2020,y2:2030}],'Fabia':[{n:'Mk2',y1:2007,y2:2014},{n:'Mk3',y1:2014,y2:2021},{n:'Mk4',y1:2021,y2:2030}]},
+  'Peugeot':{'208':[{n:'208 I',y1:2012,y2:2019},{n:'208 II',y1:2019,y2:2030}],'301':[{n:'301 I',y1:2012,y2:2020},{n:'301 II',y1:2020,y2:2030}],'3008':[{n:'3008 I',y1:2009,y2:2016},{n:'3008 II',y1:2016,y2:2023}]},
+  'Dacia':{'Duster':[{n:'Duster I',y1:2010,y2:2017},{n:'Duster II',y1:2017,y2:2023},{n:'Duster III',y1:2023,y2:2030}],'Sandero':[{n:'Sandero I',y1:2008,y2:2012},{n:'Sandero II',y1:2012,y2:2020},{n:'Sandero III',y1:2020,y2:2030}]},
+  'Kia':{'Sportage':[{n:'Mk3',y1:2010,y2:2015},{n:'Mk4',y1:2015,y2:2021},{n:'Mk5',y1:2021,y2:2030}],'Ceed':[{n:'ED',y1:2006,y2:2012},{n:'JD',y1:2012,y2:2018},{n:'CD',y1:2018,y2:2030}],'Rio':[{n:'UB',y1:2011,y2:2017},{n:'YB',y1:2017,y2:2030}]},
+  'Seat':{'Ibiza':[{n:'6K2',y1:1999,y2:2002},{n:'6L',y1:2002,y2:2009},{n:'6J',y1:2008,y2:2017},{n:'KJ',y1:2017,y2:2030}],'Leon':[{n:'1M',y1:1999,y2:2005},{n:'1P',y1:2005,y2:2012},{n:'5F',y1:2012,y2:2020},{n:'KL',y1:2020,y2:2030}]},
+  'Citroen':{'C3':[{n:'C3 I',y1:2002,y2:2009},{n:'C3 II',y1:2009,y2:2016},{n:'C3 III',y1:2016,y2:2030}],'C4':[{n:'C4 I',y1:2004,y2:2010},{n:'C4 II',y1:2010,y2:2018},{n:'C4 III',y1:2020,y2:2030}]},
+  'Nissan':{'Qashqai':[{n:'J10',y1:2007,y2:2013},{n:'J11',y1:2013,y2:2021},{n:'J12',y1:2021,y2:2030}],'Micra':[{n:'K12',y1:2002,y2:2010},{n:'K13',y1:2010,y2:2017},{n:'K14',y1:2017,y2:2030}]},
+  'Mazda':{'3':[{n:'BK',y1:2003,y2:2009},{n:'BL',y1:2009,y2:2013},{n:'BM',y1:2013,y2:2019},{n:'BP',y1:2019,y2:2030}],'CX-5':[{n:'KE',y1:2012,y2:2017},{n:'KF',y1:2017,y2:2030}]},
+  'Volvo':{'V40':[{n:'V40 II',y1:2012,y2:2019}],'XC60':[{n:'XC60 I',y1:2008,y2:2017},{n:'XC60 II',y1:2017,y2:2030}],'S60':[{n:'S60 II',y1:2010,y2:2018},{n:'S60 III',y1:2018,y2:2030}]},
+  'Suzuki':{'Swift':[{n:'Swift III',y1:2004,y2:2010},{n:'Swift IV',y1:2010,y2:2017},{n:'Swift V',y1:2017,y2:2030}],'Vitara':[{n:'LY',y1:2015,y2:2030}]},
+  'Alfa Romeo':{'Giulietta':[{n:'Giulietta',y1:2010,y2:2020}],'Stelvio':[{n:'Stelvio',y1:2016,y2:2030}]}
+};
+
+function kasaDropdownDoldur(){
+  var marka=document.getElementById('f-marka').value;
+  var sel=document.getElementById('f-kasa');
+  var secili=sel.value;
+  sel.innerHTML='<option value="">Tüm Kasa/Nesil</option>';
+  if(!marka||!KASA_DB[marka])return;
+  var modeller=KASA_DB[marka];
+  Object.keys(modeller).forEach(function(model){
+    var optGrup=document.createElement('optgroup');
+    optGrup.label=model;
+    modeller[model].forEach(function(k){
+      var o=document.createElement('option');
+      o.value=k.n;
+      o.textContent=k.n+' ('+k.y1+'-'+(k.y2===2030?'günümüz':k.y2)+')';
+      optGrup.appendChild(o);
+    });
+    sel.appendChild(optGrup);
+  });
+  if(secili)sel.value=secili;
+}
   var bulunan={};
   veri.forEach(function(il){var m=ilanMarka(il);if(m)bulunan[m]=true;});
   var liste=Object.keys(bulunan).sort();
@@ -282,16 +332,33 @@ function filtrele(liste){
   var degisim=document.getElementById('f-degisim').value||'';
   var yilMin=parseInt(document.getElementById('f-yil-min').value)||0;
   var yilMax=parseInt(document.getElementById('f-yil-max').value)||9999;
+  var etiket=document.getElementById('f-etiket').value||'';
   var marka=(document.getElementById('f-marka').value||'').toLowerCase();
+  var kasa=document.getElementById('f-kasa').value||'';
   var sehir=(document.getElementById('f-sehir').value||'').toLowerCase();
   return liste.filter(function(il){
     var f=sonFiyat(il);
     if(min&&f&&f<min)return false;
     if(max<9999999999&&f&&f>max)return false;
     if(kaynak&&il.kaynak!==kaynak)return false;
+    if(etiket&&!(il.etiket||'').includes(etiket))return false;
     if(yilMin&&il.yil&&il.yil<yilMin)return false;
     if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
     if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
+    if(kasa){
+      // İlanın yılına göre kasa nesline bak
+      var ilMarka=ilanMarka(il);
+      if(ilMarka&&KASA_DB[ilMarka]){
+        var nesiller=[];
+        Object.values(KASA_DB[ilMarka]).forEach(function(arr){arr.forEach(function(k){nesiller.push(k);});});
+        var ilYil=il.yil||0;
+        var bulunan=nesiller.filter(function(k){return k.n===kasa;});
+        if(bulunan.length&&ilYil){
+          var k=bulunan[0];
+          if(ilYil<k.y1||ilYil>k.y2)return false;
+        }
+      }
+    }
     if(sehir){if(!ilanSehir(il).toLowerCase().includes(sehir))return false;}
     if(degisim==='indi'){var g=il.gecmis||[];if(g.length<2||(parseInt(g[g.length-1].fiyat)||0)>=(parseInt(g[g.length-2].fiyat)||0))return false;}
     if(degisim==='yukseldi'){var g2=il.gecmis||[];if(g2.length<2||(parseInt(g2[g2.length-1].fiyat)||0)<=(parseInt(g2[g2.length-2].fiyat)||0))return false;}
@@ -476,8 +543,13 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
   ['f-srt','f-kaynak','f-degisim','f-marka','f-sehir'].forEach(function(id){
-    document.getElementById(id).addEventListener('change',goster);
+    document.getElementById(id).addEventListener('change',function(){
+      if(id==='f-marka')kasaDropdownDoldur();
+      goster();
+    });
   });
+  document.getElementById('f-kasa').addEventListener('change',goster);
+  document.getElementById('f-etiket').addEventListener('change',function(){markaDropdownDoldur();kasaDropdownDoldur();goster();});
   ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
     document.getElementById(id).addEventListener('input',goster);
   });
