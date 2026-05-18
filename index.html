@@ -326,7 +326,16 @@ function sirala(liste,srt){
   }
 }
 
+var _sayfaOffset=0;
+var _SAYFA=50;
+var _filtreliListe=[];
+
 function goster(){
+  _sayfaOffset=0;
+  _gosterSayfa();
+}
+
+function _gosterSayfa(){
   var srt=document.getElementById('f-srt').value||'tarih-desc';
   var simdi=Date.now();var ks=48*3600000;var gun24=24*3600000;
   var liste;
@@ -343,10 +352,10 @@ function goster(){
     liste=filtrele(veri);
   }
   liste=sirala(liste,srt);
+  _filtreliListe=liste;
   var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)<(g[g.length-2].fiyat||0);}).length;
   var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(g[g.length-1].fiyat||0)>(g[g.length-2].fiyat||0);}).length;
   var yeni24=veri.filter(function(i){
-    // Supabase'den gelen guncelleme alanını kullan, yoksa gecmis[0].tarih
     var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
     return (simdi-eklenme)<gun24 && i.gecmis&&i.gecmis.length===1;
   }).length;
@@ -361,8 +370,33 @@ function goster(){
   document.getElementById('min-degisim-bar').style.display=_aktifSekme==='degisim'?'flex':'none';
   var listeEl=document.getElementById('liste');
   if(!liste.length){listeEl.innerHTML='<div class="bos"><div class="bos-ikon">🔍</div>Bu filtreye uyan ilan bulunamadı.<br><small>Filtre kriterlerini gevşetin.</small></div>';return;}
-  listeEl.innerHTML=liste.map(ilanKartHtml).join('');
+  var gosterilen=liste.slice(0,_SAYFA);
+  var html=gosterilen.map(ilanKartHtml).join('');
+  if(liste.length>_SAYFA){
+    var kalan=liste.length-_SAYFA;
+    html+='<button id="daha-fazla-btn" style="display:block;width:100%;padding:14px;margin-top:10px;background:#f0f0e8;border:1px solid #ddd;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#333">↓ Daha fazla göster ('+kalan.toLocaleString('tr-TR')+' ilan daha)</button>';
+  }
+  listeEl.innerHTML=html;
   listeEl.querySelectorAll('.takip-btn').forEach(function(btn){btn.addEventListener('click',function(){takipToggle(this.getAttribute('data-id'));});});
+  var dfBtn=document.getElementById('daha-fazla-btn');
+  if(dfBtn)dfBtn.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
+}
+
+function _ekleIlanlar(){
+  var listeEl=document.getElementById('liste');
+  var dfBtn=document.getElementById('daha-fazla-btn');
+  if(dfBtn)dfBtn.remove();
+  var bas=_sayfaOffset;
+  var bitis=Math.min(bas+_SAYFA,_filtreliListe.length);
+  var yeniHtml=_filtreliListe.slice(bas,bitis).map(ilanKartHtml).join('');
+  if(bitis<_filtreliListe.length){
+    var kalan=_filtreliListe.length-bitis;
+    yeniHtml+='<button id="daha-fazla-btn" style="display:block;width:100%;padding:14px;margin-top:10px;background:#f0f0e8;border:1px solid #ddd;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#333">↓ Daha fazla göster ('+kalan.toLocaleString('tr-TR')+' ilan daha)</button>';
+  }
+  listeEl.insertAdjacentHTML('beforeend',yeniHtml);
+  listeEl.querySelectorAll('.takip-btn').forEach(function(btn){if(!btn._b){btn._b=true;btn.addEventListener('click',function(){takipToggle(this.getAttribute('data-id'));});}});
+  var dfBtn2=document.getElementById('daha-fazla-btn');
+  if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
 }
 
 function veriYukle(){
