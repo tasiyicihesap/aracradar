@@ -301,6 +301,7 @@ function filtrele(liste){
       if(g3.length<2)return false;
       var f1=parseInt(g3[g3.length-1].fiyat)||0;
       var f2=parseInt(g3[g3.length-2].fiyat)||0;
+      if(!f1||!f2)return false;
       var fark=Math.abs(f1-f2);
       if(fark<_minDegisim)return false;
     }
@@ -344,9 +345,12 @@ function _gosterSayfa(){
   if(_aktifSekme==='degisim'){
     liste=filtrele(veri).filter(function(il){
       if(!il.gecmis||il.gecmis.length<2)return false;
-      // guncelleme alanı varsa onu kullan, yoksa gecmis son tarih
       var sonGun=il.guncelleme?new Date(il.guncelleme).getTime():(sonTarih(il)||0);
-      return (simdi-sonGun)<ks;
+      if((simdi-sonGun)>=ks)return false;
+      // Gerçekten fiyat değişmiş mi?
+      var f1=parseInt(il.gecmis[il.gecmis.length-1].fiyat)||0;
+      var f2=parseInt(il.gecmis[il.gecmis.length-2].fiyat)||0;
+      return f1>0 && f2>0 && f1!==f2;
     });
   }else if(_aktifSekme==='takip'){
     liste=filtrele(veri).filter(function(il){return !!_takipSet[il.id];});
@@ -369,7 +373,10 @@ function _gosterSayfa(){
   var deg48=veri.filter(function(i){
     if(!i.gecmis||i.gecmis.length<2)return false;
     var sonGun=i.guncelleme?new Date(i.guncelleme).getTime():(sonTarih(i)||0);
-    return (simdi-sonGun)<ks;
+    if((simdi-sonGun)>=ks)return false;
+    var f1=parseInt(i.gecmis[i.gecmis.length-1].fiyat)||0;
+    var f2=parseInt(i.gecmis[i.gecmis.length-2].fiyat)||0;
+    return f1>0 && f2>0 && f1!==f2;
   }).length;
   document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
   document.getElementById('st-dustu').textContent=dustu;
