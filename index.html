@@ -268,8 +268,13 @@ function kasaDropdownDoldur(){
   });
   if(secili)sel.value=secili;
 }
+
+function markaDropdownDoldur(){
+  var seciliEtiket=document.getElementById('f-etiket').value||'';
   var bulunan={};
-  veri.forEach(function(il){var m=ilanMarka(il);if(m)bulunan[m]=true;});
+  veri.forEach(function(il){
+    if(seciliEtiket&&!(il.etiket||'').includes(seciliEtiket))return;
+    var m=ilanMarka(il);if(m)bulunan[m]=true;});
   var liste=Object.keys(bulunan).sort();
   var sel=document.getElementById('f-marka');
   var secili=sel.value;
