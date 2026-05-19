@@ -392,7 +392,7 @@ function filtrele(liste){
     if(degisim==='yukseldi'){var g2=il.gecmis||[];if(g2.length<2||(parseInt(g2[g2.length-1].fiyat)||0)<=(parseInt(g2[g2.length-2].fiyat)||0))return false;}
     if(degisim==='yeni'){if(!il.gecmis||il.gecmis.length!==1)return false;}
     if(ara){if(!adGoster(il).toLowerCase().includes(ara)&&!(il.url||'').toLowerCase().includes(ara))return false;}
-    if(_minDegisim>0){
+    if(_minDegisim>0 && _aktifSekme==='degisim'){
       var g3=il.gecmis||[];
       if(g3.length<2)return false;
       var f1=parseInt(g3[g3.length-1].fiyat)||0;
