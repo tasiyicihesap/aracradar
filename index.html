@@ -216,6 +216,7 @@ function ilanMarka(il){
 }
 
 function ilanSehir(il){
+  if(il.sehir&&il.sehir.trim())return il.sehir.trim();
   var metin=(il.ad||'').toLowerCase();
   for(var i=0;i<SEHIRLER.length;i++){
     if(metin.includes(SEHIRLER[i].toLowerCase()))return SEHIRLER[i].charAt(0).toUpperCase()+SEHIRLER[i].slice(1);
@@ -251,11 +252,7 @@ var KASA_DB={
 function etiketDropdownDoldur(){
   var etiketler={};
   veri.forEach(function(il){
-    // Kaynak bazında etiket oluştur
-    if(il.kaynak==='sahibinden')etiketler['Sahibinden']=true;
-    else if(il.kaynak==='arabam')etiketler['Arabam']=true;
-    else if(il.kaynak==='letgo')etiketler['Letgo']=true;
-    // Gerçek etiket alanı varsa ekle
+    // Sadece gerçek etiketleri göster
     if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
   });
   var liste=Object.keys(etiketler).sort();
@@ -365,11 +362,7 @@ function filtrele(liste){
     if(min&&f&&f<min)return false;
     if(max<9999999999&&f&&f>max)return false;
     if(kaynak&&il.kaynak!==kaynak)return false;
-    if(etiket){
-      var ilEtiket=il.etiket||'';
-      var kaynakEtiket=il.kaynak==='sahibinden'?'Sahibinden':il.kaynak==='arabam'?'Arabam':il.kaynak==='letgo'?'Letgo':'';
-      if(!ilEtiket.includes(etiket)&&kaynakEtiket!==etiket)return false;
-    }
+    if(etiket&&!(il.etiket||'').includes(etiket))return false;
     if(yilMin&&il.yil&&il.yil<yilMin)return false;
     if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
     if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
