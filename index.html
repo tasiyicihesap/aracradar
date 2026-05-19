@@ -248,6 +248,18 @@ var KASA_DB={
   'Alfa Romeo':{'Giulietta':[{n:'Giulietta',y1:2010,y2:2020}],'Stelvio':[{n:'Stelvio',y1:2016,y2:2030}]}
 };
 
+function etiketDropdownDoldur(){
+  var etiketler={};
+  veri.forEach(function(il){if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});});
+  var liste=Object.keys(etiketler).sort();
+  var sel=document.getElementById('f-etiket');
+  if(!sel)return;
+  var secili=sel.value;
+  sel.innerHTML='<option value="">Tüm Gruplar</option>';
+  liste.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
+  if(secili)sel.value=secili;
+}
+
 function kasaDropdownDoldur(){
   var marka=document.getElementById('f-marka').value;
   var sel=document.getElementById('f-kasa');
