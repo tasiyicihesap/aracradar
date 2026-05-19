@@ -250,7 +250,14 @@ var KASA_DB={
 
 function etiketDropdownDoldur(){
   var etiketler={};
-  veri.forEach(function(il){if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});});
+  veri.forEach(function(il){
+    // Kaynak bazında etiket oluştur
+    if(il.kaynak==='sahibinden')etiketler['Sahibinden']=true;
+    else if(il.kaynak==='arabam')etiketler['Arabam']=true;
+    else if(il.kaynak==='letgo')etiketler['Letgo']=true;
+    // Gerçek etiket alanı varsa ekle
+    if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+  });
   var liste=Object.keys(etiketler).sort();
   var sel=document.getElementById('f-etiket');
   if(!sel)return;
@@ -358,7 +365,11 @@ function filtrele(liste){
     if(min&&f&&f<min)return false;
     if(max<9999999999&&f&&f>max)return false;
     if(kaynak&&il.kaynak!==kaynak)return false;
-    if(etiket&&!(il.etiket||'').includes(etiket))return false;
+    if(etiket){
+      var ilEtiket=il.etiket||'';
+      var kaynakEtiket=il.kaynak==='sahibinden'?'Sahibinden':il.kaynak==='arabam'?'Arabam':il.kaynak==='letgo'?'Letgo':'';
+      if(!ilEtiket.includes(etiket)&&kaynakEtiket!==etiket)return false;
+    }
     if(yilMin&&il.yil&&il.yil<yilMin)return false;
     if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
     if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
@@ -442,7 +453,7 @@ function _gosterSayfa(){
   }else if(_aktifSekme==='yeni'){
     liste=filtrele(veri).filter(function(il){
       var eklenme=il.guncelleme?new Date(il.guncelleme).getTime():(il.gecmis&&il.gecmis.length?(il.gecmis[0].tarih||0):0);
-      return (simdi-eklenme)<gun24 && il.gecmis&&il.gecmis.length===1;
+      return (simdi-eklenme)<gun24;
     });
   }else{
     liste=filtrele(veri);
@@ -453,7 +464,7 @@ function _gosterSayfa(){
   var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)>(parseInt(g[g.length-2].fiyat)||0);}).length;
   var yeni24=veri.filter(function(i){
     var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
-    return (simdi-eklenme)<gun24 && i.gecmis&&i.gecmis.length===1;
+    return (simdi-eklenme)<gun24;
   }).length;
   var deg48=veri.filter(function(i){
     if(!i.gecmis||i.gecmis.length<2)return false;
