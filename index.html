@@ -102,19 +102,6 @@ select:focus,input:focus{border-color:var(--blu)}
     <div class="stat"><div class="stat-l">FİYAT ARTTI</div><div class="stat-v" style="color:var(--red)" id="st-artti">—</div></div>
   </div>
 
-  <!-- TARAMA DURUMU PANELİ -->
-  <div id="tarama-durum-panel" style="display:none;margin-bottom:12px;border:1px solid var(--brd);border-radius:10px;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--yuz);border-bottom:1px solid var(--brd)">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div id="td-led" style="width:10px;height:10px;border-radius:50%;background:#888;flex-shrink:0"></div>
-        <span style="font-size:13px;font-weight:600" id="td-baslik">Tarama Durumu</span>
-      </div>
-      <div style="font-size:11px;color:var(--mut)" id="td-guncelleme">—</div>
-    </div>
-    <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px" id="td-siteler"></div>
-    <div style="padding:8px 14px;border-top:1px solid var(--brd);display:flex;gap:16px;font-size:11px;color:var(--mut)" id="td-ozet"></div>
-  </div>
-
   <div class="filtre-panel">
     <div class="filtre-sat">
       <select id="f-etiket" style="min-width:140px">
@@ -265,16 +252,33 @@ var KASA_DB={
 function etiketDropdownDoldur(){
   var etiketler={};
   veri.forEach(function(il){
-    // Sadece gerçek etiketleri göster
     if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
   });
-  var liste=Object.keys(etiketler).sort();
-  var sel=document.getElementById('f-etiket');
-  if(!sel)return;
-  var secili=sel.value;
-  sel.innerHTML='<option value="">Tüm Gruplar</option>';
-  liste.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
-  if(secili)sel.value=secili;
+
+  function doldur(){
+    var liste=Object.keys(etiketler).sort();
+    var sel=document.getElementById('f-etiket');
+    if(!sel)return;
+    var secili=sel.value;
+    sel.innerHTML='<option value="">Tüm Gruplar</option>';
+    liste.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
+    if(secili)sel.value=secili;
+  }
+
+  // Etiket bulunamadıysa Supabase'den çek
+  if(Object.keys(etiketler).length===0){
+    fetch(SUPABASE_URL+'/rest/v1/ilanlar?select=etiket&not.etiket=is.null&limit=5000',{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    }).then(function(r){return r.json();}).then(function(data){
+      if(!Array.isArray(data))return;
+      data.forEach(function(il){
+        if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+      });
+      doldur();
+    }).catch(function(){doldur();});
+  } else {
+    doldur();
+  }
 }
 
 function kasaDropdownDoldur(){
@@ -458,8 +462,11 @@ function _gosterSayfa(){
     liste=filtrele(veri).filter(function(il){return !!_takipSet[il.id];});
   }else if(_aktifSekme==='yeni'){
     liste=filtrele(veri).filter(function(il){
-      var eklenme=il.guncelleme?new Date(il.guncelleme).getTime():(il.gecmis&&il.gecmis.length?(il.gecmis[0].tarih||0):0);
-      return (simdi-eklenme)<gun24;
+      var eklenme = il.gecmis && il.gecmis.length ? (parseInt(il.gecmis[0].tarih)||0) : 0;
+      if (!eklenme && il.gecmis && il.gecmis.length === 1) {
+        eklenme = il.guncelleme ? new Date(il.guncelleme).getTime() : 0;
+      }
+      return eklenme > 0 && (simdi-eklenme) < gun24;
     });
   }else{
     liste=filtrele(veri);
@@ -469,8 +476,13 @@ function _gosterSayfa(){
   var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)<(parseInt(g[g.length-2].fiyat)||0);}).length;
   var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)>(parseInt(g[g.length-2].fiyat)||0);}).length;
   var yeni24=veri.filter(function(i){
-    var eklenme=i.guncelleme?new Date(i.guncelleme).getTime():(i.gecmis&&i.gecmis.length?(i.gecmis[0].tarih||0):0);
-    return (simdi-eklenme)<gun24;
+    // İlk eklenme tarihi = gecmis[0].tarih (ilk fiyat kaydı)
+    var eklenme = i.gecmis && i.gecmis.length ? (parseInt(i.gecmis[0].tarih)||0) : 0;
+    // Fallback: guncelleme ama gecmis sadece 1 kayıtsa yeni demektir
+    if (!eklenme && i.gecmis && i.gecmis.length === 1) {
+      eklenme = i.guncelleme ? new Date(i.guncelleme).getTime() : 0;
+    }
+    return eklenme > 0 && (simdi-eklenme) < gun24;
   }).length;
   var deg48=veri.filter(function(i){
     if(!i.gecmis||i.gecmis.length<2)return false;
@@ -590,86 +602,6 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById(id).addEventListener('input',goster);
   });
   document.getElementById('btn-yenile').addEventListener('click',veriYukle);
-
-  // ── Tarama Durumu ──────────────────────────────────────────────────────────
-  function taramaDurumYukle() {
-    fetch(SUPABASE_URL + '/rest/v1/tarama_durum?id=eq.tarama_durum', {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      if (!data || !data.length) return;
-      var d = data[0];
-      var panel = document.getElementById('tarama-durum-panel');
-      if (!panel) return;
-      panel.style.display = 'block';
-
-      // LED rengi
-      var led = document.getElementById('td-led');
-      var baslik = document.getElementById('td-baslik');
-      var durumRenk = { basladi:'#22c55e', devam:'#22c55e', bot_tespiti:'#f59e0b', bitti:'#888', durduruldu:'#888', hata:'#ef4444' };
-      var durumAd   = { basladi:'🟢 Tarama Başladı', devam:'🟢 Tarama Devam Ediyor', bot_tespiti:'🟡 Bot Tespiti — Bekleniyor', bitti:'⚫ Tarama Tamamlandı', durduruldu:'⚫ Tarama Durduruldu', hata:'🔴 Hata' };
-      if (led) led.style.background = durumRenk[d.durum] || '#888';
-      if (baslik) baslik.textContent = durumAd[d.durum] || d.durum;
-
-      // Güncelleme zamanı
-      var guEl = document.getElementById('td-guncelleme');
-      if (guEl && d.guncelleme) {
-        var gecen = Math.floor((Date.now() - d.guncelleme) / 1000);
-        var gecenStr = gecen < 60 ? gecen + 'sn önce' : Math.floor(gecen/60) + 'dk önce';
-        guEl.textContent = 'Son güncelleme: ' + gecenStr;
-      }
-
-      // Site detayları
-      var sitelerEl = document.getElementById('td-siteler');
-      if (sitelerEl) {
-        sitelerEl.innerHTML = '';
-        try {
-          var siteler = typeof d.siteler === 'string' ? JSON.parse(d.siteler) : (d.siteler || []);
-          var siteBg = { sahibinden:'#FF6600', arabam:'#E31837', letgo:'#6B3FA0' };
-          siteler.forEach(function(s) {
-            var pct = s.toplamSayfa > 0 ? Math.min(100, Math.floor((s.sayfa / s.toplamSayfa) * 100)) : 0;
-            sitelerEl.innerHTML +=
-              '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:8px 10px">' +
-              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
-              '<span style="font-size:10px;background:' + (siteBg[s.site]||'#888') + ';color:#fff;padding:2px 7px;border-radius:3px;font-weight:700">' + s.site.toUpperCase().substring(0,3) + '</span>' +
-              '<span style="font-size:11px;color:var(--mut)">Sayfa ' + s.sayfa + '/' + s.toplamSayfa + '</span>' +
-              (s.bitti ? '<span style="font-size:10px;color:var(--grn)">✓</span>' : '') +
-              '</div>' +
-              '<div style="height:4px;background:var(--brd);border-radius:2px;margin-bottom:6px">' +
-              '<div style="height:4px;background:' + (siteBg[s.site]||'#888') + ';border-radius:2px;width:' + pct + '%"></div>' +
-              '</div>' +
-              '<div style="font-size:11px;display:flex;gap:10px">' +
-              '<span style="color:var(--grn)">+' + (s.eklenen||0) + ' yeni</span>' +
-              '<span style="color:var(--blud)">~' + (s.guncellenen||0) + ' güncellendi</span>' +
-              '</div></div>';
-          });
-          if (!siteler.length) {
-            sitelerEl.innerHTML = '<div style="font-size:12px;color:var(--mut)">Site bilgisi yok</div>';
-          }
-        } catch(e) {}
-      }
-
-      // Özet
-      var ozetEl = document.getElementById('td-ozet');
-      if (ozetEl) {
-        var sure = '';
-        if (d.baslangic) {
-          var dk = Math.floor((Date.now() - d.baslangic) / 60000);
-          sure = 'Süre: ' + (dk < 60 ? dk + ' dk' : Math.floor(dk/60) + ' sa ' + (dk%60) + ' dk');
-        }
-        ozetEl.innerHTML =
-          '<span>Toplam eklenen: <strong>' + (d.toplam_eklenen||0) + '</strong></span>' +
-          '<span>Güncellenen: <strong>' + (d.toplam_guncellenen||0) + '</strong></span>' +
-          (sure ? '<span>' + sure + '</span>' : '');
-      }
-    })
-    .catch(function(){});
-  }
-
-  // Sayfa yüklenince ve her 30 saniyede bir kontrol et
-  taramaDurumYukle();
-  setInterval(taramaDurumYukle, 30000);
   veriYukle();
   setInterval(veriYukle,5*60*1000);
 });
