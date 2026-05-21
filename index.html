@@ -2,8 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ARAÇRADAR — Araç Fiyat Takip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARAÇRADAR</title>
 <style>
 :root{--bg:#f0efe9;--yuz:#fff;--brd:rgba(0,0,0,0.09);--brd2:rgba(0,0,0,0.16);--txt:#1a1a1a;--mut:#666;--hin:#aaa;--blu:#185FA5;--blul:#E6F1FB;--blud:#0C447C;--grn:#2d7a2d;--grnl:#e8f5e8;--red:#A32D2D;--redl:#FCEBEB;--org:#FF6600;}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -77,27 +77,24 @@ select:focus,input:focus{border-color:var(--blu)}
   header{padding:0 12px}
 }
 </style>
-<style>
-.ana-sekme-bar{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px;padding:4px;background:var(--yuz);border:1px solid var(--brd);border-radius:10px}
-.ana-sekme-btn{padding:8px 16px;border:none;border-radius:7px;background:transparent;color:var(--mut);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
-.ana-sekme-btn:hover{background:var(--blul);color:var(--blu)}
-.ana-sekme-btn.aktif{background:var(--blu);color:#fff}
-</style>
 </head>
 <body>
+
 <header>
-  <div style="display:flex;align-items:center;gap:10px">
-    <div style="width:36px;height:36px;background:#e55c00;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px">🚗</div>
-    <div><div style="font-size:15px;font-weight:700">ARAÇRADAR</div><div style="font-size:11px;color:var(--mut)">Araç Fiyat Takip</div></div>
+  <div class="logo">
+    <div class="logo-icon">🚗</div>
+    <div>
+      <div class="logo-ad">ARAÇRADAR</div>
+      <div class="logo-alt">Araç Fiyat Takip</div>
+    </div>
   </div>
   <div class="header-sag">
-    <div style="font-size:11px;color:var(--mut)" id="sync-info"></div>
-    <span style="font-size:11px;color:var(--mut)" id="son-sync"></span>
+    <span id="son-sync"></span>
     <button class="btn-yenile" id="btn-yenile">↻ Yenile</button>
   </div>
 </header>
 
-<div class="wrap" style="padding-top:16px">
+<div class="wrap">
   <div class="stats">
     <div class="stat"><div class="stat-l">TAKİP EDİLEN</div><div class="stat-v" id="st-takip">—</div></div>
     <div class="stat"><div class="stat-l">FİYAT DÜŞTÜ</div><div class="stat-v" style="color:var(--grn)" id="st-dustu">—</div></div>
@@ -105,28 +102,7 @@ select:focus,input:focus{border-color:var(--blu)}
     <div class="stat"><div class="stat-l">FİYAT ARTTI</div><div class="stat-v" style="color:var(--red)" id="st-artti">—</div></div>
   </div>
 
-  <!-- TARAMA DURUMU -->
-  <div id="tarama-durum-panel" style="display:none;margin-bottom:12px;border:1px solid var(--brd);border-radius:10px;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--yuz);border-bottom:1px solid var(--brd)">
-      <div style="display:flex;align-items:center;gap:8px"><div id="td-led" style="width:10px;height:10px;border-radius:50%;background:#888"></div><span style="font-size:13px;font-weight:600" id="td-baslik">Tarama Durumu</span></div>
-      <div style="font-size:11px;color:var(--mut)" id="td-guncelleme">—</div>
-    </div>
-    <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px" id="td-siteler"></div>
-    <div style="padding:8px 14px;border-top:1px solid var(--brd);display:flex;gap:16px;font-size:11px;color:var(--mut)" id="td-ozet"></div>
-  </div>
-
-  <!-- ANA SEKMELER -->
-  <div class="ana-sekme-bar">
-    <button class="ana-sekme-btn aktif" data-ana-sekme="degisim">⚡ İlan Takip</button>
-    <button class="ana-sekme-btn" data-ana-sekme="analiz">📊 Analiz</button>
-    <button class="ana-sekme-btn" data-ana-sekme="karsilastir">🔄 Araç Karşılaştırma</button>
-    <button class="ana-sekme-btn" data-ana-sekme="benzer">🔍 Benzer Bul</button>
-  </div>
-
-  <!-- İLAN TAKİP -->
-  <div id="site-icerik-ilan">
-  <div id="f-sonuc" style="font-size:12px;color:var(--mut);margin-bottom:8px"></div>
-<div class="filtre-panel">
+  <div class="filtre-panel">
     <div class="filtre-sat">
       <select id="f-etiket" style="min-width:140px">
         <option value="">Tüm Gruplar</option>
@@ -193,276 +169,8 @@ select:focus,input:focus{border-color:var(--blu)}
 
   <div id="liste"><div class="yukleniyor"><div class="yukleniyor-daire"></div>Veriler yükleniyor...</div></div>
 </div>
-  </div>
-
-  <!-- ANALİZ -->
-  <div id="site-icerik-analiz" style="display:none;max-width:1200px;margin:0 auto;padding:0 16px">
-    <div id="analiz-panel"></div>
-  </div>
-
-  <!-- ARAÇ KARŞILAŞTIRMA -->
-  <div id="site-icerik-karsilastir" style="display:none;max-width:1200px;margin:0 auto;padding:0 16px">
-<div class="ana-icerik" id="icerik-karsilastir">
-    <div class="km-tabs">
-      <button class="km-tab aktif" id="kmtab-referans">1. Referans Araç</button>
-      <button class="km-tab" id="kmtab-liste">2. Karşılaştırma Listesi</button>
-      <button class="km-tab" id="kmtab-sonuc">3. Sonuç & Eleme</button>
-    </div>
-
-    <!-- REFERANS ARAÇ -->
-    <div class="km-sec aktif" id="kms-referans">
-
-      <!-- İlan linki ile otomatik doldur -->
-      <div class="km-kart" style="border-left:3px solid var(--blu);margin-bottom:12px">
-        <div class="km-baslik" style="color:var(--blu);margin-bottom:8px">İlan linkinden otomatik doldur</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="ref-link" placeholder="https://www.sahibinden.com/ilan/... veya arabam.com/..." style="flex:1">
-          <button class="mavi" id="btn-ref-link-cek" style="white-space:nowrap;padding:8px 14px">Bilgileri Getir</button>
-        </div>
-        <div id="ref-link-durum" style="font-size:11px;margin-top:6px;min-height:14px;color:var(--mut)"></div>
-      </div>
-
-      <div class="km-kart">
-        <div class="km-baslik">Referans araç — beğendiğin ilan</div>
-        <div class="km-row2">
-          <div><div class="km-label">Marka</div><input id="ref-marka" placeholder="örn. Toyota"></div>
-          <div><div class="km-label">Model</div><input id="ref-model" placeholder="örn. Corolla"></div>
-        </div>
-        <div class="km-row3">
-          <div><div class="km-label">Yıl</div><input id="ref-yil" type="number" placeholder="2020"></div>
-          <div><div class="km-label">KM</div><input id="ref-km" type="number" placeholder="85000"></div>
-          <div><div class="km-label">Fiyat (₺)</div><input id="ref-fiyat" type="number" placeholder="750000"></div>
-        </div>
-        <div class="km-row3">
-          <div><div class="km-label">Yakıt</div>
-            <select id="ref-yakit">
-              <option value="">Seçin</option>
-              <option>Benzin</option><option>Dizel</option><option>LPG</option><option>Hibrit</option><option>Elektrik</option>
-            </select>
-          </div>
-          <div><div class="km-label">Vites</div>
-            <select id="ref-vites">
-              <option value="">Seçin</option>
-              <option>Manuel</option><option>Otomatik</option><option>Yarı Otomatik</option>
-            </select>
-          </div>
-          <div><div class="km-label">Motor (cc)</div><input id="ref-motor" type="number" placeholder="1600"></div>
-        </div>
-        <hr class="km-divider">
-        <div class="km-baslik">Hasar & durum bilgileri</div>
-        <div class="km-row3">
-          <div><div class="km-label">Ağır hasar</div>
-            <select id="ref-hasar">
-              <option value="">Seçin</option><option value="yok">Yok</option><option value="var">Var</option>
-            </select>
-          </div>
-          <div><div class="km-label">Tramer (₺)</div><input id="ref-tramer" type="number" placeholder="0"></div>
-          <div><div class="km-label">Boyalı parça #</div><input id="ref-boya" type="number" placeholder="0"></div>
-        </div>
-        <div class="km-row3">
-          <div><div class="km-label">Değişen parça #</div><input id="ref-degisen" type="number" placeholder="0"></div>
-          <div><div class="km-label">Servis geçmişi</div>
-            <select id="ref-servis">
-              <option value="">Seçin</option><option value="tam">Tam</option><option value="kismi">Kısmi</option><option value="yok">Yok</option>
-            </select>
-          </div>
-          <div><div class="km-label">Garanti</div>
-            <select id="ref-garanti">
-              <option value="">Seçin</option><option value="var">Var</option><option value="yok">Yok</option>
-            </select>
-          </div>
-        </div>
-        <div class="km-row3">
-          <div><div class="km-label">Ekspertiz</div>
-            <select id="ref-ekspertiz">
-              <option value="">Seçin</option><option value="yapildi">Yapıldı</option><option value="yapilmadi">Yapılmadı</option>
-            </select>
-          </div>
-          <div><div class="km-label">Orijinal renk</div>
-            <select id="ref-renk">
-              <option value="">Seçin</option><option value="orijinal">Orijinal</option><option value="boya">Boyalı</option>
-            </select>
-          </div>
-          <div><div class="km-label">Kaporta hasarı</div>
-            <select id="ref-kaporta">
-              <option value="">Seçin</option><option value="yok">Yok</option><option value="hafif">Hafif</option><option value="agir">Ağır</option>
-            </select>
-          </div>
-        </div>
-        <div><div class="km-label">Ek notlar / özellikler</div>
-          <input id="ref-not" placeholder="örn. panoramik tavan, ısıtmalı koltuk...">
-        </div>
-      </div>
-      <div style="display:flex;justify-content:flex-end">
-        <button class="mavi" id="btn-ref-ileri">Karşılaştırma listesine geç →</button>
-      </div>
-    </div>
-
-    <!-- KARŞILAŞTIRMA LİSTESİ -->
-    <div class="km-sec" id="kms-liste">
-      <div class="km-kart">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="km-baslik" style="margin:0">Karşılaştırılacak araçlar</div>
-          <div style="display:flex;gap:6px">
-            <button id="btn-km-listeden-ekle" style="font-size:11px;padding:6px 11px">↓ Listeden otomatik ekle</button>
-            <button class="mavi" id="btn-km-arac-ekle">+ Manuel ekle</button>
-          </div>
-        </div>
-        <p class="km-ipucu" style="margin-bottom:12px">Her aracın ilan bilgilerini gir. Referans araçla otomatik kıyaslanır.</p>
-        <!-- Üst buton -->
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--brd)">
-          <button id="btn-liste-geri-ust" style="padding:7px 13px;border:1px solid var(--brd2);border-radius:7px;background:transparent;color:var(--txt);font-size:12px;font-family:inherit;cursor:pointer">← Geri</button>
-          <button class="mavi" id="btn-km-hesapla-ust">Analizi hesapla →</button>
-        </div>
-        <div id="km-araclar"></div>
-      </div>
-      <!-- Alt buton -->
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-        <button id="btn-liste-geri">← Geri</button>
-        <button class="mavi" id="btn-km-hesapla">Analizi hesapla →</button>
-      </div>
-    </div>
-
-    <!-- SONUÇ -->
-    <div class="km-sec" id="kms-sonuc">
-      <div id="km-sonuc-icerik"><div class="bos">Önce araç listesini doldurup analizi hesaplayın.</div></div>
-    </div>
-  </div>
-</div>
-
-
-  <!-- BENZER BUL -->
-  </div>
-
-  <!-- BENZER BUL -->
-  <div id="site-icerik-benzer" style="display:none;max-width:1200px;margin:0 auto;padding:0 16px">
-<div class="ana-icerik" id="icerik-benzer">
-    <div class="filtre-panel" style="margin-bottom:12px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--blud)">🔍 Benzer İlan Bul</div>
-      <p style="font-size:11px;color:var(--mut);margin-bottom:12px">Bir ilan linkini gir — otomatik dolsun. Ya da kriterleri kendin gir. Sahibinden, Arabam ve Letgo&#39;da eşleşen ilanları fiyata göre sıralar.</p>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <input id="bz-link" placeholder="https://www.sahibinden.com/ilan/... veya arabam.com/..." style="flex:1;font-size:12px">
-        <button id="btn-bz-link-cek" class="mavi" style="white-space:nowrap;padding:7px 13px;font-size:12px">↓ Bilgileri Getir</button>
-      </div>
-      <div id="bz-link-durum" style="font-size:11px;color:var(--mut);min-height:12px;margin-bottom:8px"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-        <div><div class="filtre-label">Marka</div><input id="bz-marka" placeholder="Toyota"></div>
-        <div><div class="filtre-label">Model</div><input id="bz-model" placeholder="Corolla"></div>
-        <div><div class="filtre-label">Yakıt</div>
-          <select id="bz-yakit">
-            <option value="">Tümü</option>
-            <option>Benzin</option>
-            <option>Benzin+LPG</option>
-            <option>Dizel</option>
-            <option>LPG</option>
-            <option>Hibrit</option>
-            <option>Elektrik</option>
-          </select>
-        </div>
-      </div>
-      <!-- Yıl aralığı -->
-      <div style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-          <div class="filtre-label" style="margin:0;white-space:nowrap">Yıl Aralığı</div>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap">
-            <input type="radio" name="bz-yil-mod" id="bz-yil-mod-auto" value="auto" checked>
-            Otomatik (aracın yılından geriye doğru)
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap">
-            <input type="radio" name="bz-yil-mod" id="bz-yil-mod-manuel" value="manuel">
-            Manuel gir
-          </label>
-        </div>
-        <!-- Otomatik mod -->
-        <div id="bz-yil-auto-wrap" style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:12px;color:var(--mut)">Aracın yılından</span>
-          <input id="bz-yil-geri" type="number" value="3" min="0" max="20" style="width:55px;text-align:center">
-          <span style="font-size:12px;color:var(--mut)">yıl geriye, aracın yılından</span>
-          <input id="bz-yil-ileri" type="number" value="0" min="0" max="10" style="width:55px;text-align:center">
-          <span style="font-size:12px;color:var(--mut)">yıl ileriye</span>
-        </div>
-        <!-- Manuel mod -->
-        <div id="bz-yil-manuel-wrap" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div><div class="filtre-label">Yıl Min</div><input id="bz-yil-min" type="number" placeholder="2010"></div>
-          <div><div class="filtre-label">Yıl Max</div><input id="bz-yil-max" type="number" placeholder="2015"></div>
-        </div>
-        <div id="bz-yil-preview" style="font-size:11px;color:var(--blud);margin-top:6px"></div>
-      </div>
-      <!-- Kasa / Nesil seçimi — kasa DB'den otomatik dolar -->
-      <div style="margin-bottom:8px">
-        <div class="filtre-label">Kasa / Nesil (opsiyonel — link getirince otomatik seçilir)</div>
-        <select id="bz-kasa-nesil" style="width:100%">
-          <option value="">Tüm Nesiller — önce marka/model girin</option>
-        </select>
-      </div>
-
-      <!-- KM aralığı -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div><div class="filtre-label">KM Min</div><input id="bz-km-min" type="number" placeholder="0"></div>
-        <div><div class="filtre-label">KM Max</div><input id="bz-km-max" type="number" placeholder="150000"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div><div class="filtre-label">Vites</div>
-          <select id="bz-vites"><option value="">Tümü</option><option>Manuel</option><option>Otomatik</option><option>Yarı Otomatik</option></select>
-        </div>
-        <div><div class="filtre-label">Şehir</div><input id="bz-sehir" placeholder="İstanbul"></div>
-      </div>
-      <div style="margin-bottom:12px">
-        <div class="filtre-label" style="margin-bottom:6px">Hangi sitelerde arasın?</div>
-        <div style="display:flex;gap:12px;align-items:center">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="bz-site-sb" checked> 🟠 Sahibinden</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="bz-site-ar" checked> 🔴 Arabam</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="bz-site-lg"> 🟣 Letgo</label>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1"><div class="filtre-label">Referans Fiyat (₺) — bu ilanın fiyatı</div>
-          <input id="bz-ref-fiyat" type="number" placeholder="örn. 750000" style="width:100%">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button id="btn-bz-ara-db" class="mavi" style="padding:8px 16px;font-size:13px;white-space:nowrap;background:var(--grn)">⚡ DB'den Ara</button>
-          <button id="btn-bz-ara" class="mavi" style="padding:8px 16px;font-size:13px;white-space:nowrap">🌐 Siteleri Canlı Tara</button>
-        </div>
-      </div>
-      <div id="bz-durum" style="font-size:11px;color:var(--mut);margin-top:8px;min-height:14px"></div>
-    </div>
-    <div id="bz-sonuc-wrap" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:500">Sonuçlar — <span id="bz-sonuc-toplam" style="color:var(--blud)">0</span> ilan bulundu</div>
-        <div style="font-size:11px;color:var(--mut)">Referans: <span id="bz-sonuc-ref" style="color:var(--txt)">—</span></div>
-      </div>
-
-      <!-- Site sekmeleri -->
-      <div style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg);padding:4px;border-radius:9px">
-        <button id="bz-tab-tumü" class="km-tab aktif" style="flex:1">🔀 Tümü</button>
-        <button id="bz-tab-sahibinden" class="km-tab" style="flex:1">🟠 Sahibinden</button>
-        <button id="bz-tab-arabam" class="km-tab" style="flex:1">🔴 Arabam</button>
-        <button id="bz-tab-letgo" class="km-tab" style="flex:1">🟣 Letgo</button>
-      </div>
-      <div id="bz-site-link-wrap" style="margin-bottom:10px;padding:8px;background:var(--bg);border-radius:8px;font-size:11px;display:none">
-        <span style="color:var(--mut)">Bu kasa için Sahibinden linki: </span>
-        <a id="bz-sb-link" href="#" target="_blank" style="color:var(--blud);word-break:break-all"></a>
-      </div>
-
-      <div id="bz-ucuz-wrap">
-        <div style="font-size:11px;color:var(--grn);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding:4px 8px;background:var(--grnl);border-radius:5px">▼ DAHA UCUZ — referanstan ucuz ilanlar</div>
-        <div id="bz-ucuz-liste"></div>
-      </div>
-      <div id="bz-ref-ilan" style="margin:8px 0;padding:10px 12px;border:2px solid var(--blu);border-radius:8px;background:var(--blul);display:none">
-        <div style="font-size:11px;color:var(--blud);font-weight:600;margin-bottom:4px">⭐ REFERANS İLAN</div>
-        <div id="bz-ref-ilan-icerik"></div>
-      </div>
-      <div id="bz-pahali-wrap">
-        <div style="font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:10px;padding:4px 8px;background:var(--yuz);border-radius:5px">▲ DAHA PAHALI — sonraki 10 ilan</div>
-        <div id="bz-pahali-liste"></div>
-      </div>
-    </div>
-  </div>
-  </div>
-</div>
 
 <script>
-
 var SUPABASE_URL='https://nnwbdmlqelbadavoslxf.supabase.co';
 var SUPABASE_KEY='sb_publishable_tuG1PYIy0m5fOgnjaFpV9A_trDSYIsg';
 var veri=[];
@@ -784,15 +492,14 @@ function _gosterSayfa(){
     var f2=parseInt(i.gecmis[i.gecmis.length-2].fiyat)||0;
     return f1>0 && f2>0 && f1!==f2;
   }).length;
-  function setEl(id,val){var e=document.getElementById(id);if(e)e.textContent=val;}
-  setEl('st-takip',veri.length.toLocaleString('tr-TR'));
-  setEl('st-dustu',dustu);
-  setEl('st-artti',artti);
-  setEl('st-yeni',yeni24);
-  setEl('sc-degisim',deg48);
-  setEl('sc-takip',Object.keys(_takipSet).length);
-  setEl('f-sonuc',liste.length.toLocaleString('tr-TR')+' ilan gösteriliyor');
-  (document.getElementById('min-degisim-bar')||{style:{}}).style.display =_aktifSekme==='degisim'?'flex':'none';
+  document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
+  document.getElementById('st-dustu').textContent=dustu;
+  document.getElementById('st-artti').textContent=artti;
+  document.getElementById('st-yeni').textContent=yeni24;
+  document.getElementById('sc-degisim').textContent=deg48;
+  document.getElementById('sc-takip').textContent=Object.keys(_takipSet).length;
+  document.getElementById('f-sonuc').textContent=liste.length.toLocaleString('tr-TR')+' ilan gösteriliyor';
+  document.getElementById('min-degisim-bar').style.display=_aktifSekme==='degisim'?'flex':'none';
   var listeEl=document.getElementById('liste');
   if(!liste.length){listeEl.innerHTML='<div class="bos"><div class="bos-ikon">🔍</div>Bu filtreye uyan ilan bulunamadı.<br><small>Filtre kriterlerini gevşetin.</small></div>';return;}
   var gosterilen=liste.slice(0,_SAYFA);
@@ -826,7 +533,7 @@ function _ekleIlanlar(){
 
 function veriYukle(){
   var btn=document.getElementById('btn-yenile');
-  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  btn.textContent='⏳';btn.disabled=true;
   var since=new Date(Date.now()-72*3600*1000).toISOString();
   var headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
   var ilanlar=[];
@@ -851,7 +558,7 @@ function veriYukle(){
       if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
         ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
       }
-      (document.getElementById('son-sync')||{}).textContent ='Sync: '+ts;
+      document.getElementById('son-sync').textContent='Sync: '+ts;
       veri=[];
       ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
       if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
@@ -867,7 +574,51 @@ function veriYukle(){
     });
 }
 
-// analiz fn
+document.addEventListener('DOMContentLoaded',function(){
+  takipYukle();
+  document.querySelectorAll('.sekme').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      _aktifSekme=this.getAttribute('data-sekme');
+      document.querySelectorAll('.sekme').forEach(function(b){b.classList.remove('aktif');});
+      this.classList.add('aktif');goster();
+    });
+  });
+  document.querySelectorAll('.min-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      _minDegisim=parseInt(this.getAttribute('data-val'))||0;
+      document.querySelectorAll('.min-btn').forEach(function(b){b.classList.remove('aktif');});
+      this.classList.add('aktif');goster();
+    });
+  });
+  ['f-srt','f-kaynak','f-degisim','f-marka','f-sehir'].forEach(function(id){
+    document.getElementById(id).addEventListener('change',function(){
+      if(id==='f-marka')kasaDropdownDoldur();
+      goster();
+    });
+  });
+  document.getElementById('f-kasa').addEventListener('change',goster);
+  document.getElementById('f-etiket').addEventListener('change',function(){markaDropdownDoldur();kasaDropdownDoldur();goster();});
+  ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',goster);
+  });
+  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
+  veriYukle();
+  setInterval(veriYukle,5*60*1000);
+});
+
+var SB_URL = SUPABASE_URL;
+var SB_KEY = SUPABASE_KEY;
+
+function anaSekmeDegistir(sekme) {
+  var el = document.getElementById('site-icerik-ilan');
+  if(el) el.style.display = ['degisim','takip','yeni','liste'].indexOf(sekme)!==-1 ? 'block' : 'none';
+  ['analiz','karsilastir','benzer'].forEach(function(s){
+    var e2=document.getElementById('site-icerik-'+s);
+    if(e2) e2.style.display = s===sekme?'block':'none';
+  });
+  if(sekme==='analiz') setTimeout(analizGoster,100);
+}
+
 
 // ─── KARŞILAŞTIRMA MODÜLÜ ──────────────────────────────────────────────────
 
@@ -1672,9 +1423,8 @@ document.addEventListener('click', function(e) {
 });
 
 
-
-var SB_URL = SUPABASE_URL || 'https://nnwbdmlqelbadavoslxf.supabase.co';
-var SB_KEY = SUPABASE_KEY || 'sb_publishable_tuG1PYIy0m5fOgnjaFpV9A_trDSYIsg';
+var SB_URL = SB_URL || 'https://nnwbdmlqelbadavoslxf.supabase.co';
+var SB_KEY = SB_KEY || 'sb_publishable_tuG1PYIy0m5fOgnjaFpV9A_trDSYIsg';
 var _kasaDB = null;
 var _slugDB = null;
 
@@ -1737,7 +1487,7 @@ function benzerKasaGuncelle(marka, model, yil) {
     var yMaxEl = document.getElementById('bz-yil-max');
     if (yMinEl) yMinEl.value = yb;
     if (yMaxEl) yMaxEl.value = ye === 2025 ? new Date().getFullYear() : ye;
-    (document.getElementById('bz-yil-preview')||{}).textContent = 'Kasa: ' + yb + ' \u2014 ' + (ye===2025?'Günümüz':ye);
+    document.getElementById('bz-yil-preview').textContent = 'Kasa: ' + yb + ' \u2014 ' + (ye===2025?'Günümüz':ye);
   };
 }
 
@@ -1836,8 +1586,8 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
   var wrap = document.getElementById('bz-sonuc-wrap');
   if (!wrap) return;
   wrap.style.display = 'block';
-  (document.getElementById('bz-sonuc-toplam')||{}).textContent = ilanlar.length;
-  (document.getElementById('bz-sonuc-ref')||{}).textContent = refFiyat ? refFiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
+  document.getElementById('bz-sonuc-toplam').textContent = ilanlar.length;
+  document.getElementById('bz-sonuc-ref').textContent = refFiyat ? refFiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
 
   // SB linki
   var sbLinkWrap = document.getElementById('bz-site-link-wrap');
@@ -1882,11 +1632,11 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
           + '<a href="' + refLink + '" target="_blank" style="font-size:11px;color:var(--blud);text-decoration:none">\u2197 Aç</a></div>';
       }
       pahaliListe.innerHTML = pahalilar.length ? pahalilar.map(benzerIlanKart).join('') : '<div style="font-size:12px;color:var(--mut);padding:8px">Referans fiyattan pahalı ilan yok.</div>';
-      (document.getElementById('bz-pahali-wrap')||{style:{}}).style.display = 'block';
+      document.getElementById('bz-pahali-wrap').style.display = 'block';
     } else {
       if (refDiv) refDiv.style.display = 'none';
       ucuzListe.innerHTML = liste.map(benzerIlanKart).join('');
-      (document.getElementById('bz-pahali-wrap')||{style:{}}).style.display = 'none';
+      document.getElementById('bz-pahali-wrap').style.display = 'none';
     }
   }
 
@@ -1951,84 +1701,28 @@ function benzerLinkCek(url) {
   var vt=document.getElementById('bz-vites'); if(vt) vt.value='';
   var bzYg=document.getElementById('bz-yil-geri'); if(bzYg) delete bzYg.dataset.refYil;
 
-  (function() {
-    // Önce Supabase DB'den ara
-    var cleanUrl = url.split('?')[0];
-    fetch(SB_URL + '/rest/v1/ilanlar?url=eq.' + encodeURIComponent(cleanUrl) + '&limit=1', {
-      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-    }).then(function(r){ return r.json(); }).then(function(data) {
-      if (data && data.length && data[0].marka) {
-        var il = data[0];
-        var fiyat = il.fiyat || 0;
-        if (!fiyat && il.gecmis) {
-          try { var g=JSON.parse(il.gecmis); if(g&&g.length) fiyat=g[g.length-1].fiyat||0; } catch(e){}
-        }
-        var resp2 = {ok:true, detay:{
-          marka: il.marka||'', model: il.model||'', seri: il.seri||'',
-          yil: il.yil||0, km: il.km||0, fiyat: fiyat,
-          yakit: il.yakit||'', vites: il.vites||'', sehir: il.sehir||'',
-          kaynak: il.kaynak||'sahibinden'
-        }};
-        (function(resp) {
-          if (dur) dur.textContent = '✅ DB'den bulundu — bilgiler dolduruldu';
-          var set = function(id,val){ var el=document.getElementById(id); if(el&&val!==undefined&&val!==null&&val!==''&&val!==0) el.value=val; };
-          if (resp.detay.marka) set('bz-marka', resp.detay.marka);
-          set('bz-model', resp.detay.seri||resp.detay.model||''  );
-          if (resp.detay.fiyat>0) set('bz-ref-fiyat', resp.detay.fiyat);
-          var _refYil = parseInt(resp.detay.yil)||0;
-          if (_refYil>1990) {
-            var bzYilGeriEl=document.getElementById('bz-yil-geri');
-            if(bzYilGeriEl) bzYilGeriEl.dataset.refYil=_refYil;
-            set('bz-yil-min', _refYil); set('bz-yil-max', _refYil);
-            benzerYilPreviewGuncelle(_refYil);
-            kasaDBYukle(function(){ benzerKasaGuncelle(resp.detay.marka, resp.detay.seri||resp.detay.model, _refYil); });
-          }
-          var kmSayi=parseInt(String(resp.detay.km||'0').replace(/\D/g,''))||0;
-          var kmMinEl=document.getElementById('bz-km-min'); if(kmMinEl) kmMinEl.value=kmSayi>0?kmSayi:0;
-          var kmMaxEl=document.getElementById('bz-km-max'); if(kmMaxEl) kmMaxEl.value=kmSayi>0?kmSayi+50000:150000;
-        })(resp2);
-        return;
+  // Site: DB'den ara
+    var _url = url.split('?')[0];
+    fetch(SB_URL+'/rest/v1/ilanlar?url=eq.'+encodeURIComponent(_url)+'&limit=1',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+    .then(function(r){return r.json();}).then(function(dbData){
+      var resp = {ok:false, detay:{marka:'',model:'',seri:'',yil:0,km:0,fiyat:0,yakit:'',vites:'',sehir:'',kaynak:'sahibinden'}};
+      if(dbData&&dbData.length&&dbData[0].marka){
+        var il=dbData[0]; var fiyat=il.fiyat||0;
+        if(!fiyat&&il.gecmis){try{var g=JSON.parse(il.gecmis);if(g&&g.length)fiyat=g[g.length-1].fiyat||0;}catch(e){}}
+        resp={ok:true,detay:{marka:il.marka||'',model:il.model||'',seri:il.seri||'',yil:il.yil||0,km:il.km||0,fiyat:fiyat,yakit:il.yakit||'',vites:il.vites||'',sehir:il.sehir||'',kaynak:il.kaynak||'sahibinden'}};
+      } else {
+        // URL parse fallback
+        var skip=['satilik','ikinci','el','sahibinden','arabam','letgo','vasita','otomobil','ilan','detay','item','iid'];
+        var slug=url.split('/').filter(function(p){return p.length>6&&p.indexOf('-')>-1;}).pop()||'';
+        var words=slug.split('-').filter(function(w){return w.length>1&&isNaN(w)&&skip.indexOf(w)===-1;});
+        if(words[0]) resp.detay.marka=words[0].charAt(0).toUpperCase()+words[0].slice(1);
+        if(words[1]) resp.detay.seri=words[1].charAt(0).toUpperCase()+words[1].slice(1);
+        var ym=url.match(/(20\d{2}|19[89]\d)/); if(ym) resp.detay.yil=parseInt(ym[1]);
+        if(url.indexOf('arabam')>-1) resp.detay.kaynak='arabam';
+        if(url.indexOf('letgo')>-1) resp.detay.kaynak='letgo';
+        resp.ok=true;
       }
-      // DB'de bulunamadı — URL parse ile devam
-      doUrlParse();
-    }).catch(function(){ doUrlParse(); });
-
-    function doUrlParse() {
-    var resp = {ok:true, detay:{marka:'',model:'',seri:'',yil:0,km:0,fiyat:0,yakit:'',vites:'',sehir:'',kaynak:'sahibinden'}};
-    try {
-      // Kaynak belirle
-      if(url.indexOf('arabam')>-1)      resp.detay.kaynak='arabam';
-      else if(url.indexOf('letgo')>-1)  resp.detay.kaynak='letgo';
-      else                               resp.detay.kaynak='sahibinden';
-
-      var skip = ['satilik','ikinci','el','sahibinden','arabam','letgo','vasita','otomobil','com','www','ilan','model','detay','item','iid','auto','araba','arazi','suv','pickup'];
-      
-      // Tüm URL parçalarından en iyi slug'ı bul
-      var allParts = url.toLowerCase().replace(/https?:\/\//,'').split(/[/?#&]/);
-      var bestSlug = allParts.reduce(function(a,b){ return (b.indexOf('-')>-1&&b.length>a.length)?b:a; },'');
-      
-      // Yıl bul
-      var ym = url.match(/(20\d{2}|19[89]\d)/); 
-      if(ym) resp.detay.yil = parseInt(ym[1]);
-      
-      // Slug'dan anlamlı kelimeleri çıkar
-      var words = bestSlug.split('-').filter(function(w){
-        return w.length>1 && isNaN(w) && skip.indexOf(w)===-1 && !/^\d+$/.test(w);
-      });
-      
-      if(words.length>=1) resp.detay.marka = words[0].charAt(0).toUpperCase()+words[0].slice(1);
-      if(words.length>=2) resp.detay.seri  = words[1].charAt(0).toUpperCase()+words[1].slice(1);
-      
-      // Fiyat URL'den çek (arabam URL'lerinde bazen var)
-      var priceM = url.match(/fiyat[=-](\d{4,7})/i); 
-      if(priceM) resp.detay.fiyat = parseInt(priceM[1]);
-
-      // KM URL'den
-      var kmM = url.match(/(\d{2,3})[.-]?(?:bin|000)[.-]?km/i)||url.match(/(\d{3,6})-km/i);
-      if(kmM) resp.detay.km = parseInt(kmM[1]) * (kmM[0].toLowerCase().indexOf('bin')!==-1?1000:1);
-      
-    } catch(e) { console.log('URL parse hata:', e); }
-    (function(resp) {
+      (function(resp) {
     if (chrome.runtime.lastError || !resp || !resp.ok) {
       if (dur) dur.textContent = 'Bilgiler alınamadı — lütfen manuel girin.';
       return;
@@ -2074,9 +1768,8 @@ function benzerLinkCek(url) {
 
     var dolu = [d.marka,d.seri||d.model,d.fiyat,_refYil,d.yakit,d.vites].filter(Boolean).length;
     if (dur) dur.textContent = (dolu>=3?'✅':'⚠️') + ' ' + dolu + '/6 bilgi dolduruldu';
-    })(resp);
-  } // doUrlParse
-  })();
+      })(resp);
+    }).catch(function(){ if(dur) dur.textContent='Bilgi alınamadı — lütfen manuel girin.'; });
 }
 
 // ── Benzer Bul sekme yönetimi ─────────────────────────────────────
@@ -2090,102 +1783,10 @@ function benzerSekmeAc(url, fiyat) {
 }
 
 // ── Canlı Tara (Sahibinden/Arabam/Letgo sekme açarak) ─────────────
-function benzerCanliAra() {
-  var k = benzerKriterHesapla();
-  if (!k.marka && !k.model) {
-    var dur=document.getElementById('bz-durum'); if(dur) dur.textContent='En az marka veya model girin.'; return;
-  }
-  var dur3=document.getElementById('bz-durum');
-  var btn=document.getElementById('btn-bz-ara');
-  if (dur3) dur3.textContent='Siteler taranıyor... (sekme açılacak)';
-  if (btn) btn.disabled=true;
-  (document.getElementById('bz-sonuc-wrap')||{style:{}}).style.display ='none';
-
-  chrome.runtime.sendMessage({ action:'benzerAra', kriterler:k }, function(resp){
-    if (btn) btn.disabled=false;
-    if (chrome.runtime.lastError||!resp||!resp.ok) {
-      if (dur3) dur3.textContent='Tarama sırasında hata oluştu.'; return;
-    }
-    var ilanlar = resp.ilanlar||[];
-    if (dur3) dur3.textContent = ilanlar.length ? '✅ '+ilanlar.length+' ilan bulundu.' : 'Eşleşen ilan bulunamadı.';
-    benzerSonucGoster(ilanlar, k.refFiyat);
-  });
-}
+function benzerCanliAra(){ var d=document.getElementById('bz-durum'); if(d) d.textContent="Canlı tarama sadece extension'da var. DB\'den Ara kullanın.'; }"; 
 
 // ── DOMContentLoaded ──────────────────────────────────────────────
-
-
-
-
-
-// SUPABASE_URL ve KEY yukarıda tanımlı
-
-function anaSekmeDegistir(sekme) {
-  var ilanSekmeleri = ['degisim','takip','yeni','liste'];
-  var ilanMi = ilanSekmeleri.indexOf(sekme) !== -1;
-  var ilanEl = document.getElementById('site-icerik-ilan');
-  if (ilanEl) ilanEl.style.display = ilanMi ? 'block' : 'none';
-  ['analiz','karsilastir','benzer'].forEach(function(s){
-    var el = document.getElementById('site-icerik-'+s);
-    if (el) el.style.display = s===sekme ? 'block' : 'none';
-  });
-  if (sekme==='analiz') setTimeout(analizGoster, 100);
-}
-
-function taramaDurumYukle() {
-  fetch(SUPABASE_URL+'/rest/v1/tarama_durum?id=eq.tarama_durum',{
-    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
-  }).then(function(r){return r.json();}).then(function(data){
-    if(!data||!data.length)return;
-    var d=data[0];
-    var panel=document.getElementById('tarama-durum-panel');
-    if(!panel)return;
-    panel.style.display='block';
-    var durumRenk={basladi:'#22c55e',devam:'#22c55e',bot_tespiti:'#f59e0b',bitti:'#888',durduruldu:'#888',hata:'#ef4444'};
-    var durumAd={basladi:'🟢 Tarama Başladı',devam:'🟢 Tarama Devam Ediyor',bot_tespiti:'🟡 Bot Tespiti',bitti:'⚫ Tamamlandı',durduruldu:'⚫ Durduruldu',hata:'🔴 Hata'};
-    var led=document.getElementById('td-led'); if(led) led.style.background=durumRenk[d.durum]||'#888';
-    var bas=document.getElementById('td-baslik'); if(bas) bas.textContent=durumAd[d.durum]||d.durum;
-    var gu=document.getElementById('td-guncelleme');
-    if(gu&&d.guncelleme){var g=Math.floor((Date.now()-d.guncelleme)/1000);gu.textContent=(g<60?g+'sn':Math.floor(g/60)+'dk')+' önce';}
-    var sEl=document.getElementById('td-siteler');
-    if(sEl){sEl.innerHTML='';try{var siteler=JSON.parse(d.siteler||'[]');var sb={sahibinden:'#FF6600',arabam:'#E31837',letgo:'#6B3FA0'};siteler.forEach(function(s){var p=s.toplamSayfa>0?Math.min(100,Math.floor(s.sayfa/s.toplamSayfa*100)):0;sEl.innerHTML+='<div style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:8px 10px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:10px;background:'+(sb[s.site]||'#888')+';color:#fff;padding:2px 7px;border-radius:3px;font-weight:700">'+s.site.substring(0,3).toUpperCase()+'</span><span style="font-size:11px;color:var(--mut)">'+s.sayfa+'/'+s.toplamSayfa+'</span>'+(s.bitti?'<span style="color:var(--grn);font-size:10px">✓</span>':'')+'</div><div style="height:4px;background:var(--brd);border-radius:2px"><div style="height:4px;background:'+(sb[s.site]||'#888')+';border-radius:2px;width:'+p+'%"></div></div><div style="font-size:11px;margin-top:4px"><span style="color:var(--grn)">+'+s.eklenen+' yeni</span></div></div>';});}catch(e){}}
-    var oz=document.getElementById('td-ozet');
-    if(oz){var dk=d.baslangic?Math.floor((Date.now()-d.baslangic)/60000):0;oz.innerHTML='<span>Eklenen: <b>'+(d.toplam_eklenen||0)+'</b></span><span>Güncellenen: <b>'+(d.toplam_guncellenen||0)+'</b></span>'+(dk?'<span>'+dk+' dk</span>':'');}
-  }).catch(function(){});
-}
-
-
-document.addEventListener('DOMContentLoaded', function(){
-  takipYukle();
-  document.querySelectorAll('.sekme').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      _aktifSekme=this.getAttribute('data-sekme');
-      document.querySelectorAll('.sekme').forEach(function(b){b.classList.remove('aktif');});
-      this.classList.add('aktif');goster();
-    });
-  });
-  document.querySelectorAll('.min-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      _minDegisim=parseInt(this.getAttribute('data-val'))||0;
-      document.querySelectorAll('.min-btn').forEach(function(b){b.classList.remove('aktif');});
-      this.classList.add('aktif');goster();
-    });
-  });
-  ['f-srt','f-kaynak','f-degisim','f-marka','f-sehir'].forEach(function(id){
-    document.getElementById(id).addEventListener('change',function(){
-      if(id==='f-marka')kasaDropdownDoldur();
-      goster();
-    });
-  });
-  document.getElementById('f-kasa').addEventListener('change',goster);
-  document.getElementById('f-etiket').addEventListener('change',function(){markaDropdownDoldur();kasaDropdownDoldur();goster();});
-  ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
-    document.getElementById(id).addEventListener('input',goster);
-  });
-  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
-  veriYukle();
-  setInterval(veriYukle,5*60*1000);
-
+document.addEventListener('DOMContentLoaded', function() {
   // Kasa DB yükle
   kasaDBYukle(function(){
     console.log('[ARAÇRADAR] Kasa DB:', Object.keys(_kasaDB||{}).length, 'marka');
@@ -2233,15 +1834,43 @@ document.addEventListener('DOMContentLoaded', function(){
   var bzYilIleriEl=document.getElementById('bz-yil-ileri');
   if(bzYilGeriEl)  bzYilGeriEl.addEventListener('input',  function(){ benzerYilPreviewGuncelle(); });
   if(bzYilIleriEl) bzYilIleriEl.addEventListener('input', function(){ benzerYilPreviewGuncelle(); });
+});
 
+// Bildirimden gelen mesaj
+
+
+
+function taramaDurumYukle(){
+  fetch(SUPABASE_URL+'/rest/v1/tarama_durum?id=eq.tarama_durum',{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data||!data.length)return;
+    var d=data[0];
+    var p=document.getElementById('tarama-durum-panel'); if(!p)return;
+    p.style.display='block';
+    var rc={basladi:'#22c55e',devam:'#22c55e',bot_tespiti:'#f59e0b',bitti:'#888',durduruldu:'#888',hata:'#ef4444'};
+    var ra={basladi:'🟢 Tarama Başladı',devam:'🟢 Devam Ediyor',bot_tespiti:'🟡 Bot Tespiti',bitti:'⚫ Tamamlandı',durduruldu:'⚫ Durduruldu',hata:'🔴 Hata'};
+    var led=document.getElementById('td-led'); if(led) led.style.background=rc[d.durum]||'#888';
+    var bas=document.getElementById('td-baslik'); if(bas) bas.textContent=ra[d.durum]||d.durum;
+    var gu=document.getElementById('td-guncelleme');
+    if(gu&&d.guncelleme){var g2=Math.floor((Date.now()-d.guncelleme)/1000);gu.textContent=(g2<60?g2+'sn':Math.floor(g2/60)+'dk')+' önce';}
+    var se=document.getElementById('td-siteler');
+    if(se){se.innerHTML='';try{var ss=JSON.parse(d.siteler||'[]');var sb2={sahibinden:'#FF6600',arabam:'#E31837',letgo:'#6B3FA0'};ss.forEach(function(st){var pp2=st.toplamSayfa>0?Math.min(100,Math.floor(st.sayfa/st.toplamSayfa*100)):0;se.innerHTML+='<div style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:8px 10px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:10px;background:'+(sb2[st.site]||'#888')+';color:#fff;padding:2px 7px;border-radius:3px;font-weight:700">'+st.site.substring(0,3).toUpperCase()+'</span><span style="font-size:11px;color:var(--mut)">'+st.sayfa+'/'+st.toplamSayfa+'</span></div><div style="height:4px;background:var(--brd);border-radius:2px"><div style="height:4px;background:'+(sb2[st.site]||'#888')+';border-radius:2px;width:'+pp2+'%"></div></div><div style="font-size:11px;margin-top:4px;color:var(--grn)">+'+st.eklenen+' yeni</div></div>';});}catch(ex){}}
+    var oz=document.getElementById('td-ozet'); if(oz) oz.innerHTML='<span>Eklenen: <b>'+(d.toplam_eklenen||0)+'</b></span><span>Güncellenen: <b>'+(d.toplam_guncellenen||0)+'</b></span>';
+  }).catch(function(){});
+}
+
+
+document.addEventListener('DOMContentLoaded', function(){
+  // Ana sekme butonları
   document.querySelectorAll('[data-ana-sekme]').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('[data-ana-sekme]').forEach(function(b){b.classList.remove('aktif');});
       this.classList.add('aktif');
-      var s = this.getAttribute('data-ana-sekme');
-      _aktifSekme = s;
-      anaSekmeDegistir(s);
-      if (['degisim','takip','yeni','liste'].indexOf(s)!==-1) goster();
+      var s2 = this.getAttribute('data-ana-sekme');
+      _aktifSekme = s2;
+      anaSekmeDegistir(s2);
+      if(['degisim','takip','yeni','liste'].indexOf(s2)!==-1) goster();
     });
   });
   kasaDBYukle(function(){ console.log('[Site] Kasa DB OK'); });
