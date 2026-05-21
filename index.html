@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARAÇRADAR</title>
+<style>
+:root{--bg:#f0efe9;--yuz:#fff;--brd:rgba(0,0,0,0.09);--brd2:rgba(0,0,0,0.16);--txt:#1a1a1a;--mut:#666;--hin:#aaa;--blu:#185FA5;--blul:#E6F1FB;--blud:#0C447C;--grn:#2d7a2d;--grnl:#e8f5e8;--red:#A32D2D;--redl:#FCEBEB;--org:#FF6600;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+header{background:var(--yuz);border-bottom:1px solid var(--brd);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,0.07)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:#FF6600;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-ad{font-size:17px;font-weight:800;color:#FF6600;letter-spacing:-.01em}
+.logo-alt{font-size:10px;color:var(--mut);margin-top:-2px}
+.header-sag{display:flex;align-items:center;gap:10px}
+#son-sync{font-size:11px;color:var(--mut)}
+.btn-yenile{background:var(--blu);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-yenile:hover{background:var(--blud)}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:12px 14px}
+.stat-l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.stat-v{font-size:22px;font-weight:300;letter-spacing:-.02em}
+.filtre-panel{background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.filtre-sat{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.filtre-sat:last-of-type{margin-bottom:0}
+select,input{padding:7px 10px;border:1px solid var(--brd2);border-radius:7px;font-size:13px;background:var(--yuz);color:var(--txt);outline:none;font-family:inherit}
+select:focus,input:focus{border-color:var(--blu)}
+.f-sonuc{font-size:12px;color:var(--mut);padding-top:8px;border-top:1px solid var(--brd);margin-top:8px}
+.sekme-bar{display:flex;background:var(--yuz);border:1px solid var(--brd);border-radius:10px 10px 0 0;overflow:hidden}
+.sekme{background:none;border:none;border-bottom:2px solid transparent;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;color:var(--mut);font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s}
+.sekme:hover{background:var(--blul);color:var(--blu)}
+.sekme.aktif{color:var(--blu);border-bottom-color:var(--blu);background:var(--blul)}
+.sekme-sayac{background:var(--blu);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.degisim-bar{background:var(--yuz);border:1px solid var(--brd);border-top:none;border-radius:0 0 10px 10px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.degisim-bar label{font-size:12px;color:var(--mut);font-weight:600}
+.min-sec{display:flex;gap:6px;flex-wrap:wrap}
+.min-btn{background:var(--bg);border:1px solid var(--brd2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--txt);transition:all .15s}
+.min-btn:hover{border-color:var(--blu);color:var(--blu)}
+.min-btn.aktif{background:var(--blu);color:#fff;border-color:var(--blu)}
+.ilan{background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:box-shadow .15s}
+.ilan:hover{box-shadow:0 2px 8px rgba(0,0,0,0.09)}
+.ilan-ust{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.kaynak-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.ilan-ad{font-size:14px;font-weight:700;line-height:1.3;flex:1}
+.ilan-url{font-size:11px;color:var(--blu);word-break:break-all;margin-bottom:6px;text-decoration:none;display:block}
+.ilan-url:hover{text-decoration:underline}
+.ilan-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.ilan-fiyat{font-size:18px;font-weight:300;letter-spacing:-.01em}
+.fiyat-dustu{color:var(--grn);font-weight:700}
+.fiyat-yukseldi{color:var(--red);font-weight:700}
+.degisim-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px}
+.degisim-indi{background:var(--grnl);color:var(--grn)}
+.degisim-yukseldi{background:var(--redl);color:var(--red)}
+.degisim-yeni{background:var(--blul);color:var(--blu)}
+.degisim-ayni{background:#f5f5f5;color:var(--mut)}
+.ilan-detay{font-size:11px;color:var(--mut);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.gecmis{margin-top:8px;border-top:1px solid var(--brd);padding-top:8px}
+.gecmis-l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.gecmis-sat{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--mut)}
+.gecmis-sat:last-child{color:var(--txt);font-weight:600}
+.ilan-alt{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.takip-btn{background:none;border:1px solid var(--brd2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--mut);transition:all .15s}
+.takip-btn:hover{border-color:var(--org);color:var(--org)}
+.takip-btn.aktif{background:var(--org);color:#fff;border-color:var(--org)}
+.ilan-tarih{font-size:11px;color:var(--hin)}
+.bos,.yukleniyor{text-align:center;padding:60px 20px;color:var(--mut)}
+.bos-ikon{font-size:40px;margin-bottom:14px}
+.yukleniyor-daire{width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--blu);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .wrap{padding:10px}
+  .filtre-sat{flex-direction:column}
+  select,input{width:100%}
+  header{padding:0 12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🚗</div>
+    <div>
+      <div class="logo-ad">ARAÇRADAR</div>
+      <div class="logo-alt">Araç Fiyat Takip</div>
+    </div>
+  </div>
+  <div class="header-sag">
+    <span id="son-sync"></span>
+    <button class="btn-yenile" id="btn-yenile">↻ Yenile</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="stat"><div class="stat-l">TAKİP EDİLEN</div><div class="stat-v" id="st-takip">—</div></div>
+    <div class="stat"><div class="stat-l">FİYAT DÜŞTÜ</div><div class="stat-v" style="color:var(--grn)" id="st-dustu">—</div></div>
+    <div class="stat"><div class="stat-l">SON 24S YENİ</div><div class="stat-v" id="st-yeni">—</div></div>
+    <div class="stat"><div class="stat-l">FİYAT ARTTI</div><div class="stat-v" style="color:var(--red)" id="st-artti">—</div></div>
+  </div>
+
+  <div class="filtre-panel">
+    <div class="filtre-sat">
+      <select id="f-etiket" style="min-width:140px">
+        <option value="">Tüm Gruplar</option>
+      </select>
+      <select id="f-kaynak" style="min-width:140px">
+        <option value="">Tüm Siteler</option>
+        <option value="sahibinden">🟠 Sahibinden</option>
+        <option value="arabam">🔴 Arabam</option>
+        <option value="letgo">🟣 Letgo</option>
+      </select>
+      <select id="f-marka" style="min-width:160px">
+        <option value="">Tüm Markalar</option>
+      </select>
+      <select id="f-kasa" style="min-width:160px">
+        <option value="">Tüm Kasa/Nesil</option>
+      </select>
+      <select id="f-sehir" style="min-width:150px">
+        <option value="">Tüm Şehirler</option>
+      </select>
+      <select id="f-degisim" style="min-width:150px">
+        <option value="">Tüm Değişimler</option>
+        <option value="indi">📉 Sadece düşenler</option>
+        <option value="yukseldi">📈 Sadece artanlar</option>
+        <option value="yeni">🆕 Sadece yeniler</option>
+      </select>
+      <select id="f-srt" style="flex:1;min-width:180px">
+        <option value="tarih-desc">↓ En yeni değişim</option>
+        <option value="inis-miktari">📉 En çok fiyat inen</option>
+        <option value="yukselis-miktari">📈 En çok fiyat yükselen</option>
+        <option value="fiyat-asc">Fiyat: ucuzdan pahalıya</option>
+        <option value="fiyat-desc">Fiyat: pahalıdan ucuza</option>
+        <option value="yil-desc">Yıl: yeniden eskiye</option>
+        <option value="km-asc">KM: azdan çoğa</option>
+      </select>
+    </div>
+    <div class="filtre-sat">
+      <input type="text" id="f-ara" placeholder="Başlık ara..." style="flex:1;min-width:160px">
+      <input type="number" id="f-min" placeholder="Min ₺" style="width:100px" value="90000">
+      <input type="number" id="f-max" placeholder="Max ₺" style="width:110px" value="1000000">
+      <input type="number" id="f-yil-min" placeholder="Min yıl" style="width:85px">
+      <input type="number" id="f-yil-max" placeholder="Max yıl" style="width:85px">
+    </div>
+    <div class="f-sonuc" id="f-sonuc"></div>
+  </div>
+
+  <div class="sekme-bar">
+    <button class="sekme aktif" data-sekme="degisim">⚡ Değişenler<span class="sekme-sayac" id="sc-degisim">0</span></button>
+    <button class="sekme" data-sekme="takip">★ Takipte<span class="sekme-sayac" id="sc-takip" style="background:#FF6600">0</span></button>
+    <button class="sekme" data-sekme="yeni">🕐 Yeni Eklenenler</button>
+    <button class="sekme" data-sekme="liste">📋 Tüm Liste</button>
+  </div>
+
+  <div class="degisim-bar" id="min-degisim-bar">
+    <label>Min değişim:</label>
+    <div class="min-sec">
+      <button class="min-btn" data-val="0">Hepsi</button>
+      <button class="min-btn" data-val="5000">5 bin ₺</button>
+      <button class="min-btn" data-val="10000">10 bin ₺</button>
+      <button class="min-btn aktif" data-val="30000">30 bin ₺</button>
+      <button class="min-btn" data-val="50000">50 bin ₺</button>
+      <button class="min-btn" data-val="100000">100 bin ₺</button>
+    </div>
+  </div>
+
+  <div id="liste"><div class="yukleniyor"><div class="yukleniyor-daire"></div>Veriler yükleniyor...</div></div>
+</div>
+
+<script>
+var SUPABASE_URL='https://nnwbdmlqelbadavoslxf.supabase.co';
+var SUPABASE_KEY='sb_publishable_tuG1PYIy0m5fOgnjaFpV9A_trDSYIsg';
+var veri=[];
+var _takipSet={};
+var _aktifSekme='degisim';
+var _minDegisim=30000;
+
+function takipYukle(){try{var a=JSON.parse(localStorage.getItem('ar_takip')||'[]');_takipSet={};a.forEach(function(id){_takipSet[id]=true;});}catch(e){_takipSet={};}}
+function takipKaydet(){try{localStorage.setItem('ar_takip',JSON.stringify(Object.keys(_takipSet)));}catch(e){}}
+function takipToggle(id){if(_takipSet[id])delete _takipSet[id];else _takipSet[id]=true;takipKaydet();goster();}
+
+function zamanGoster(ts){
+  if(!ts)return '';
+  var fark=Date.now()-ts;
+  if(fark<60000)return 'az önce';
+  if(fark<3600000)return Math.floor(fark/60000)+' dk önce';
+  if(fark<86400000)return Math.floor(fark/3600000)+' sa önce';
+  var d=new Date(ts);
+  return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function adGoster(il){
+  if(il.ad&&il.ad.length>3&&il.ad!=='Öne Çıkan')return il.ad;
+  var url=il.url||'';var ad='';
+  if(url.includes('arabam.com')){var m=url.match(/satilik-([a-z0-9-]+?)\/[a-z0-9-]+?\/\d+/);if(m)ad=m[1].replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});}
+  else if(url.includes('sahibinden.com')){var m2=url.match(/otomobil-([a-z0-9-]+?)\//);if(m2)ad=m2[1].replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});}
+  return ad||(il.kaynak==='arabam'?'Arabam İlanı':il.kaynak==='letgo'?'Letgo İlanı':'Sahibinden İlanı');
+}
+
+// gecmis: [eski...yeni] — push ile ekleniyor, [length-1] en yeni
+function sonFiyat(il){return il.gecmis&&il.gecmis.length?(parseInt(il.gecmis[il.gecmis.length-1].fiyat)||0):0;}
+function sonTarih(il){return il.gecmis&&il.gecmis.length?(parseInt(il.gecmis[il.gecmis.length-1].tarih)||0):0;}
+
+var MARKALAR=['Toyota','Honda','Ford','Volkswagen','BMW','Mercedes','Audi','Hyundai','Kia','Renault','Peugeot','Citroen','Fiat','Opel','Seat','Skoda','Volvo','Nissan','Mazda','Mitsubishi','Suzuki','Dacia','Alfa Romeo','Jeep','Land Rover','Porsche','Mini','Subaru','Chevrolet','Tofas','Saab','Smart','Infiniti','Lexus'];
+var SEHIRLER=['Adana','Ankara','Antalya','Bursa','Denizli','Diyarbakır','Eskişehir','Gaziantep','Istanbul','İstanbul','İzmir','Izmir','Kayseri','Kocaeli','Konya','Malatya','Mersin','Samsun','Sakarya','Trabzon','Urfa'];
+
+function ilanMarka(il){
+  var metin=((il.ad||'')+' '+(il.url||'')).toLowerCase();
+  for(var i=0;i<MARKALAR.length;i++){
+    if(metin.includes(MARKALAR[i].toLowerCase()))return MARKALAR[i];
+  }
+  return '';
+}
+
+function ilanSehir(il){
+  if(il.sehir&&il.sehir.trim())return il.sehir.trim();
+  var metin=(il.ad||'').toLowerCase();
+  for(var i=0;i<SEHIRLER.length;i++){
+    if(metin.includes(SEHIRLER[i].toLowerCase()))return SEHIRLER[i].charAt(0).toUpperCase()+SEHIRLER[i].slice(1);
+  }
+  return '';
+}
+
+var KASA_DB={
+  'Renault':{'Clio':[{n:'Clio II',y1:1998,y2:2005},{n:'Clio III',y1:2005,y2:2012},{n:'Clio IV',y1:2012,y2:2019},{n:'Clio V',y1:2019,y2:2030}],'Megane':[{n:'Megane II',y1:2002,y2:2008},{n:'Megane III',y1:2008,y2:2016},{n:'Megane IV',y1:2016,y2:2030}],'Fluence':[{n:'Fluence',y1:2009,y2:2017}],'Symbol':[{n:'Symbol I',y1:1999,y2:2008},{n:'Symbol II',y1:2008,y2:2013},{n:'Symbol III',y1:2013,y2:2021}],'Kadjar':[{n:'Kadjar I',y1:2015,y2:2022},{n:'Kadjar II',y1:2022,y2:2030}],'Captur':[{n:'Captur I',y1:2013,y2:2019},{n:'Captur II',y1:2019,y2:2030}]},
+  'Volkswagen':{'Golf':[{n:'Golf IV',y1:1997,y2:2003},{n:'Golf V',y1:2003,y2:2008},{n:'Golf VI',y1:2008,y2:2012},{n:'Golf VII',y1:2012,y2:2019},{n:'Golf VIII',y1:2019,y2:2030}],'Polo':[{n:'Polo IV (9N)',y1:2001,y2:2009},{n:'Polo V (6R)',y1:2009,y2:2017},{n:'Polo VI (AW)',y1:2017,y2:2030}],'Passat':[{n:'Passat B6',y1:2005,y2:2010},{n:'Passat B7',y1:2010,y2:2014},{n:'Passat B8',y1:2014,y2:2023}],'Tiguan':[{n:'Tiguan I',y1:2007,y2:2016},{n:'Tiguan II',y1:2016,y2:2023},{n:'Tiguan III',y1:2023,y2:2030}],'Jetta':[{n:'Jetta V',y1:2005,y2:2010},{n:'Jetta VI',y1:2010,y2:2018},{n:'Jetta VII',y1:2018,y2:2030}]},
+  'Toyota':{'Corolla':[{n:'E120 (9.nesil)',y1:2001,y2:2006},{n:'E150 (10.nesil)',y1:2006,y2:2013},{n:'E170 (11.nesil)',y1:2013,y2:2019},{n:'E210 (12.nesil)',y1:2019,y2:2030}],'Yaris':[{n:'Yaris II',y1:2005,y2:2011},{n:'Yaris III',y1:2011,y2:2020},{n:'Yaris IV',y1:2020,y2:2030}],'C-HR':[{n:'C-HR I',y1:2016,y2:2023},{n:'C-HR II',y1:2023,y2:2030}],'RAV4':[{n:'RAV4 IV',y1:2013,y2:2018},{n:'RAV4 V',y1:2018,y2:2030}]},
+  'Fiat':{'Egea':[{n:'Egea I',y1:2015,y2:2022},{n:'Egea II',y1:2022,y2:2030}],'Linea':[{n:'Linea',y1:2007,y2:2017}],'Doblo':[{n:'Doblo II',y1:2009,y2:2022},{n:'Doblo III',y1:2022,y2:2030}],'500':[{n:'500 (312)',y1:2007,y2:2019},{n:'500e',y1:2020,y2:2030}]},
+  'Ford':{'Focus':[{n:'Focus II',y1:2004,y2:2011},{n:'Focus III',y1:2011,y2:2018},{n:'Focus IV',y1:2018,y2:2030}],'Fiesta':[{n:'Fiesta VI',y1:2008,y2:2017},{n:'Fiesta VII',y1:2017,y2:2023}],'Kuga':[{n:'Kuga I',y1:2008,y2:2012},{n:'Kuga II',y1:2012,y2:2019},{n:'Kuga III',y1:2019,y2:2030}],'Mondeo':[{n:'Mondeo IV',y1:2007,y2:2014},{n:'Mondeo V',y1:2014,y2:2022}]},
+  'Opel':{'Astra':[{n:'Astra G',y1:1998,y2:2004},{n:'Astra H',y1:2004,y2:2009},{n:'Astra J',y1:2009,y2:2015},{n:'Astra K',y1:2015,y2:2021},{n:'Astra L',y1:2021,y2:2030}],'Corsa':[{n:'Corsa C',y1:2000,y2:2006},{n:'Corsa D',y1:2006,y2:2014},{n:'Corsa E',y1:2014,y2:2019},{n:'Corsa F',y1:2019,y2:2030}],'Insignia':[{n:'Insignia A',y1:2008,y2:2017},{n:'Insignia B',y1:2017,y2:2030}]},
+  'Hyundai':{'i20':[{n:'i20 I',y1:2008,y2:2014},{n:'i20 II',y1:2014,y2:2020},{n:'i20 III',y1:2020,y2:2030}],'i30':[{n:'i30 I',y1:2007,y2:2012},{n:'i30 II',y1:2012,y2:2017},{n:'i30 III',y1:2017,y2:2030}],'Tucson':[{n:'Tucson II',y1:2009,y2:2015},{n:'Tucson III',y1:2015,y2:2020},{n:'Tucson IV',y1:2020,y2:2030}],'Elantra':[{n:'Elantra V',y1:2010,y2:2016},{n:'Elantra VI',y1:2016,y2:2020},{n:'Elantra VII',y1:2020,y2:2030}]},
+  'Honda':{'Civic':[{n:'Civic VIII',y1:2005,y2:2011},{n:'Civic IX',y1:2011,y2:2015},{n:'Civic X',y1:2015,y2:2021},{n:'Civic XI',y1:2021,y2:2030}],'CR-V':[{n:'CR-V III',y1:2006,y2:2011},{n:'CR-V IV',y1:2011,y2:2017},{n:'CR-V V',y1:2017,y2:2023}]},
+  'BMW':{'3 Serisi':[{n:'E46',y1:1998,y2:2005},{n:'E90',y1:2005,y2:2012},{n:'F30',y1:2012,y2:2018},{n:'G20',y1:2018,y2:2030}],'5 Serisi':[{n:'E60',y1:2003,y2:2010},{n:'F10',y1:2010,y2:2016},{n:'G30',y1:2016,y2:2023}],'1 Serisi':[{n:'E87',y1:2004,y2:2011},{n:'F20',y1:2011,y2:2019},{n:'F40',y1:2019,y2:2030}]},
+  'Mercedes-Benz':{'C Serisi':[{n:'W203',y1:2000,y2:2007},{n:'W204',y1:2007,y2:2014},{n:'W205',y1:2014,y2:2021},{n:'W206',y1:2021,y2:2030}],'E Serisi':[{n:'W211',y1:2002,y2:2009},{n:'W212',y1:2009,y2:2016},{n:'W213',y1:2016,y2:2023}],'A Serisi':[{n:'W168',y1:1997,y2:2004},{n:'W169',y1:2004,y2:2012},{n:'W176',y1:2012,y2:2018},{n:'W177',y1:2018,y2:2030}]},
+  'Audi':{'A3':[{n:'8P',y1:2003,y2:2012},{n:'8V',y1:2012,y2:2020},{n:'8Y',y1:2020,y2:2030}],'A4':[{n:'B7',y1:2004,y2:2008},{n:'B8',y1:2008,y2:2015},{n:'B9',y1:2015,y2:2023}],'Q5':[{n:'8R',y1:2008,y2:2017},{n:'FY',y1:2017,y2:2030}]},
+  'Skoda':{'Octavia':[{n:'Mk2',y1:2004,y2:2013},{n:'Mk3',y1:2013,y2:2020},{n:'Mk4',y1:2020,y2:2030}],'Fabia':[{n:'Mk2',y1:2007,y2:2014},{n:'Mk3',y1:2014,y2:2021},{n:'Mk4',y1:2021,y2:2030}]},
+  'Peugeot':{'208':[{n:'208 I',y1:2012,y2:2019},{n:'208 II',y1:2019,y2:2030}],'301':[{n:'301 I',y1:2012,y2:2020},{n:'301 II',y1:2020,y2:2030}],'3008':[{n:'3008 I',y1:2009,y2:2016},{n:'3008 II',y1:2016,y2:2023}]},
+  'Dacia':{'Duster':[{n:'Duster I',y1:2010,y2:2017},{n:'Duster II',y1:2017,y2:2023},{n:'Duster III',y1:2023,y2:2030}],'Sandero':[{n:'Sandero I',y1:2008,y2:2012},{n:'Sandero II',y1:2012,y2:2020},{n:'Sandero III',y1:2020,y2:2030}]},
+  'Kia':{'Sportage':[{n:'Mk3',y1:2010,y2:2015},{n:'Mk4',y1:2015,y2:2021},{n:'Mk5',y1:2021,y2:2030}],'Ceed':[{n:'ED',y1:2006,y2:2012},{n:'JD',y1:2012,y2:2018},{n:'CD',y1:2018,y2:2030}],'Rio':[{n:'UB',y1:2011,y2:2017},{n:'YB',y1:2017,y2:2030}]},
+  'Seat':{'Ibiza':[{n:'6K2',y1:1999,y2:2002},{n:'6L',y1:2002,y2:2009},{n:'6J',y1:2008,y2:2017},{n:'KJ',y1:2017,y2:2030}],'Leon':[{n:'1M',y1:1999,y2:2005},{n:'1P',y1:2005,y2:2012},{n:'5F',y1:2012,y2:2020},{n:'KL',y1:2020,y2:2030}]},
+  'Citroen':{'C3':[{n:'C3 I',y1:2002,y2:2009},{n:'C3 II',y1:2009,y2:2016},{n:'C3 III',y1:2016,y2:2030}],'C4':[{n:'C4 I',y1:2004,y2:2010},{n:'C4 II',y1:2010,y2:2018},{n:'C4 III',y1:2020,y2:2030}]},
+  'Nissan':{'Qashqai':[{n:'J10',y1:2007,y2:2013},{n:'J11',y1:2013,y2:2021},{n:'J12',y1:2021,y2:2030}],'Micra':[{n:'K12',y1:2002,y2:2010},{n:'K13',y1:2010,y2:2017},{n:'K14',y1:2017,y2:2030}]},
+  'Mazda':{'3':[{n:'BK',y1:2003,y2:2009},{n:'BL',y1:2009,y2:2013},{n:'BM',y1:2013,y2:2019},{n:'BP',y1:2019,y2:2030}],'CX-5':[{n:'KE',y1:2012,y2:2017},{n:'KF',y1:2017,y2:2030}]},
+  'Volvo':{'V40':[{n:'V40 II',y1:2012,y2:2019}],'XC60':[{n:'XC60 I',y1:2008,y2:2017},{n:'XC60 II',y1:2017,y2:2030}],'S60':[{n:'S60 II',y1:2010,y2:2018},{n:'S60 III',y1:2018,y2:2030}]},
+  'Suzuki':{'Swift':[{n:'Swift III',y1:2004,y2:2010},{n:'Swift IV',y1:2010,y2:2017},{n:'Swift V',y1:2017,y2:2030}],'Vitara':[{n:'LY',y1:2015,y2:2030}]},
+  'Alfa Romeo':{'Giulietta':[{n:'Giulietta',y1:2010,y2:2020}],'Stelvio':[{n:'Stelvio',y1:2016,y2:2030}]}
+};
+
+function etiketDropdownDoldur(){
+  var etiketler={};
+  veri.forEach(function(il){
+    if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+  });
+
+  function doldur(){
+    var liste=Object.keys(etiketler).sort();
+    var sel=document.getElementById('f-etiket');
+    if(!sel)return;
+    var secili=sel.value;
+    sel.innerHTML='<option value="">Tüm Gruplar</option>';
+    liste.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
+    if(secili)sel.value=secili;
+  }
+
+  // Etiket bulunamadıysa Supabase'den çek
+  if(Object.keys(etiketler).length===0){
+    fetch(SUPABASE_URL+'/rest/v1/ilanlar?select=etiket&not.etiket=is.null&limit=5000',{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    }).then(function(r){return r.json();}).then(function(data){
+      if(!Array.isArray(data))return;
+      data.forEach(function(il){
+        if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+      });
+      doldur();
+    }).catch(function(){doldur();});
+  } else {
+    doldur();
+  }
+}
+
+function kasaDropdownDoldur(){
+  var marka=document.getElementById('f-marka').value;
+  var sel=document.getElementById('f-kasa');
+  var secili=sel.value;
+  sel.innerHTML='<option value="">Tüm Kasa/Nesil</option>';
+  if(!marka||!KASA_DB[marka])return;
+  var modeller=KASA_DB[marka];
+  Object.keys(modeller).forEach(function(model){
+    var optGrup=document.createElement('optgroup');
+    optGrup.label=model;
+    modeller[model].forEach(function(k){
+      var o=document.createElement('option');
+      o.value=k.n;
+      o.textContent=k.n+' ('+k.y1+'-'+(k.y2===2030?'günümüz':k.y2)+')';
+      optGrup.appendChild(o);
+    });
+    sel.appendChild(optGrup);
+  });
+  if(secili)sel.value=secili;
+}
+
+function markaDropdownDoldur(){
+  var seciliEtiket=document.getElementById('f-etiket').value||'';
+  var bulunan={};
+  veri.forEach(function(il){
+    if(seciliEtiket&&!(il.etiket||'').includes(seciliEtiket))return;
+    var m=ilanMarka(il);if(m)bulunan[m]=true;});
+  var liste=Object.keys(bulunan).sort();
+  var sel=document.getElementById('f-marka');
+  var secili=sel.value;
+  sel.innerHTML='<option value="">Tüm Markalar ('+liste.length+')</option>';
+  liste.forEach(function(m){var o=document.createElement('option');o.value=m.toLowerCase();o.textContent=m;sel.appendChild(o);});
+  if(secili)sel.value=secili;
+}
+
+function sehirDropdownDoldur(){
+  var bulunan={};
+  veri.forEach(function(il){var s=ilanSehir(il);if(s)bulunan[s]=true;});
+  var liste=Object.keys(bulunan).sort();
+  var sel=document.getElementById('f-sehir');
+  var secili=sel.value;
+  sel.innerHTML='<option value="">Tüm Şehirler</option>';
+  liste.forEach(function(s){var o=document.createElement('option');o.value=s.toLowerCase();o.textContent=s;sel.appendChild(o);});
+  if(secili)sel.value=secili;
+}
+
+function ilanKartHtml(il){
+  var kaynakRenk=il.kaynak==='arabam'?'#E31837':il.kaynak==='letgo'?'#6B3FA0':'#FF6600';
+  var kaynakKisa=il.kaynak==='arabam'?'ARB':il.kaynak==='letgo'?'LTG':'SHB';
+  var g=il.gecmis||[];
+  var sf=sonFiyat(il);
+  var fiyatStr=sf?sf.toLocaleString('tr-TR')+' ₺':'—';
+  var degisimBadge='';var fiyatClass='ilan-fiyat';
+  if(g.length>=2){
+    var onceki=parseInt(g[g.length-2].fiyat)||0;var simdiki=parseInt(g[g.length-1].fiyat)||0;var fark=simdiki-onceki;
+    if(fark<0){degisimBadge='<span class="degisim-badge degisim-indi">▼ '+Math.abs(fark).toLocaleString('tr-TR')+' ₺</span>';fiyatClass='ilan-fiyat fiyat-dustu';}
+    else if(fark>0){degisimBadge='<span class="degisim-badge degisim-yukseldi">▲ '+fark.toLocaleString('tr-TR')+' ₺</span>';fiyatClass='ilan-fiyat fiyat-yukseldi';}
+    else{degisimBadge='<span class="degisim-badge degisim-ayni">Değişmedi</span>';}
+  } else if(g.length===1){degisimBadge='<span class="degisim-badge degisim-yeni">🆕 Yeni</span>';}
+  var takipAktif=_takipSet[il.id];
+  var gecmisHtml='';
+  if(g.length>1){
+    gecmisHtml='<div class="gecmis"><div class="gecmis-l">Fiyat Geçmişi</div>';
+    var bas=Math.max(0,g.length-5);
+    for(var i=bas;i<g.length;i++){gecmisHtml+='<div class="gecmis-sat"><span>'+zamanGoster(parseInt(g[i].tarih)||0)+'</span><span>'+(g[i].fiyat?(parseInt(g[i].fiyat)||0).toLocaleString('tr-TR')+' ₺':'—')+'</span></div>';}
+    gecmisHtml+='</div>';
+  }
+  var detay='';
+  if(il.yil)detay+='<span>📅 '+il.yil+'</span>';
+  if(il.km)detay+='<span>🛣️ '+il.km+'</span>';
+  return '<div class="ilan">'+
+    '<div class="ilan-ust"><span class="kaynak-badge" style="background:'+kaynakRenk+'">'+kaynakKisa+'</span><div class="ilan-ad">'+adGoster(il)+'</div></div>'+
+    (il.url?'<a class="ilan-url" href="'+il.url+'" target="_blank" rel="noopener">'+il.url+'</a>':'')+
+    '<div class="ilan-meta"><span class="'+fiyatClass+'">'+fiyatStr+'</span>'+degisimBadge+'</div>'+
+    (detay?'<div class="ilan-detay">'+detay+'</div>':'')+
+    gecmisHtml+
+    '<div class="ilan-alt"><span class="ilan-tarih">'+zamanGoster(sonTarih(il))+'</span>'+
+    '<button class="takip-btn'+(takipAktif?' aktif':'')+'" data-id="'+il.id+'">'+(takipAktif?'★ Takipte':'☆ Takip')+'</button></div>'+
+  '</div>';
+}
+
+function filtrele(liste){
+  var ara=(document.getElementById('f-ara').value||'').toLowerCase();
+  var min=parseInt(document.getElementById('f-min').value)||0;
+  var max=parseInt(document.getElementById('f-max').value)||9999999999;
+  var kaynak=document.getElementById('f-kaynak').value||'';
+  var degisim=document.getElementById('f-degisim').value||'';
+  var yilMin=parseInt(document.getElementById('f-yil-min').value)||0;
+  var yilMax=parseInt(document.getElementById('f-yil-max').value)||9999;
+  var etiket=document.getElementById('f-etiket').value||'';
+  var marka=(document.getElementById('f-marka').value||'').toLowerCase();
+  var kasa=document.getElementById('f-kasa').value||'';
+  var sehir=(document.getElementById('f-sehir').value||'').toLowerCase();
+  return liste.filter(function(il){
+    var f=sonFiyat(il);
+    if(min&&f&&f<min)return false;
+    if(max<9999999999&&f&&f>max)return false;
+    if(kaynak&&il.kaynak!==kaynak)return false;
+    if(etiket&&!(il.etiket||'').includes(etiket))return false;
+    if(yilMin&&il.yil&&il.yil<yilMin)return false;
+    if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
+    if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
+    if(kasa){
+      // İlanın yılına göre kasa nesline bak
+      var ilMarka=ilanMarka(il);
+      if(ilMarka&&KASA_DB[ilMarka]){
+        var nesiller=[];
+        Object.values(KASA_DB[ilMarka]).forEach(function(arr){arr.forEach(function(k){nesiller.push(k);});});
+        var ilYil=il.yil||0;
+        var bulunan=nesiller.filter(function(k){return k.n===kasa;});
+        if(bulunan.length&&ilYil){
+          var k=bulunan[0];
+          if(ilYil<k.y1||ilYil>k.y2)return false;
+        }
+      }
+    }
+    if(sehir){if(!ilanSehir(il).toLowerCase().includes(sehir))return false;}
+    if(degisim==='indi'){var g=il.gecmis||[];if(g.length<2||(parseInt(g[g.length-1].fiyat)||0)>=(parseInt(g[g.length-2].fiyat)||0))return false;}
+    if(degisim==='yukseldi'){var g2=il.gecmis||[];if(g2.length<2||(parseInt(g2[g2.length-1].fiyat)||0)<=(parseInt(g2[g2.length-2].fiyat)||0))return false;}
+    if(degisim==='yeni'){if(!il.gecmis||il.gecmis.length!==1)return false;}
+    if(ara){if(!adGoster(il).toLowerCase().includes(ara)&&!(il.url||'').toLowerCase().includes(ara))return false;}
+    if(_minDegisim>0 && _aktifSekme==='degisim'){
+      var g3=il.gecmis||[];
+      if(g3.length<2)return false;
+      var f1=parseInt(g3[g3.length-1].fiyat)||0;
+      var f2=parseInt(g3[g3.length-2].fiyat)||0;
+      if(!f1||!f2)return false;
+      var fark=Math.abs(f1-f2);
+      if(fark<_minDegisim)return false;
+    }
+    return true;
+  });
+}
+
+function sirala(liste,srt){
+  switch(srt){
+    case 'fiyat-asc':return liste.slice().sort(function(a,b){return sonFiyat(a)-sonFiyat(b);});
+    case 'fiyat-desc':return liste.slice().sort(function(a,b){return sonFiyat(b)-sonFiyat(a);});
+    case 'yil-desc':return liste.slice().sort(function(a,b){return(b.yil||0)-(a.yil||0);});
+    case 'km-asc':return liste.slice().sort(function(a,b){return parseInt(((a.km||'')+'').replace(/\D/g,'')||0)-parseInt(((b.km||'')+'').replace(/\D/g,'')||0);});
+    case 'inis-miktari':return liste.slice().sort(function(a,b){
+      var ga=a.gecmis||[];var gb=b.gecmis||[];
+      var fa=ga.length>1?(ga[ga.length-2].fiyat||0)-(ga[ga.length-1].fiyat||0):0;
+      var fb=gb.length>1?(gb[gb.length-2].fiyat||0)-(gb[gb.length-1].fiyat||0):0;
+      return fb-fa;});
+    case 'yukselis-miktari':return liste.slice().sort(function(a,b){
+      var ga=a.gecmis||[];var gb=b.gecmis||[];
+      var fa=ga.length>1?(ga[ga.length-1].fiyat||0)-(ga[ga.length-2].fiyat||0):0;
+      var fb=gb.length>1?(gb[gb.length-1].fiyat||0)-(gb[gb.length-2].fiyat||0):0;
+      return fb-fa;});
+    default:return liste.slice().sort(function(a,b){return sonTarih(b)-sonTarih(a);});
+  }
+}
+
+var _sayfaOffset=0;
+var _SAYFA=50;
+var _filtreliListe=[];
+
+function goster(){
+  _sayfaOffset=0;
+  _gosterSayfa();
+}
+
+function _gosterSayfa(){
+  var srt=document.getElementById('f-srt').value||'tarih-desc';
+  var simdi=Date.now();var ks=48*3600000;var gun24=24*3600000;
+  var liste;
+  if(_aktifSekme==='degisim'){
+    liste=filtrele(veri).filter(function(il){
+      if(!il.gecmis||il.gecmis.length<2)return false;
+      var sonGun=il.guncelleme?new Date(il.guncelleme).getTime():(sonTarih(il)||0);
+      if((simdi-sonGun)>=ks)return false;
+      // Gerçekten fiyat değişmiş mi?
+      var f1=parseInt(il.gecmis[il.gecmis.length-1].fiyat)||0;
+      var f2=parseInt(il.gecmis[il.gecmis.length-2].fiyat)||0;
+      return f1>0 && f2>0 && f1!==f2;
+    });
+  }else if(_aktifSekme==='takip'){
+    liste=filtrele(veri).filter(function(il){return !!_takipSet[il.id];});
+  }else if(_aktifSekme==='yeni'){
+    liste=filtrele(veri).filter(function(il){
+      var eklenme = il.gecmis && il.gecmis.length ? (parseInt(il.gecmis[0].tarih)||0) : 0;
+      if (!eklenme && il.gecmis && il.gecmis.length === 1) {
+        eklenme = il.guncelleme ? new Date(il.guncelleme).getTime() : 0;
+      }
+      return eklenme > 0 && (simdi-eklenme) < gun24;
+    });
+  }else{
+    liste=filtrele(veri);
+  }
+  liste=sirala(liste,srt);
+  _filtreliListe=liste;
+  var dustu=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)<(parseInt(g[g.length-2].fiyat)||0);}).length;
+  var artti=veri.filter(function(i){var g=i.gecmis||[];return g.length>1&&(parseInt(g[g.length-1].fiyat)||0)>(parseInt(g[g.length-2].fiyat)||0);}).length;
+  var yeni24=veri.filter(function(i){
+    // İlk eklenme tarihi = gecmis[0].tarih (ilk fiyat kaydı)
+    var eklenme = i.gecmis && i.gecmis.length ? (parseInt(i.gecmis[0].tarih)||0) : 0;
+    // Fallback: guncelleme ama gecmis sadece 1 kayıtsa yeni demektir
+    if (!eklenme && i.gecmis && i.gecmis.length === 1) {
+      eklenme = i.guncelleme ? new Date(i.guncelleme).getTime() : 0;
+    }
+    return eklenme > 0 && (simdi-eklenme) < gun24;
+  }).length;
+  var deg48=veri.filter(function(i){
+    if(!i.gecmis||i.gecmis.length<2)return false;
+    var sonGun=i.guncelleme?new Date(i.guncelleme).getTime():(sonTarih(i)||0);
+    if((simdi-sonGun)>=ks)return false;
+    var f1=parseInt(i.gecmis[i.gecmis.length-1].fiyat)||0;
+    var f2=parseInt(i.gecmis[i.gecmis.length-2].fiyat)||0;
+    return f1>0 && f2>0 && f1!==f2;
+  }).length;
+  document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
+  document.getElementById('st-dustu').textContent=dustu;
+  document.getElementById('st-artti').textContent=artti;
+  document.getElementById('st-yeni').textContent=yeni24;
+  document.getElementById('sc-degisim').textContent=deg48;
+  document.getElementById('sc-takip').textContent=Object.keys(_takipSet).length;
+  document.getElementById('f-sonuc').textContent=liste.length.toLocaleString('tr-TR')+' ilan gösteriliyor';
+  document.getElementById('min-degisim-bar').style.display=_aktifSekme==='degisim'?'flex':'none';
+  var listeEl=document.getElementById('liste');
+  if(!liste.length){listeEl.innerHTML='<div class="bos"><div class="bos-ikon">🔍</div>Bu filtreye uyan ilan bulunamadı.<br><small>Filtre kriterlerini gevşetin.</small></div>';return;}
+  var gosterilen=liste.slice(0,_SAYFA);
+  var html=gosterilen.map(ilanKartHtml).join('');
+  if(liste.length>_SAYFA){
+    var kalan=liste.length-_SAYFA;
+    html+='<button id="daha-fazla-btn" style="display:block;width:100%;padding:14px;margin-top:10px;background:#f0f0e8;border:1px solid #ddd;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#333">↓ Daha fazla göster ('+kalan.toLocaleString('tr-TR')+' ilan daha)</button>';
+  }
+  listeEl.innerHTML=html;
+  listeEl.querySelectorAll('.takip-btn').forEach(function(btn){btn.addEventListener('click',function(){takipToggle(this.getAttribute('data-id'));});});
+  var dfBtn=document.getElementById('daha-fazla-btn');
+  if(dfBtn)dfBtn.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
+}
+
+function _ekleIlanlar(){
+  var listeEl=document.getElementById('liste');
+  var dfBtn=document.getElementById('daha-fazla-btn');
+  if(dfBtn)dfBtn.remove();
+  var bas=_sayfaOffset;
+  var bitis=Math.min(bas+_SAYFA,_filtreliListe.length);
+  var yeniHtml=_filtreliListe.slice(bas,bitis).map(ilanKartHtml).join('');
+  if(bitis<_filtreliListe.length){
+    var kalan=_filtreliListe.length-bitis;
+    yeniHtml+='<button id="daha-fazla-btn" style="display:block;width:100%;padding:14px;margin-top:10px;background:#f0f0e8;border:1px solid #ddd;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#333">↓ Daha fazla göster ('+kalan.toLocaleString('tr-TR')+' ilan daha)</button>';
+  }
+  listeEl.insertAdjacentHTML('beforeend',yeniHtml);
+  listeEl.querySelectorAll('.takip-btn').forEach(function(btn){if(!btn._b){btn._b=true;btn.addEventListener('click',function(){takipToggle(this.getAttribute('data-id'));});}});
+  var dfBtn2=document.getElementById('daha-fazla-btn');
+  if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
+}
+
+function veriYukle(){
+  var btn=document.getElementById('btn-yenile');
+  btn.textContent='⏳';btn.disabled=true;
+  var since=new Date(Date.now()-72*3600*1000).toISOString();
+  var headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+  var ilanlar=[];
+
+  function sayfaCek(offset){
+    return fetch(SUPABASE_URL+'/rest/v1/ilanlar?guncelleme=gte.'+since+'&order=guncelleme.desc&limit=1000&offset='+offset,{headers:headers})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(!data||!data.length)return;
+        ilanlar=ilanlar.concat(data);
+        if(data.length===1000)return sayfaCek(offset+1000);
+      });
+  }
+
+  sayfaCek(0)
+    .then(function(){
+      return fetch(SUPABASE_URL+'/rest/v1/meta?id=eq.1',{headers:headers}).then(function(r){return r.json();});
+    })
+    .then(function(metaData){
+      btn.textContent='↻ Yenile';btn.disabled=false;
+      var ts='—';
+      if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
+        ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
+      }
+      document.getElementById('son-sync').textContent='Sync: '+ts;
+      veri=[];
+      ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
+      if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
+      etiketDropdownDoldur();
+      markaDropdownDoldur();
+      kasaDropdownDoldur();
+      sehirDropdownDoldur();
+      goster();
+    })
+    .catch(function(e){
+      btn.textContent='↻ Yenile';btn.disabled=false;
+      document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
+    });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  takipYukle();
+  document.querySelectorAll('.sekme').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      _aktifSekme=this.getAttribute('data-sekme');
+      document.querySelectorAll('.sekme').forEach(function(b){b.classList.remove('aktif');});
+      this.classList.add('aktif');goster();
+    });
+  });
+  document.querySelectorAll('.min-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      _minDegisim=parseInt(this.getAttribute('data-val'))||0;
+      document.querySelectorAll('.min-btn').forEach(function(b){b.classList.remove('aktif');});
+      this.classList.add('aktif');goster();
+    });
+  });
+  ['f-srt','f-kaynak','f-degisim','f-marka','f-sehir'].forEach(function(id){
+    document.getElementById(id).addEventListener('change',function(){
+      if(id==='f-marka')kasaDropdownDoldur();
+      goster();
+    });
+  });
+  document.getElementById('f-kasa').addEventListener('change',goster);
+  document.getElementById('f-etiket').addEventListener('change',function(){markaDropdownDoldur();kasaDropdownDoldur();goster();});
+  ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',goster);
+  });
+  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
+  veriYukle();
+  setInterval(veriYukle,5*60*1000);
+});
+</script>
+</body>
+</html>
