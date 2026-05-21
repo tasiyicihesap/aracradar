@@ -92,6 +92,7 @@ select:focus,input:focus{border-color:var(--blu)}
   </div>
   <div class="header-sag">
     <div style="font-size:11px;color:var(--mut)" id="sync-info"></div>
+    <span style="font-size:11px;color:var(--mut)" id="son-sync"></span>
     <button class="btn-yenile" id="btn-yenile">↻ Yenile</button>
   </div>
 </header>
@@ -124,6 +125,7 @@ select:focus,input:focus{border-color:var(--blu)}
 
   <!-- İLAN TAKİP -->
   <div id="site-icerik-ilan">
+  <div id="f-sonuc" style="font-size:12px;color:var(--mut);margin-bottom:8px"></div>
 <div class="filtre-panel">
     <div class="filtre-sat">
       <select id="f-etiket" style="min-width:140px">
@@ -782,14 +784,15 @@ function _gosterSayfa(){
     var f2=parseInt(i.gecmis[i.gecmis.length-2].fiyat)||0;
     return f1>0 && f2>0 && f1!==f2;
   }).length;
-  document.getElementById('st-takip').textContent=veri.length.toLocaleString('tr-TR');
-  document.getElementById('st-dustu').textContent=dustu;
-  document.getElementById('st-artti').textContent=artti;
-  document.getElementById('st-yeni').textContent=yeni24;
-  document.getElementById('sc-degisim').textContent=deg48;
-  document.getElementById('sc-takip').textContent=Object.keys(_takipSet).length;
-  document.getElementById('f-sonuc').textContent=liste.length.toLocaleString('tr-TR')+' ilan gösteriliyor';
-  document.getElementById('min-degisim-bar').style.display=_aktifSekme==='degisim'?'flex':'none';
+  function setEl(id,val){var e=document.getElementById(id);if(e)e.textContent=val;}
+  setEl('st-takip',veri.length.toLocaleString('tr-TR'));
+  setEl('st-dustu',dustu);
+  setEl('st-artti',artti);
+  setEl('st-yeni',yeni24);
+  setEl('sc-degisim',deg48);
+  setEl('sc-takip',Object.keys(_takipSet).length);
+  setEl('f-sonuc',liste.length.toLocaleString('tr-TR')+' ilan gösteriliyor');
+  (document.getElementById('min-degisim-bar')||{style:{}}).style.display =_aktifSekme==='degisim'?'flex':'none';
   var listeEl=document.getElementById('liste');
   if(!liste.length){listeEl.innerHTML='<div class="bos"><div class="bos-ikon">🔍</div>Bu filtreye uyan ilan bulunamadı.<br><small>Filtre kriterlerini gevşetin.</small></div>';return;}
   var gosterilen=liste.slice(0,_SAYFA);
@@ -848,7 +851,7 @@ function veriYukle(){
       if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
         ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
       }
-      document.getElementById('son-sync').textContent='Sync: '+ts;
+      (document.getElementById('son-sync')||{}).textContent ='Sync: '+ts;
       veri=[];
       ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
       if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
@@ -1767,7 +1770,7 @@ function benzerKasaGuncelle(marka, model, yil) {
     var yMaxEl = document.getElementById('bz-yil-max');
     if (yMinEl) yMinEl.value = yb;
     if (yMaxEl) yMaxEl.value = ye === 2025 ? new Date().getFullYear() : ye;
-    document.getElementById('bz-yil-preview').textContent = 'Kasa: ' + yb + ' \u2014 ' + (ye===2025?'Günümüz':ye);
+    (document.getElementById('bz-yil-preview')||{}).textContent = 'Kasa: ' + yb + ' \u2014 ' + (ye===2025?'Günümüz':ye);
   };
 }
 
@@ -1866,8 +1869,8 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
   var wrap = document.getElementById('bz-sonuc-wrap');
   if (!wrap) return;
   wrap.style.display = 'block';
-  document.getElementById('bz-sonuc-toplam').textContent = ilanlar.length;
-  document.getElementById('bz-sonuc-ref').textContent = refFiyat ? refFiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
+  (document.getElementById('bz-sonuc-toplam')||{}).textContent = ilanlar.length;
+  (document.getElementById('bz-sonuc-ref')||{}).textContent = refFiyat ? refFiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
 
   // SB linki
   var sbLinkWrap = document.getElementById('bz-site-link-wrap');
@@ -1912,11 +1915,11 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
           + '<a href="' + refLink + '" target="_blank" style="font-size:11px;color:var(--blud);text-decoration:none">\u2197 Aç</a></div>';
       }
       pahaliListe.innerHTML = pahalilar.length ? pahalilar.map(benzerIlanKart).join('') : '<div style="font-size:12px;color:var(--mut);padding:8px">Referans fiyattan pahalı ilan yok.</div>';
-      document.getElementById('bz-pahali-wrap').style.display = 'block';
+      (document.getElementById('bz-pahali-wrap')||{style:{}}).style.display = 'block';
     } else {
       if (refDiv) refDiv.style.display = 'none';
       ucuzListe.innerHTML = liste.map(benzerIlanKart).join('');
-      document.getElementById('bz-pahali-wrap').style.display = 'none';
+      (document.getElementById('bz-pahali-wrap')||{style:{}}).style.display = 'none';
     }
   }
 
@@ -2063,7 +2066,7 @@ function benzerCanliAra() {
   var btn=document.getElementById('btn-bz-ara');
   if (dur3) dur3.textContent='Siteler taranıyor... (sekme açılacak)';
   if (btn) btn.disabled=true;
-  document.getElementById('bz-sonuc-wrap').style.display='none';
+  (document.getElementById('bz-sonuc-wrap')||{style:{}}).style.display ='none';
 
   chrome.runtime.sendMessage({ action:'benzerAra', kriterler:k }, function(resp){
     if (btn) btn.disabled=false;
