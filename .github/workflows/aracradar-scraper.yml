@@ -1,0 +1,72 @@
+name: ARAÇRADAR — Otomatik Tarama
+
+on:
+  schedule:
+    # Her gece 02:00 UTC (Türkiye 05:00)
+    - cron: '0 2 * * *'
+    # Her gün 08:00 UTC (Türkiye 11:00) — güncelleme taraması
+    - cron: '0 8 * * *'
+    # Her gün 14:00 UTC (Türkiye 17:00) — akşam güncellemesi
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: 'Tarama modu'
+        required: true
+        default: 'yeni'
+        type: choice
+        options:
+          - yeni        # Sadece DB'de olmayan ilanlar
+          - guncelleme  # Sadece mevcut ilanların fiyatını güncelle
+          - tam         # Tüm ilanlar (uzun sürer)
+      max_sayfa:
+        description: 'Max sayfa sayısı (0 = sınırsız)'
+        required: false
+        default: '50'
+
+jobs:
+  tara:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Repo'yu çek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Bağımlılıkları kur
+        run: |
+          pip install requests beautifulsoup4 lxml supabase fake-useragent tenacity
+
+      - name: Sahibinden tarama
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TARAMA_MOD: ${{ github.event.inputs.mod || 'yeni' }}
+          MAX_SAYFA: ${{ github.event.inputs.max_sayfa || '50' }}
+        run: |
+          python scripts/tara_sahibinden.py
+
+      - name: Arabam tarama
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TARAMA_MOD: ${{ github.event.inputs.mod || 'yeni' }}
+          MAX_SAYFA: ${{ github.event.inputs.max_sayfa || '50' }}
+        run: |
+          python scripts/tara_arabam.py
+
+      - name: Özet rapor
+        if: always()
+        run: |
+          echo "## Tarama Özeti" >> $GITHUB_STEP_SUMMARY
+          echo "Mod: ${{ github.event.inputs.mod || 'yeni' }}" >> $GITHUB_STEP_SUMMARY
+          echo "Tarih: $(date '+%Y-%m-%d %H:%M')" >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/tarama_ozet.txt ]; then
+            cat /tmp/tarama_ozet.txt >> $GITHUB_STEP_SUMMARY
+          fi
