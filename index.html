@@ -1985,17 +1985,82 @@ function benzerLinkCek(url) {
   var bzYg=document.getElementById('bz-yil-geri'); if(bzYg) delete bzYg.dataset.refYil;
 
   (function() {
+    // Önce Supabase DB'den ara
+    var cleanUrl = url.split('?')[0];
+    fetch(SB_URL + '/rest/v1/ilanlar?url=eq.' + encodeURIComponent(cleanUrl) + '&limit=1', {
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    }).then(function(r){ return r.json(); }).then(function(data) {
+      if (data && data.length && data[0].marka) {
+        var il = data[0];
+        var fiyat = il.fiyat || 0;
+        if (!fiyat && il.gecmis) {
+          try { var g=JSON.parse(il.gecmis); if(g&&g.length) fiyat=g[g.length-1].fiyat||0; } catch(e){}
+        }
+        var resp2 = {ok:true, detay:{
+          marka: il.marka||'', model: il.model||'', seri: il.seri||'',
+          yil: il.yil||0, km: il.km||0, fiyat: fiyat,
+          yakit: il.yakit||'', vites: il.vites||'', sehir: il.sehir||'',
+          kaynak: il.kaynak||'sahibinden'
+        }};
+        (function(resp) {
+          if (dur) dur.textContent = '✅ DB'den bulundu — bilgiler dolduruldu';
+          var set = function(id,val){ var el=document.getElementById(id); if(el&&val!==undefined&&val!==null&&val!==''&&val!==0) el.value=val; };
+          if (resp.detay.marka) set('bz-marka', resp.detay.marka);
+          set('bz-model', resp.detay.seri||resp.detay.model||''  );
+          if (resp.detay.fiyat>0) set('bz-ref-fiyat', resp.detay.fiyat);
+          var _refYil = parseInt(resp.detay.yil)||0;
+          if (_refYil>1990) {
+            var bzYilGeriEl=document.getElementById('bz-yil-geri');
+            if(bzYilGeriEl) bzYilGeriEl.dataset.refYil=_refYil;
+            set('bz-yil-min', _refYil); set('bz-yil-max', _refYil);
+            benzerYilPreviewGuncelle(_refYil);
+            kasaDBYukle(function(){ benzerKasaGuncelle(resp.detay.marka, resp.detay.seri||resp.detay.model, _refYil); });
+          }
+          var kmSayi=parseInt(String(resp.detay.km||'0').replace(/\D/g,''))||0;
+          var kmMinEl=document.getElementById('bz-km-min'); if(kmMinEl) kmMinEl.value=kmSayi>0?kmSayi:0;
+          var kmMaxEl=document.getElementById('bz-km-max'); if(kmMaxEl) kmMaxEl.value=kmSayi>0?kmSayi+50000:150000;
+        })(resp2);
+        return;
+      }
+      // DB'de bulunamadı — URL parse ile devam
+      doUrlParse();
+    }).catch(function(){ doUrlParse(); });
+
+    function doUrlParse() {
     var resp = {ok:true, detay:{marka:'',model:'',seri:'',yil:0,km:0,fiyat:0,yakit:'',vites:'',sehir:'',kaynak:'sahibinden'}};
     try {
-      var slug = url.split('/').filter(function(p){return p.length>8&&p.indexOf('-')>-1;}).slice(-2)[0]||'';
-      var skip = ['satilik','ikinci','el','sahibinden','arabam','letgo','vasita','otomobil','com','www','ilan','model','detay'];
-      var words = slug.split('-').filter(function(w){return w.length>1&&isNaN(w)&&skip.indexOf(w)===-1;});
-      if(words[0]) resp.detay.marka = words[0].charAt(0).toUpperCase()+words[0].slice(1);
-      if(words[1]) resp.detay.seri  = words[1].charAt(0).toUpperCase()+words[1].slice(1);
-      var ym = url.match(/(20\d{2}|19[89]\d)/); if(ym) resp.detay.yil = parseInt(ym[1]);
-      if(url.indexOf('arabam')>-1) resp.detay.kaynak='arabam';
-      if(url.indexOf('letgo')>-1)  resp.detay.kaynak='letgo';
-    } catch(e) {}
+      // Kaynak belirle
+      if(url.indexOf('arabam')>-1)      resp.detay.kaynak='arabam';
+      else if(url.indexOf('letgo')>-1)  resp.detay.kaynak='letgo';
+      else                               resp.detay.kaynak='sahibinden';
+
+      var skip = ['satilik','ikinci','el','sahibinden','arabam','letgo','vasita','otomobil','com','www','ilan','model','detay','item','iid','auto','araba','arazi','suv','pickup'];
+      
+      // Tüm URL parçalarından en iyi slug'ı bul
+      var allParts = url.toLowerCase().replace(/https?:\/\//,'').split(/[/?#&]/);
+      var bestSlug = allParts.reduce(function(a,b){ return (b.indexOf('-')>-1&&b.length>a.length)?b:a; },'');
+      
+      // Yıl bul
+      var ym = url.match(/(20\d{2}|19[89]\d)/); 
+      if(ym) resp.detay.yil = parseInt(ym[1]);
+      
+      // Slug'dan anlamlı kelimeleri çıkar
+      var words = bestSlug.split('-').filter(function(w){
+        return w.length>1 && isNaN(w) && skip.indexOf(w)===-1 && !/^\d+$/.test(w);
+      });
+      
+      if(words.length>=1) resp.detay.marka = words[0].charAt(0).toUpperCase()+words[0].slice(1);
+      if(words.length>=2) resp.detay.seri  = words[1].charAt(0).toUpperCase()+words[1].slice(1);
+      
+      // Fiyat URL'den çek (arabam URL'lerinde bazen var)
+      var priceM = url.match(/fiyat[=-](\d{4,7})/i); 
+      if(priceM) resp.detay.fiyat = parseInt(priceM[1]);
+
+      // KM URL'den
+      var kmM = url.match(/(\d{2,3})[.-]?(?:bin|000)[.-]?km/i)||url.match(/(\d{3,6})-km/i);
+      if(kmM) resp.detay.km = parseInt(kmM[1]) * (kmM[0].toLowerCase().indexOf('bin')!==-1?1000:1);
+      
+    } catch(e) { console.log('URL parse hata:', e); }
     (function(resp) {
     if (chrome.runtime.lastError || !resp || !resp.ok) {
       if (dur) dur.textContent = 'Bilgiler alınamadı — lütfen manuel girin.';
@@ -2043,6 +2108,7 @@ function benzerLinkCek(url) {
     var dolu = [d.marka,d.seri||d.model,d.fiyat,_refYil,d.yakit,d.vites].filter(Boolean).length;
     if (dur) dur.textContent = (dolu>=3?'✅':'⚠️') + ' ' + dolu + '/6 bilgi dolduruldu';
     })(resp);
+  } // doUrlParse
   })();
 }
 
