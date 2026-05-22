@@ -619,7 +619,7 @@ function ilanKartHtml(il){
   if(g.length>1){
     gecmisHtml='<div class="gecmis"><div class="gecmis-l">Fiyat Geçmişi</div>';
     var bas=Math.max(0,g.length-5);
-    for(var i=bas;i<g.length;i++){gecmisHtml+='<div class="gecmis-sat"><span>'+zamanGoster(parseInt(g[i].tarih)||0)+'</span><span>'+(g[i].fiyat?(parseInt(g[i].fiyat)||0).toLocaleString('tr-TR')+' ₺':'—')+'</span></div>';}
+    for(var i=g.length-1;i>=bas;i--){gecmisHtml+='<div class="gecmis-sat"><span>'+zamanGoster(parseInt(g[i].tarih)||0)+'</span><span>'+(g[i].fiyat?(parseInt(g[i].fiyat)||0).toLocaleString('tr-TR')+' ₺':'—')+'</span></div>';}
     gecmisHtml+='</div>';
   }
   var detay='';
