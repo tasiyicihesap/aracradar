@@ -644,7 +644,7 @@ function ilanKartHtml(il){
     gecmisHtml+
     '<div class="ilan-alt"><span class="ilan-tarih">'+zamanGoster(sonTarih(il))+'</span>'+
     '<div style="display:flex;gap:6px;align-items:center">'+
-    (il.marka?'<button class="pr-btn" onclick="piyasaKarsilastir(this)" data-id="'+il.id+'" data-marka="'+(il.marka||'').replace(/"/g,"&quot;")+'" data-seri="'+(il.seri||'').replace(/"/g,"&quot;")+'" data-yil="'+(il.yil||0)+'" data-fiyat="'+sf+'">📊 Piyasa</button>':'')+
+    '<button class="pr-btn" onclick="piyasaKarsilastir(this)" data-id="'+il.id+'" data-marka="'+(ilanMarka(il)||il.marka||'').replace(/"/g,"&quot;")+'" data-seri="'+(il.seri||il.model||'').replace(/"/g,"&quot;")+'" data-yil="'+(il.yil||0)+'" data-fiyat="'+sf+'" data-ad="'+adGoster(il).replace(/"/g,"&quot;")+'">📊 Piyasa</button>'+
     '<button class="takip-btn'+(takipAktif?' aktif':'')+'" data-id="'+il.id+'">'+(takipAktif?'★ Takipte':'☆ Takip')+'</button>'+
     '</div></div>'+
     '<div id="pr-sonuc-'+il.id+'" style="display:none"></div>'+
@@ -2201,47 +2201,66 @@ function piyasaKarsilastir(btn) {
   var yilMin = yil > 0 ? yil - 2 : 0;
   var yilMax = yil > 0 ? yil + 2 : 9999;
 
-  // Bellekteki veri üzerinden filtrele
-  var eslesen = (typeof veri !== 'undefined' ? veri : []).filter(function(il) {
-    if (!il.marka) return false;
-    if (marka && il.marka.toLowerCase() !== marka.toLowerCase()) return false;
-    if (seri && il.seri && il.seri.toLowerCase() !== seri.toLowerCase()) return false;
-    if (!il.gecmis || !il.gecmis.length) return false;
-    var y = parseInt(il.yil) || 0;
-    if (yilMin && y && y < yilMin) return false;
-    if (yilMax < 9999 && y && y > yilMax) return false;
-    return true;
-  });
+  // Sitede il.marka genellikle boş — ilanMarka() ile URL/ad'dan çıkar
+  var markaLC = marka.toLowerCase();
+  var seriLC  = seri.toLowerCase();
 
-  var ilanlar = [];
-  eslesen.forEach(function(il) {
+  function _ilFiyat(il) {
     var gec = il.gecmis || [];
-    if (typeof gec === 'string') { try { gec = JSON.parse(gec); } catch(e) { return; } }
-    if (!gec.length) return;
-    var f = parseInt((gec[gec.length-1]||{}).fiyat) || 0;
+    if (typeof gec === 'string') { try { gec = JSON.parse(gec); } catch(e) { return 0; } }
+    if (!gec.length) return 0;
+    return parseInt((gec[gec.length-1]||{}).fiyat) || 0;
+  }
+
+  function _ilMarka(il) {
+    // Önce il.marka, sonra ilanMarka() (URL/ad parse)
+    if (il.marka && il.marka.length > 1) return il.marka.toLowerCase();
+    if (typeof ilanMarka === 'function') return ilanMarka(il).toLowerCase();
+    return '';
+  }
+
+  var tumVeri = typeof veri !== 'undefined' ? veri : [];
+
+  // 1. Dar arama: marka + seri + yıl aralığı
+  var ilanlar = [];
+  tumVeri.forEach(function(il) {
+    if (!il.gecmis || !il.gecmis.length) return;
+    var m = _ilMarka(il);
+    if (!m.includes(markaLC) && !markaLC.includes(m.split(' ')[0])) return;
+    if (seriLC) {
+      var adMetin = ((il.ad||'')+' '+(il.seri||'')+' '+(il.model||'')).toLowerCase();
+      if (!adMetin.includes(seriLC)) return;
+    }
+    var y = parseInt(il.yil) || 0;
+    if (yilMin && y && y < yilMin) return;
+    if (yilMax < 9999 && y && y > yilMax) return;
+    var f = _ilFiyat(il);
     if (!f || f < 10000) return;
     var kmRaw = parseInt(((il.km||'')+'').replace(/[^\d]/g,'')) || 0;
-    ilanlar.push({ id:il.id, ad:il.ad||il.seri||marka, url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
+    ilanlar.push({ id:il.id, ad:adGoster(il), url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
   });
 
-  // Seri olmadan geniş arama
-  if (!ilanlar.length && seri) {
-    (typeof veri !== 'undefined' ? veri : []).forEach(function(il) {
-      if (!il.marka || il.marka.toLowerCase() !== marka.toLowerCase()) return;
+  // 2. Geniş arama: sadece marka eşleşmesi (yıl filtresi kaldır)
+  if (ilanlar.length < 3) {
+    ilanlar = [];
+    tumVeri.forEach(function(il) {
       if (!il.gecmis || !il.gecmis.length) return;
-      var gec = il.gecmis;
-      if (typeof gec === 'string') { try { gec = JSON.parse(gec); } catch(e) { return; } }
-      var f = parseInt((gec[gec.length-1]||{}).fiyat) || 0;
-      if (!f) return;
+      var m = _ilMarka(il);
+      if (!m.includes(markaLC) && !markaLC.includes(m.split(' ')[0])) return;
+      var f = _ilFiyat(il);
+      if (!f || f < 10000) return;
       var kmRaw = parseInt(((il.km||'')+'').replace(/[^\d]/g,'')) || 0;
-      ilanlar.push({ id:il.id, ad:il.ad||marka, url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
+      ilanlar.push({ id:il.id, ad:adGoster(il), url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
     });
   }
 
   btn.textContent = '📊 Kapat';
 
+  // Başlık için ad bilgisini de kullan
+  var adBaslik = btn.getAttribute('data-ad') || (marka + (seri?' '+seri:''));
+
   if (!ilanlar.length) {
-    var h0 = '<div class="pr-kutu"><span style="color:#8a8f9a;font-size:12px">📭 ' + marka + (seri?' '+seri:'') + ' için veri bulunamadı.<br>Önce bu marka için tarama yapın.</span></div>';
+    var h0 = '<div class="pr-kutu"><span style="color:#8a8f9a;font-size:12px">📭 ' + adBaslik + ' için eşleşen ilan bulunamadı.<br>Veri tabanında bu marka/model yok olabilir.</span></div>';
     _prCache[id] = h0;
     kutu.innerHTML = h0;
     kutu.style.display = 'block';
@@ -2321,7 +2340,7 @@ function piyasaKarsilastir(btn) {
     '<div class="pr-kutu">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
         '<span style="font-size:12px;font-weight:500;color:'+yorumRenk+'">'+yorum+'</span>'+
-        '<span style="font-size:10px;color:#8a8f9a">'+marka+(seri?' '+seri:'')+' '+yilMin+'-'+(yilMax<9999?yilMax:'?')+'</span>'+
+        '<span style="font-size:10px;color:#8a8f9a">'+adBaslik+' · '+yilMin+'-'+(yilMax<9999?yilMax:'?')+'</span>'+
       '</div>'+
       '<div class="pr-metrik-grid">'+metrikHtml+'</div>'+
       barHtml+
