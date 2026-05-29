@@ -76,6 +76,17 @@ select:focus,input:focus{border-color:var(--blu)}
   select,input{width:100%}
   header{padding:0 12px}
 }
+
+/* ── FİYAT ROBOTU ─────────────────────────────── */
+.pr-btn{padding:3px 10px;font-size:11px;background:rgba(24,95,165,0.12);border:1px solid rgba(24,95,165,0.35);border-radius:6px;color:#5ba4e0;cursor:pointer;white-space:nowrap;transition:background .15s;font-family:inherit}
+.pr-btn:hover{background:rgba(24,95,165,0.25)}
+.pr-kutu{background:var(--yuz,#23252b);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:12px 14px;margin:6px 0 4px;font-size:12px}
+.pr-metrik-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}
+.pr-metrik{background:rgba(0,0,0,0.2);border-radius:6px;padding:7px 10px;text-align:center}
+.pr-metrik-l{font-size:10px;color:#8a8f9a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.pr-metrik-v{font-size:13px;font-weight:500;color:#e8e8e8}
+.pr-benzer-item{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(0,0,0,0.15);border-radius:5px;margin-bottom:3px}
+/* ── /FİYAT ROBOTU ────────────────────────────── */
 </style>
 </head>
 <body>
@@ -632,7 +643,11 @@ function ilanKartHtml(il){
     (detay?'<div class="ilan-detay">'+detay+'</div>':'')+
     gecmisHtml+
     '<div class="ilan-alt"><span class="ilan-tarih">'+zamanGoster(sonTarih(il))+'</span>'+
-    '<button class="takip-btn'+(takipAktif?' aktif':'')+'" data-id="'+il.id+'">'+(takipAktif?'★ Takipte':'☆ Takip')+'</button></div>'+
+    '<div style="display:flex;gap:6px;align-items:center">'+
+    (il.marka?'<button class="pr-btn" onclick="piyasaKarsilastir(this)" data-id="'+il.id+'" data-marka="'+(il.marka||'').replace(/"/g,"&quot;")+'" data-seri="'+(il.seri||'').replace(/"/g,"&quot;")+'" data-yil="'+(il.yil||0)+'" data-fiyat="'+sf+'">📊 Piyasa</button>':'')+
+    '<button class="takip-btn'+(takipAktif?' aktif':'')+'" data-id="'+il.id+'">'+(takipAktif?'★ Takipte':'☆ Takip')+'</button>'+
+    '</div></div>'+
+    '<div id="pr-sonuc-'+il.id+'" style="display:none"></div>'+
   '</div>';
 }
 
@@ -2151,6 +2166,175 @@ document.addEventListener('DOMContentLoaded', function(){
   taramaDurumYukle();
   setInterval(taramaDurumYukle, 30000);
 });
+
+// ── FİYAT ROBOTU — Piyasa Karşılaştırma (Web Sitesi) ──────────────────────────
+
+var _prCache = {};
+
+function piyasaKarsilastir(btn) {
+  var id     = btn.getAttribute('data-id');
+  var marka  = btn.getAttribute('data-marka') || '';
+  var seri   = btn.getAttribute('data-seri')  || '';
+  var yil    = parseInt(btn.getAttribute('data-yil'))   || 0;
+  var fiyat  = parseInt(btn.getAttribute('data-fiyat')) || 0;
+  var kutu   = document.getElementById('pr-sonuc-' + id);
+  if (!kutu) return;
+
+  // Toggle
+  if (kutu.style.display !== 'none') {
+    kutu.style.display = 'none';
+    btn.textContent = '📊 Piyasa';
+    return;
+  }
+
+  // Cache
+  if (_prCache[id]) {
+    kutu.innerHTML = _prCache[id];
+    kutu.style.display = 'block';
+    btn.textContent = '📊 Kapat';
+    return;
+  }
+
+  btn.textContent = '⏳...';
+
+  // Yıl aralığı ±2
+  var yilMin = yil > 0 ? yil - 2 : 0;
+  var yilMax = yil > 0 ? yil + 2 : 9999;
+
+  // Bellekteki veri üzerinden filtrele
+  var eslesen = (typeof veri !== 'undefined' ? veri : []).filter(function(il) {
+    if (!il.marka) return false;
+    if (marka && il.marka.toLowerCase() !== marka.toLowerCase()) return false;
+    if (seri && il.seri && il.seri.toLowerCase() !== seri.toLowerCase()) return false;
+    if (!il.gecmis || !il.gecmis.length) return false;
+    var y = parseInt(il.yil) || 0;
+    if (yilMin && y && y < yilMin) return false;
+    if (yilMax < 9999 && y && y > yilMax) return false;
+    return true;
+  });
+
+  var ilanlar = [];
+  eslesen.forEach(function(il) {
+    var gec = il.gecmis || [];
+    if (typeof gec === 'string') { try { gec = JSON.parse(gec); } catch(e) { return; } }
+    if (!gec.length) return;
+    var f = parseInt((gec[gec.length-1]||{}).fiyat) || 0;
+    if (!f || f < 10000) return;
+    var kmRaw = parseInt(((il.km||'')+'').replace(/[^\d]/g,'')) || 0;
+    ilanlar.push({ id:il.id, ad:il.ad||il.seri||marka, url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
+  });
+
+  // Seri olmadan geniş arama
+  if (!ilanlar.length && seri) {
+    (typeof veri !== 'undefined' ? veri : []).forEach(function(il) {
+      if (!il.marka || il.marka.toLowerCase() !== marka.toLowerCase()) return;
+      if (!il.gecmis || !il.gecmis.length) return;
+      var gec = il.gecmis;
+      if (typeof gec === 'string') { try { gec = JSON.parse(gec); } catch(e) { return; } }
+      var f = parseInt((gec[gec.length-1]||{}).fiyat) || 0;
+      if (!f) return;
+      var kmRaw = parseInt(((il.km||'')+'').replace(/[^\d]/g,'')) || 0;
+      ilanlar.push({ id:il.id, ad:il.ad||marka, url:il.url, yil:il.yil, km:kmRaw, fiyat:f });
+    });
+  }
+
+  btn.textContent = '📊 Kapat';
+
+  if (!ilanlar.length) {
+    var h0 = '<div class="pr-kutu"><span style="color:#8a8f9a;font-size:12px">📭 ' + marka + (seri?' '+seri:'') + ' için veri bulunamadı.<br>Önce bu marka için tarama yapın.</span></div>';
+    _prCache[id] = h0;
+    kutu.innerHTML = h0;
+    kutu.style.display = 'block';
+    return;
+  }
+
+  // IQR outlier temizle
+  var fs = ilanlar.map(function(i){return i.fiyat;}).sort(function(a,b){return a-b;});
+  var q1 = fs[Math.floor(fs.length*0.25)];
+  var q3 = fs[Math.floor(fs.length*0.75)];
+  var iqr = q3 - q1;
+  var temiz = ilanlar.filter(function(i){ return i.fiyat >= q1-1.5*iqr && i.fiyat <= q3+1.5*iqr; });
+  if (!temiz.length) temiz = ilanlar;
+  var tf = temiz.map(function(i){return i.fiyat;}).sort(function(a,b){return a-b;});
+
+  var min    = tf[0];
+  var max    = tf[tf.length-1];
+  var ort    = Math.round(tf.reduce(function(s,v){return s+v;},0)/tf.length);
+  var medyan = tf[Math.floor(tf.length/2)];
+
+  // Bu ilanın konumu
+  var konumPct = max > min ? Math.min(97,Math.max(3,Math.round((fiyat-min)/(max-min)*100))) : 50;
+  var farkMedyan = fiyat - medyan;
+  var farkPct = medyan ? Math.round(Math.abs(farkMedyan)/medyan*100) : 0;
+
+  var yorum, yorumRenk;
+  if      (farkMedyan < -100000) { yorum='🟢 Çok uygun (%'+farkPct+' altında)';    yorumRenk='#3B6D11'; }
+  else if (farkMedyan < -30000)  { yorum='🟡 Uygun (%'+farkPct+' altında)';        yorumRenk='#BA7517'; }
+  else if (farkMedyan >  100000) { yorum='🔴 Pahalı (%'+farkPct+' üstünde)';       yorumRenk='#A32D2D'; }
+  else if (farkMedyan >  30000)  { yorum='🟠 Biraz pahalı (%'+farkPct+' üstünde)'; yorumRenk='#ea580c'; }
+  else                           { yorum='⚪ Piyasa ortası';                        yorumRenk='#8a8f9a'; }
+
+  // En yakın 4 ilan
+  var benzers = temiz.slice().sort(function(a,b){
+    return Math.abs(a.fiyat-medyan)-Math.abs(b.fiyat-medyan);
+  }).slice(0,4);
+
+  var metrikHtml = [
+    {l:'Min',    v:min.toLocaleString('tr-TR')+' ₺'},
+    {l:'Ort.',   v:ort.toLocaleString('tr-TR')+' ₺'},
+    {l:'Medyan', v:medyan.toLocaleString('tr-TR')+' ₺'},
+    {l:'Max',    v:max.toLocaleString('tr-TR')+' ₺'},
+    {l:'Toplam', v:temiz.length+' ilan'},
+    {l:'Yıl',   v:(yilMin||'?')+'-'+(yilMax<9999?yilMax:'?')}
+  ].map(function(m){
+    return '<div class="pr-metrik"><div class="pr-metrik-l">'+m.l+'</div><div class="pr-metrik-v">'+m.v+'</div></div>';
+  }).join('');
+
+  var barHtml =
+    '<div style="margin:8px 0 6px">'+
+      '<div style="font-size:10px;color:#8a8f9a;margin-bottom:4px">Bu ilanın piyasadaki konumu</div>'+
+      '<div style="position:relative;height:6px;background:rgba(255,255,255,0.07);border-radius:3px">'+
+        '<div style="position:absolute;left:0;top:0;height:100%;width:'+konumPct+'%;background:#185FA5;border-radius:3px;opacity:.7"></div>'+
+        '<div style="position:absolute;top:-4px;left:'+konumPct+'%;width:3px;height:14px;background:#fff;border-radius:2px;transform:translateX(-50%)"></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:#8a8f9a;margin-top:3px"><span>Ucuz</span><span>Pahalı</span></div>'+
+    '</div>';
+
+  var benzerHtml = benzers.map(function(il){
+    var fark2 = il.fiyat - fiyat;
+    var farkStr = fark2===0 ? '' :
+      (fark2>0 ? '<span style="color:#A32D2D;font-size:10px"> +'+Math.abs(fark2).toLocaleString('tr-TR')+'₺</span>'
+               : '<span style="color:#3B6D11;font-size:10px"> −'+Math.abs(fark2).toLocaleString('tr-TR')+'₺</span>');
+    return '<div class="pr-benzer-item">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#e8e8e8">'+(il.ad||'—')+'</div>'+
+        '<div style="color:#8a8f9a;font-size:11px">'+(il.yil||'?')+' · '+(il.km?il.km.toLocaleString('tr-TR')+' km':'? km')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;margin-left:8px;white-space:nowrap">'+
+        '<div style="font-weight:500;font-size:12px;color:#e8e8e8">'+il.fiyat.toLocaleString('tr-TR')+'₺'+farkStr+'</div>'+
+        (il.url?'<a href="'+il.url+'" target="_blank" style="font-size:10px;color:#5ba4e0">→ İlan</a>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var html =
+    '<div class="pr-kutu">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+        '<span style="font-size:12px;font-weight:500;color:'+yorumRenk+'">'+yorum+'</span>'+
+        '<span style="font-size:10px;color:#8a8f9a">'+marka+(seri?' '+seri:'')+' '+yilMin+'-'+(yilMax<9999?yilMax:'?')+'</span>'+
+      '</div>'+
+      '<div class="pr-metrik-grid">'+metrikHtml+'</div>'+
+      barHtml+
+      (benzerHtml?'<div style="margin-top:8px"><div style="font-size:10px;color:#8a8f9a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Benzer ilanlar</div>'+benzerHtml+'</div>':'')+
+    '</div>';
+
+  _prCache[id] = html;
+  kutu.innerHTML = html;
+  kutu.style.display = 'block';
+}
+
+// ── /FİYAT ROBOTU ─────────────────────────────────────────────────────────────
+
 </script>
 </body>
 </html>
