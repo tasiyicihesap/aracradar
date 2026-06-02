@@ -828,28 +828,78 @@ function _ekleIlanlar(){
   if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
 }
 
-// ── localStorage cache ─────────────────────────────────────────────────────
-var AR_CACHE_KEY    = 'ar_veri_cache';
-var AR_CACHE_TS_KEY = 'ar_cache_meta';
-var AR_CACHE_SURE   = 10 * 60 * 1000; // 10 dakika
+// ── IndexedDB Cache (localStorage 5MB limitini aşar — IndexedDB sınırsız) ──
+var AR_DB_NAME    = 'aracradar_cache';
+var AR_DB_VERSION = 1;
+var AR_CACHE_SURE = 10 * 60 * 1000; // 10 dakika
+var _arDb = null;
 
-function arCacheKaydet(ilanlar, syncTs) {
-  try {
-    localStorage.setItem(AR_CACHE_KEY, JSON.stringify(ilanlar));
-    localStorage.setItem(AR_CACHE_TS_KEY, JSON.stringify({ts: Date.now(), sync: syncTs}));
-  } catch(e) {
-    try { localStorage.removeItem(AR_CACHE_KEY); localStorage.removeItem(AR_CACHE_TS_KEY); } catch(e2) {}
-  }
+function arDbAc(callback) {
+  if (_arDb) { callback(_arDb); return; }
+  var req = indexedDB.open(AR_DB_NAME, AR_DB_VERSION);
+  req.onupgradeneeded = function(e) {
+    var db = e.target.result;
+    if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache');
+  };
+  req.onsuccess = function(e) { _arDb = e.target.result; callback(_arDb); };
+  req.onerror   = function()  { callback(null); };
 }
 
-function arCacheOku() {
-  try {
-    var meta = JSON.parse(localStorage.getItem(AR_CACHE_TS_KEY) || 'null');
-    if (!meta || (Date.now() - meta.ts) > AR_CACHE_SURE) return null;
-    var ilanlar = JSON.parse(localStorage.getItem(AR_CACHE_KEY) || 'null');
-    if (!ilanlar || !ilanlar.length) return null;
-    return {ilanlar: ilanlar, sync: meta.sync};
-  } catch(e) { return null; }
+function arCacheKaydet(ilanlar, syncTs) {
+  if (!ilanlar || !ilanlar.length) return;
+  arDbAc(function(db) {
+    if (!db) return;
+    try {
+      var tx = db.transaction('cache', 'readwrite');
+      var st = tx.objectStore('cache');
+      st.put(ilanlar,   'ilanlar');
+      st.put({ts: Date.now(), sync: syncTs || '—'}, 'meta');
+    } catch(e) { console.warn('Cache yazma hatası:', e); }
+  });
+}
+
+function arCacheOku(callback) {
+  arDbAc(function(db) {
+    if (!db) { callback(null); return; }
+    try {
+      var tx   = db.transaction('cache', 'readonly');
+      var st   = tx.objectStore('cache');
+      var meta = null, ilanlar = null, tamamlandi = 0;
+
+      var rMeta = st.get('meta');
+      rMeta.onsuccess = function() {
+        meta = rMeta.result;
+        tamamlandi++;
+        if (tamamlandi === 2) kontrol();
+      };
+      rMeta.onerror = function() { tamamlandi++; if (tamamlandi===2) kontrol(); };
+
+      var rIlan = st.get('ilanlar');
+      rIlan.onsuccess = function() {
+        ilanlar = rIlan.result;
+        tamamlandi++;
+        if (tamamlandi === 2) kontrol();
+      };
+      rIlan.onerror = function() { tamamlandi++; if (tamamlandi===2) kontrol(); };
+
+      function kontrol() {
+        if (!meta || !ilanlar || !ilanlar.length) { callback(null); return; }
+        if ((Date.now() - meta.ts) > AR_CACHE_SURE) { callback(null); return; }
+        callback({ ilanlar: ilanlar, sync: meta.sync });
+      }
+    } catch(e) { callback(null); }
+  });
+}
+
+function arCacheTemizle(callback) {
+  arDbAc(function(db) {
+    if (!db) { callback && callback(); return; }
+    try {
+      var tx = db.transaction('cache', 'readwrite');
+      tx.objectStore('cache').clear();
+      tx.oncomplete = function() { callback && callback(); };
+    } catch(e) { callback && callback(); }
+  });
 }
 
 // ── Veriyi UI'ya uygula ────────────────────────────────────────────────────
@@ -874,15 +924,24 @@ function veriUygula(ilanlar, syncTs) {
 
 // ── veriYukle — cache önce, Supabase sonra ─────────────────────────────────
 function veriYukle(zorla) {
-  // Cache kontrolü
-  if (!zorla) {
-    var cache = arCacheOku();
-    if (cache) {
-      veriUygula(cache.ilanlar, cache.sync + ' (önbellek)');
-      return;
-    }
-  }
+  var btn = document.getElementById('btn-yenile');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
+  // Cache kontrolü (async IndexedDB)
+  if (!zorla) {
+    arCacheOku(function(cache) {
+      if (cache) {
+        veriUygula(cache.ilanlar, cache.sync + ' ✓');
+        return;
+      }
+      _veriYukleSupabase();
+    });
+    return;
+  }
+  _veriYukleSupabase();
+}
+
+function _veriYukleSupabase() {
   var btn = document.getElementById('btn-yenile');
   if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
   var since = new Date(Date.now()-365*24*3600*1000).toISOString();
@@ -915,10 +974,12 @@ function veriYukle(zorla) {
       veriUygula(ilanlar, ts);
     })
     .catch(function(e){
-      var cache = arCacheOku();
-      if (cache) { veriUygula(cache.ilanlar, cache.sync + ' (önbellek)'); return; }
-      if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
-      document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
+      // Hata durumunda cache'den yükle
+      arCacheOku(function(cache) {
+        if (cache) { veriUygula(cache.ilanlar, cache.sync + ' (önbellek)'); return; }
+        if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
+        document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
+      });
     });
 }
 
@@ -949,7 +1010,7 @@ document.addEventListener('DOMContentLoaded',function(){
   ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
     document.getElementById(id).addEventListener('input',goster);
   });
-  document.getElementById('btn-yenile').addEventListener('click',function(){ arCacheKaydet([], ''); veriYukle(true); });
+  document.getElementById('btn-yenile').addEventListener('click',function(){ arCacheTemizle(function(){ veriYukle(true); }); });
   veriYukle();
   setInterval(function(){ veriYukle(false); }, 15*60*1000);
 
