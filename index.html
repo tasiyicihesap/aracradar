@@ -1211,29 +1211,52 @@ document.addEventListener('DOMContentLoaded',function(){
 
   // ── Bildirim butonu ────────────────────────────────────────────────────
   (function() {
+    // Sessiz mod — bildirimler geçici olarak susturulabilir
+    var _sesizMod = false;
+    try { _sesizMod = localStorage.getItem('ar_sesiz') === '1'; } catch(e) {}
+
+    function sesizModDegistir() {
+      _sesizMod = !_sesizMod;
+      try { localStorage.setItem('ar_sesiz', _sesizMod ? '1' : '0'); } catch(e) {}
+      btnDurumGuncelle();
+    }
+
     function btnDurumGuncelle() {
       var btn = document.getElementById('btn-bildirim');
       if (!btn) return;
       if (!('Notification' in window)) {
-        btn.innerHTML = '🔕 Bildirim Yok';
+        btn.innerHTML = '🔕';
         btn.style.opacity = '0.4';
         btn.disabled = true;
+        btn.title = 'Bu tarayıcı bildirimleri desteklemiyor';
         return;
       }
       if (Notification.permission === 'granted') {
-        btn.innerHTML = '🔔 Bildirim ✓';
-        btn.style.background = 'rgba(34,197,94,0.3)';
-        btn.style.color = '#4ade80';
-        btn.style.borderColor = 'rgba(34,197,94,0.4)';
-        btn.title = 'Bildirimler açık — tıkla test et';
+        if (_sesizMod) {
+          btn.innerHTML = '🔕 Sessiz';
+          btn.style.background = 'rgba(148,163,184,0.15)';
+          btn.style.color = '#94a3b8';
+          btn.style.borderColor = 'rgba(148,163,184,0.25)';
+          btn.title = 'Bildirimler sessiz — tekrar açmak için tıkla';
+        } else {
+          btn.innerHTML = '🔔 Açık';
+          btn.style.background = 'rgba(34,197,94,0.2)';
+          btn.style.color = '#4ade80';
+          btn.style.borderColor = 'rgba(34,197,94,0.35)';
+          btn.title = 'Bildirimler açık — kapatmak için tıkla';
+        }
       } else if (Notification.permission === 'denied') {
         btn.innerHTML = '🔕 Kapalı';
-        btn.style.background = 'rgba(239,68,68,0.2)';
+        btn.style.background = 'rgba(239,68,68,0.15)';
         btn.style.color = '#f87171';
+        btn.style.borderColor = 'rgba(239,68,68,0.25)';
         btn.title = 'Tarayıcı ayarlarından bildirimlere izin verin';
       } else {
         btn.innerHTML = '🔔 Bildirim';
-        btn.title = 'Fiyat değişimi bildirimleri için tıklayın';
+        btn.style.background = '';
+        btn.style.color = 'rgba(255,255,255,0.8)';
+        btn.style.borderColor = 'rgba(255,255,255,0.15)';
+        btn.title = 'Fiyat değişimi bildirimleri için tıkla';
       }
     }
 
@@ -1246,47 +1269,32 @@ document.addEventListener('DOMContentLoaded',function(){
           return;
         }
         if (Notification.permission === 'granted') {
-          // Test bildirimi gönder
-          vroomSesiCal();
-          if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-              type: 'FIYAT_BILDIRIMI',
-              id: 'test',
-              baslik: '🔔 ARAÇRADAR — Test',
-              mesaj: 'Bildirimler başarıyla çalışıyor! Fiyat değişimlerinde buradan haber alacaksınız.',
-              url: './'
-            });
-          } else {
-            // SW henüz hazır değilse direkt API kullan
-            navigator.serviceWorker.ready.then(function(reg) {
-              reg.showNotification('🔔 ARAÇRADAR — Test', {
-                body: 'Bildirimler başarıyla çalışıyor!',
-                icon: './icon192.svg',
-                tag: 'test'
-              });
-            });
+          sesizModDegistir();
+          if (!_sesizMod) {
+            setTimeout(function(){
+              bildirimGonder({ id:'test', url:'./', baslik:'🔔 ARAÇRADAR — Bildirimler Açık', mesaj:'Fiyat değişimlerini takip etmeye başladınız!' });
+            }, 300);
           }
           return;
         }
         if (Notification.permission === 'denied') {
-          alert('Bildirim izni reddedildi.\n\nAndroid: Chrome ayarları → Site ayarları → Bildirimler → izin ver\niOS: Ayarlar → Safari → Gelişmiş → Bildirimler');
+          alert('Bildirim izni daha önce reddedildi.\n\nAndroid Chrome: Adres çubuğundaki 🔒 → Site ayarları → Bildirimler → İzin ver\niOS Safari: Ayarlar → Safari → Bildirimler');
           return;
         }
-        // İzin iste
         Notification.requestPermission().then(function(perm) {
-          btnDurumGuncelle();
           if (perm === 'granted') {
-            // İzin verildi — test bildirimi
-            setTimeout(function() {
-              btn.click(); // kendi kendine tekrar tıkla = test gönder
+            _sesizMod = false;
+            try { localStorage.setItem('ar_sesiz','0'); } catch(e){}
+            btnDurumGuncelle();
+            setTimeout(function(){
+              bildirimGonder({ id:'test', url:'./', baslik:'🔔 ARAÇRADAR Açık!', mesaj:'Fiyat düşüşlerinde anında haber alacaksınız.' });
             }, 500);
           } else if (perm === 'denied') {
-            alert('Bildirim izni reddedildi. Tarayıcı ayarlarından açabilirsiniz.');
+            btnDurumGuncelle();
+            alert('Bildirim izni reddedildi.');
           }
-        }).catch(function(e) {
-          alert('Bildirim izni alınamadı: ' + e.message);
-        });
-      });
+        }).catch(function(e){ alert('İzin alınamadı: '+e.message); });
+      }));
     }
 
     // PWA yükle butonu
@@ -3122,6 +3130,11 @@ function vroomSesiCal() {
 
 function bildirimGonder(data) {
   if (Notification.permission !== 'granted') return;
+  // Sessiz moddaysa gönderme (test bildirimleri hariç)
+  try {
+    var sesiz = localStorage.getItem('ar_sesiz') === '1';
+    if (sesiz && data.id !== 'test') return;
+  } catch(e) {}
 
   // Ses çal (kullanıcı etkileşimi gerektirdiği için direkt burada)
   vroomSesiCal();
