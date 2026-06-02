@@ -543,35 +543,115 @@ var KASA_DB={
 };
 
 function etiketDropdownDoldur(){
-  var etiketler={};
+  if(!veri||!veri.length) return;
+  var sel = document.getElementById('f-etiket');
+  if(!sel) return;
+  var secili = sel.value;
+
+  // Otomatik grup seçenekleri — veri'den dinamik üret
+  var gruplar = {};
+
+  // 1. Yakıt türleri
+  var yakitMap = {
+    'benzin':'⛽ Benzin','dizel':'🛢 Dizel','lpg':'🔵 LPG',
+    'hibrit':'🔋 Hibrit','elektrik':'⚡ Elektrik',
+    'benzin-lpg':'⛽ Benzin+LPG','benzin-hibrit':'⛽ Benzin+Hibrit'
+  };
+  // 2. Vites türleri
+  var vitesMap = {
+    'manuel':'🦶 Manuel Vites','otomatik':'🤖 Otomatik Vites',
+    'yari-otomatik':'🎛 Yarı Otomatik'
+  };
+
   veri.forEach(function(il){
-    if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+    // Yakıt
+    var y = (il.yakit||'').toLowerCase().trim();
+    if(y && yakitMap[y]) gruplar['yakit_'+y] = yakitMap[y];
+    else if(y && y.length>1) gruplar['yakit_'+y] = '⛽ '+y.charAt(0).toUpperCase()+y.slice(1);
+
+    // Vites
+    var v = (il.vites||'').toLowerCase().trim();
+    if(v && vitesMap[v]) gruplar['vites_'+v] = vitesMap[v];
+    else if(v && v.length>1) gruplar['vites_'+v] = '🚗 '+v.charAt(0).toUpperCase()+v.slice(1);
+
+    // Kasa
+    var k = (il.kasa||'').trim();
+    if(k) gruplar['kasa_'+k] = '🚙 Kasa: '+k;
+
+    // Marka
+    var m = (il.marka||'').trim();
+    if(m) gruplar['marka_'+m] = '🏷 '+m;
+
+    // Eski etiket sistemi (geriye dönük uyumluluk)
+    if(il.etiket&&il.etiket.trim()){
+      il.etiket.split(',').forEach(function(e){
+        var t=e.trim();
+        if(t) gruplar['etiket_'+t]='📌 '+t;
+      });
+    }
   });
 
-  function doldur(){
-    var liste=Object.keys(etiketler).sort();
-    var sel=document.getElementById('f-etiket');
-    if(!sel)return;
-    var secili=sel.value;
-    sel.innerHTML='<option value="">Tüm Gruplar</option>';
-    liste.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
-    if(secili)sel.value=secili;
-  }
+  // Grupları kategorilere ayır ve sırala
+  var kategoriler = [
+    { prefix:'yakit_',  baslik:'— Yakıt Türü —' },
+    { prefix:'vites_',  baslik:'— Vites —' },
+    { prefix:'marka_',  baslik:'— Marka —' },
+    { prefix:'kasa_',   baslik:'— Kasa/Nesil —' },
+    { prefix:'etiket_', baslik:'— Etiketler —' },
+  ];
 
-  // Etiket bulunamadıysa Supabase'den çek
-  if(Object.keys(etiketler).length===0){
-    fetch(SUPABASE_URL+'/rest/v1/ilanlar?select=etiket&not.etiket=is.null&limit=5000',{
-      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
-    }).then(function(r){return r.json();}).then(function(data){
-      if(!Array.isArray(data))return;
-      data.forEach(function(il){
-        if(il.etiket&&il.etiket.trim())il.etiket.split(',').forEach(function(e){var t=e.trim();if(t)etiketler[t]=true;});
+  sel.innerHTML = '<option value="">Tüm Gruplar</option>';
+
+  kategoriler.forEach(function(kat){
+    var buKat = Object.keys(gruplar)
+      .filter(function(k){ return k.startsWith(kat.prefix); })
+      .sort(function(a,b){
+        // Marka ve kasayı ilan sayısına göre sırala
+        var sayiA = veri.filter(function(il){return _grupEslestir(il,a);}).length;
+        var sayiB = veri.filter(function(il){return _grupEslestir(il,b);}).length;
+        return sayiB - sayiA;
       });
-      doldur();
-    }).catch(function(){doldur();});
-  } else {
-    doldur();
+    if(!buKat.length) return;
+    var grp = document.createElement('optgroup');
+    grp.label = kat.baslik;
+    buKat.forEach(function(k){
+      var sayi = veri.filter(function(il){ return _grupEslestir(il,k); }).length;
+      if(sayi < 2) return; // Çok az ilan varsa gösterme
+      var o = document.createElement('option');
+      o.value = k;
+      o.textContent = gruplar[k] + ' (' + sayi + ')';
+      grp.appendChild(o);
+    });
+    if(grp.children.length > 0) sel.appendChild(grp);
+  });
+
+  if(secili) sel.value = secili;
+}
+
+// Grup eşleştirme — ilan bu gruba giriyor mu?
+function _grupEslestir(il, grupKey) {
+  if(!il || !grupKey) return false;
+  if(grupKey.startsWith('yakit_')) {
+    var y = grupKey.replace('yakit_','');
+    return (il.yakit||'').toLowerCase().trim() === y;
   }
+  if(grupKey.startsWith('vites_')) {
+    var v = grupKey.replace('vites_','');
+    return (il.vites||'').toLowerCase().trim() === v;
+  }
+  if(grupKey.startsWith('marka_')) {
+    var m = grupKey.replace('marka_','');
+    return (il.marka||'').trim() === m;
+  }
+  if(grupKey.startsWith('kasa_')) {
+    var k = grupKey.replace('kasa_','');
+    return (il.kasa||'').trim() === k;
+  }
+  if(grupKey.startsWith('etiket_')) {
+    var e = grupKey.replace('etiket_','');
+    return (il.etiket||'').split(',').map(function(x){return x.trim();}).indexOf(e) !== -1;
+  }
+  return false;
 }
 
 function kasaDropdownDoldur(){
@@ -676,7 +756,10 @@ function filtrele(liste){
     if(min&&f&&f<min)return false;
     if(max<9999999999&&f&&f>max)return false;
     if(kaynak&&il.kaynak!==kaynak)return false;
-    if(etiket&&!(il.etiket||'').includes(etiket))return false;
+    if(etiket){
+      // Yeni grup sistemi (yakit_, vites_, marka_, kasa_, etiket_)
+      if(!_grupEslestir(il, etiket)) return false;
+    }
     if(yilMin&&il.yil&&il.yil<yilMin)return false;
     if(yilMax<9999&&il.yil&&il.yil>yilMax)return false;
     if(marka){if(!ilanMarka(il).toLowerCase().includes(marka))return false;}
@@ -1097,6 +1180,33 @@ document.addEventListener('DOMContentLoaded',function(){
   veriYukle();
   setInterval(function(){ _veriYukleSupabase(true); }, 15*60*1000); // delta sync
 
+
+  // SW'den bildirim tıklama mesajı al
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(e) {
+      if (!e.data || e.data.type !== 'BILDIRIM_TIKLA') return;
+      var url = e.data.url || '';
+      // URL'den filtre parametresi çıkar
+      // Örnek: ./?filtre=dustu, ./?sekme=takip, ./?ilan=123
+      var params = new URLSearchParams(url.split('?')[1] || '');
+      var filtre = params.get('filtre');
+      var sekme  = params.get('sekme');
+      // Değişenler sekmesine git ve ilgili filtreyi uygula
+      if (filtre === 'dustu') {
+        // Fiyat düşenler — degisim sekmesi, düşüş filtresi
+        anaSekmeDegistir('degisim');
+        var degBtn = document.querySelector('[data-degisim="dustu"]');
+        if (degBtn) degBtn.click();
+      } else if (sekme === 'takip') {
+        anaSekmeDegistir('takip');
+      } else {
+        // Genel — değişenler sekmesi
+        anaSekmeDegistir('degisim');
+      }
+      window.focus();
+    });
+  }
+
   // ── Bildirim butonu ────────────────────────────────────────────────────
   (function() {
     function btnDurumGuncelle() {
@@ -1135,6 +1245,7 @@ document.addEventListener('DOMContentLoaded',function(){
         }
         if (Notification.permission === 'granted') {
           // Test bildirimi gönder
+          vroomSesiCal();
           if (navigator.serviceWorker && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({
               type: 'FIYAT_BILDIRIMI',
@@ -1210,6 +1321,22 @@ function anaSekmeDegistir(sekme) {
     if(e2) e2.style.display = s===sekme?'block':'none';
   });
   if(sekme==='analiz') setTimeout(analizGoster,100);
+  // Karşılaştırma sekmesi açılınca referans tab'ı aktifleştir ve init yap
+  if(sekme==='karsilastir') {
+    setTimeout(function(){
+      kmSekme('referans');
+      // km-tab click eventlerini bağla (henüz bağlı değilse)
+      var tablar = ['referans','liste','sonuc'];
+      document.querySelectorAll('.km-tab').forEach(function(btn, i){
+        if(!btn._kmBound) {
+          btn._kmBound = true;
+          btn.addEventListener('click', function(){
+            kmSekme(tablar[i] || 'referans');
+          });
+        }
+      });
+    }, 50);
+  }
 }
 
 
@@ -2117,21 +2244,82 @@ function sbUrlUret(marka, model, yilMin, yilMax, yakit, vites) {
 }
 
 // ── İlan kartı ────────────────────────────────────────────────────
-function benzerIlanKart(il) {
-  var fiyatStr = il.fiyat ? il.fiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
+function benzerIlanSkor(il, refKm) {
+  var skor = 100;
+  var notlar = [];
+  var km = parseInt(il.km) || 0;
+  if (refKm && km) {
+    var kmFark = km - refKm;
+    if (kmFark < -30000)     { skor += 8; notlar.push('✅ Düşük KM'); }
+    else if (kmFark < 0)     { skor += 3; notlar.push('✅ Az KM'); }
+    else if (kmFark > 50000) { skor -= 10; notlar.push('⚠️ Yüksek KM'); }
+    else if (kmFark > 20000) { skor -= 5;  notlar.push('⚠️ KM yüksek'); }
+  } else if (km > 200000) { skor -= 15; notlar.push('⚠️ +200k KM'); }
+  else if (km > 0 && km < 50000) { skor += 5; notlar.push('✅ Az KM'); }
+
+  var aciklama = (il.ad || '').toLowerCase();
+  var boyaliSay = 0, degiskenSay = 0;
+  ['boya','boyalı','dokunma','düzeltme'].forEach(function(k){ if(aciklama.indexOf(k)!==-1) boyaliSay++; });
+  if (boyaliSay > 2)      { skor -= 12; notlar.push('🎨 Çok boyalı'); }
+  else if (boyaliSay > 0) { skor -= 5;  notlar.push('🎨 Boyalı'); }
+  else                    { skor += 3;  notlar.push('✅ Boyasız'); }
+
+  ['değişen','değişmiş','yenilenmiş','kaput','çamurluk','tampon','tramer','kaporta'].forEach(function(k){
+    if(aciklama.indexOf(k)!==-1) degiskenSay++;
+  });
+  if (degiskenSay > 2)      { skor -= 15; notlar.push('🔧 Çok değişen'); }
+  else if (degiskenSay > 0) { skor -= 6;  notlar.push('🔧 Değişen var'); }
+  else                      { skor += 5;  notlar.push('✅ Orijinal'); }
+
+  if (aciklama.indexOf('hasar')!==-1||aciklama.indexOf('kaza')!==-1) { skor -= 20; notlar.push('❌ Hasarlı'); }
+  if (aciklama.indexOf('ekspertiz')!==-1) { skor += 5; notlar.push('📋 Ekspertiz'); }
+  if (aciklama.indexOf('garanti')!==-1)   { skor += 4; notlar.push('🛡 Garanti'); }
+  if (aciklama.indexOf('servis')!==-1||aciklama.indexOf('bakım')!==-1) { skor += 3; notlar.push('🔩 Servis'); }
+
+  return { skor: Math.max(0, Math.min(100, skor)), notlar: notlar.slice(0,4) };
+}
+
+function benzerIlanKart(il, refFiyat, refKm) {
+  var fiyat = il.fiyat || 0;
+  var fiyatStr = fiyat ? fiyat.toLocaleString('tr-TR') + ' ₺' : '—';
   var kaynakRenk = il.kaynak==='arabam'?'#E31837':il.kaynak==='letgo'?'#6B3FA0':'#FF6600';
   var kaynakAd   = il.kaynak==='arabam'?'ARB':il.kaynak==='letgo'?'LGO':'SHB';
-  var ad = (il.ad || (il.marka + ' ' + (il.model||il.seri||''))).substring(0,80);
-  var yilKm = [il.yil>1990?il.yil:'', il.km].filter(Boolean).join(' · ');
-  return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--brd);border-radius:8px;margin-bottom:6px;background:var(--yuz)">'
-    + '<span style="font-size:10px;background:' + kaynakRenk + ';color:#fff;padding:2px 6px;border-radius:3px;flex-shrink:0;font-weight:700">' + kaynakAd + '</span>'
-    + '<div style="flex:1;min-width:0">'
-    + '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ad + '</div>'
-    + (yilKm ? '<div style="font-size:11px;color:var(--mut)">' + yilKm + '</div>' : '')
-    + '</div>'
-    + '<div style="font-size:13px;font-weight:600;white-space:nowrap">' + fiyatStr + '</div>'
-    + '<a href="' + il.url + '" target="_blank" style="font-size:11px;color:var(--blud);text-decoration:none;flex-shrink:0">\u2197</a>'
-    + '</div>';
+  var ad = (il.ad||(il.marka+' '+(il.model||il.seri||''))).substring(0,80);
+  var km = il.km ? parseInt(il.km).toLocaleString('tr-TR')+' km' : '';
+  var yilKm = [il.yil>1990?il.yil:'', km].filter(Boolean).join(' · ');
+  var kasa = il.kasa ? '<span style="font-size:10px;background:rgba(99,102,241,0.15);color:#818cf8;padding:1px 5px;border-radius:3px">'+il.kasa+'</span>' : '';
+
+  var farkHtml = '';
+  if (refFiyat && fiyat) {
+    var fark = fiyat - refFiyat;
+    var yuzde = Math.round(Math.abs(fark)/refFiyat*100);
+    var frenk = fark<0?'#4ade80':'#f87171';
+    farkHtml = '<div style="font-size:10px;color:'+frenk+';font-weight:600">'+(fark<0?'▼':'▲')+' '+Math.abs(fark).toLocaleString('tr-TR')+'₺ (%'+yuzde+')</div>';
+  }
+
+  var sk = benzerIlanSkor(il, refKm ? parseInt(refKm) : 0);
+  var skRenk = sk.skor>=85?'#4ade80':sk.skor>=65?'#fb923c':'#f87171';
+  var skBg   = sk.skor>=85?'rgba(74,222,128,.12)':sk.skor>=65?'rgba(251,146,60,.12)':'rgba(248,113,113,.12)';
+  var notHtml = sk.notlar.map(function(n){
+    return '<span style="font-size:9px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;color:var(--mut)">'+n+'</span>';
+  }).join(' ');
+
+  return '<div style="border:1px solid var(--brd);border-radius:10px;margin-bottom:8px;background:var(--yuz);overflow:hidden">'
+    +'<div style="display:flex;align-items:center;gap:8px;padding:10px 12px">'
+    +'<span style="font-size:10px;background:'+kaynakRenk+';color:#fff;padding:2px 6px;border-radius:3px;flex-shrink:0;font-weight:700">'+kaynakAd+'</span>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ad+'</div>'
+    +'<div style="font-size:11px;color:var(--mut);margin-top:2px;display:flex;gap:6px;align-items:center">'+yilKm+(kasa?' '+kasa:'')+'</div>'
+    +'</div>'
+    +'<div style="text-align:right;flex-shrink:0">'
+    +'<div style="font-size:13px;font-weight:700">'+fiyatStr+'</div>'
+    +farkHtml
+    +'</div>'
+    +'<div style="background:'+skBg+';color:'+skRenk+';font-size:12px;font-weight:700;padding:4px 8px;border-radius:6px;flex-shrink:0;min-width:34px;text-align:center">'+sk.skor+'</div>'
+    +'<a href="'+il.url+'" target="_blank" style="font-size:16px;color:var(--blud);text-decoration:none;flex-shrink:0">↗</a>'
+    +'</div>'
+    +(notHtml?'<div style="padding:2px 12px 8px;display:flex;flex-wrap:wrap;gap:4px">'+notHtml+'</div>':'')
+    +'</div>';
 }
 
 // ── Yardımcı: kriter hesapla ──────────────────────────────────────
@@ -2179,17 +2367,21 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
   var wrap = document.getElementById('bz-sonuc-wrap');
   if (!wrap) return;
   wrap.style.display = 'block';
+
+  var refKm = (document.getElementById('bz-ref-km') || {}).value || 0;
+
   document.getElementById('bz-sonuc-toplam').textContent = ilanlar.length;
-  document.getElementById('bz-sonuc-ref').textContent = refFiyat ? refFiyat.toLocaleString('tr-TR') + ' \u20ba' : '\u2014';
+  document.getElementById('bz-sonuc-ref').textContent = refFiyat
+    ? refFiyat.toLocaleString('tr-TR') + ' ₺' : '—';
 
   // SB linki
   var sbLinkWrap = document.getElementById('bz-site-link-wrap');
   var sbLinkEl   = document.getElementById('bz-sb-link');
   if (sbLinkWrap && sbLinkEl && _slugDB) {
-    var bzM = (document.getElementById('bz-marka')||{}).value||'';
-    var bzMo= (document.getElementById('bz-model')||{}).value||'';
-    var bzV = (document.getElementById('bz-vites')||{}).value||'';
-    var sbU = sbUrlUret(bzM, bzMo, 0, 0, '', bzV);
+    var bzM  = (document.getElementById('bz-marka')||{}).value||'';
+    var bzMo = (document.getElementById('bz-model')||{}).value||'';
+    var bzV  = (document.getElementById('bz-vites')||{}).value||'';
+    var sbU  = sbUrlUret(bzM, bzMo, 0, 0, '', bzV);
     if (sbU && bzM) { sbLinkEl.href=sbU; sbLinkEl.textContent=sbU; sbLinkWrap.style.display='block'; }
   }
 
@@ -2200,45 +2392,104 @@ function benzerSonucGoster(ilanlar, refFiyat, kaynak) {
   });
 
   function goster(tab) {
-    var liste = bysite[tab] || ilanlar;
-    ['tumü','sahibinden','arabam','letgo'].forEach(function(t){
+    var liste = tab === 'tumU' ? ilanlar : (bysite[tab] || ilanlar);
+    ['tumU','sahibinden','arabam','letgo'].forEach(function(t){
       var b = document.getElementById('bz-tab-'+t);
-      if (b) b.classList.toggle('aktif', (t==='tumü'?'tumU':t)===tab);
+      if (b) b.classList.toggle('aktif', t === tab);
     });
     var ucuzListe   = document.getElementById('bz-ucuz-liste');
     var pahaliListe = document.getElementById('bz-pahali-liste');
     var refDiv      = document.getElementById('bz-ref-ilan');
-    ucuzListe.innerHTML = '';
+    ucuzListe.innerHTML   = '';
     pahaliListe.innerHTML = '';
 
     if (refFiyat) {
+      // Kasa kriterine göre filtrele — kasa eşleşenler önce
+      var kasaVal = (document.getElementById('bz-kasa-nesil') || {}).value || '';
+      var kasaYilMin = 0, kasaYilMax = 9999;
+      if (kasaVal) {
+        var kp = kasaVal.split('-');
+        kasaYilMin = parseInt(kp[0]) || 0;
+        kasaYilMax = parseInt(kp[1]) || 9999;
+      }
+
+      // Fiyata göre ucuz/pahalı ayır
       var ucuzlar   = liste.filter(function(i){ return i.fiyat && i.fiyat < refFiyat; });
-      var pahalilar = liste.filter(function(i){ return i.fiyat && i.fiyat >= refFiyat; }).slice(0,10);
-      ucuzListe.innerHTML = ucuzlar.length ? ucuzlar.map(benzerIlanKart).join('') : '<div style="font-size:12px;color:var(--mut);padding:8px">Bu filtrede daha ucuz ilan yok.</div>';
+      var pahalilar = liste.filter(function(i){ return i.fiyat && i.fiyat >= refFiyat; });
+
+      // Her grubu skora göre sırala (kasa eşleşimi + kalite skoru)
+      function skorla(il) {
+        var sk = benzerIlanSkor(il, parseInt(refKm)||0).skor;
+        // Kasa yılı eşleşirse +20 bonus
+        if (kasaYilMin && il.yil && il.yil >= kasaYilMin && il.yil <= kasaYilMax) sk += 20;
+        return sk;
+      }
+
+      ucuzlar.sort(function(a, b) {
+        // Önce kasa eşleşimi, sonra skora göre (yüksek önce), sonra fiyata (yüksek önce = ref'e yakın)
+        var skA = skorla(a), skB = skorla(b);
+        if (skB !== skA) return skB - skA;
+        return b.fiyat - a.fiyat; // ref'e yakın önce
+      });
+
+      pahalilar.sort(function(a, b) {
+        var skA = skorla(a), skB = skorla(b);
+        if (skB !== skA) return skB - skA;
+        return a.fiyat - b.fiyat; // ref'e yakın önce
+      });
+
+      var ucuz10   = ucuzlar.slice(0, 10);
+      var pahali10 = pahalilar.slice(0, 10);
+
+      // Referans ilan kutusu
       var refLink = (document.getElementById('bz-link')||{}).value;
       if (refDiv && refLink) {
         refDiv.style.display = 'block';
+        var refMarka = (document.getElementById('bz-marka')||{}).value||'';
+        var refModel = (document.getElementById('bz-model')||{}).value||'';
+        var refKasa  = kasaVal ? ' · Kasa '+kasaYilMin+'-'+kasaYilMax : '';
         document.getElementById('bz-ref-ilan-icerik').innerHTML =
           '<div style="display:flex;align-items:center;gap:10px">'
-          + '<div style="flex:1;font-size:12px">' + ((document.getElementById('bz-marka')||{}).value||'') + ' ' + ((document.getElementById('bz-model')||{}).value||'') + '</div>'
-          + '<div style="font-size:14px;font-weight:700;color:var(--blud)">' + refFiyat.toLocaleString('tr-TR') + ' \u20ba</div>'
-          + '<a href="' + refLink + '" target="_blank" style="font-size:11px;color:var(--blud);text-decoration:none">\u2197 Aç</a></div>';
+          +'<div style="flex:1;font-size:12px;font-weight:500">'+refMarka+' '+refModel+refKasa+'</div>'
+          +'<div style="font-size:14px;font-weight:700;color:var(--blud)">'+refFiyat.toLocaleString('tr-TR')+' ₺</div>'
+          +'<a href="'+refLink+'" target="_blank" style="font-size:11px;color:var(--blud);text-decoration:none">↗ Orijinal İlan</a>'
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--mut);margin-top:4px">'
+          +'Toplam '+liste.length+' eşleşme · '
+          +ucuzlar.length+' daha ucuz · '
+          +pahalilar.length+' daha pahalı'
+          +'</div>';
       }
-      pahaliListe.innerHTML = pahalilar.length ? pahalilar.map(benzerIlanKart).join('') : '<div style="font-size:12px;color:var(--mut);padding:8px">Referans fiyattan pahalı ilan yok.</div>';
+
+      // Skor legend
+      var legendHtml = '<div style="font-size:10px;color:var(--mut);padding:6px 0;display:flex;gap:12px">'
+        +'<span><span style="color:#4ade80;font-weight:700">85+</span> Çok iyi</span>'
+        +'<span><span style="color:#fb923c;font-weight:700">65-84</span> Orta</span>'
+        +'<span><span style="color:#f87171;font-weight:700">0-64</span> Dikkatli</span>'
+        +'<span style="color:var(--mut)">Sağdaki sayı = kalite skoru</span>'
+        +'</div>';
+
+      ucuzListe.innerHTML = legendHtml + (ucuz10.length
+        ? ucuz10.map(function(il){ return benzerIlanKart(il, refFiyat, refKm); }).join('')
+        : '<div style="font-size:12px;color:var(--mut);padding:8px">Bu kriterde daha ucuz ilan yok.</div>');
+
+      pahaliListe.innerHTML = pahali10.length
+        ? pahali10.map(function(il){ return benzerIlanKart(il, refFiyat, refKm); }).join('')
+        : '<div style="font-size:12px;color:var(--mut);padding:8px">Referans fiyattan pahalı ilan yok.</div>';
       document.getElementById('bz-pahali-wrap').style.display = 'block';
+
     } else {
       if (refDiv) refDiv.style.display = 'none';
-      ucuzListe.innerHTML = liste.map(benzerIlanKart).join('');
+      ucuzListe.innerHTML = liste.map(function(il){ return benzerIlanKart(il, 0, refKm); }).join('');
       document.getElementById('bz-pahali-wrap').style.display = 'none';
     }
   }
 
-  ['tumü','sahibinden','arabam','letgo'].forEach(function(t){
+  ['tumU','sahibinden','arabam','letgo'].forEach(function(t){
     var btn = document.getElementById('bz-tab-'+t);
-    if (btn) btn.onclick = function(){ goster(t==='tumü'?'tumU':t); };
+    if (btn) btn.onclick = function(){ goster(t); };
   });
 
-  // Linkin sitesini ilk sekme yap
   var refLink2 = (document.getElementById('bz-link')||{}).value||'';
   var ilkTab = kaynak || 'tumU';
   if (!kaynak) {
@@ -2339,6 +2590,8 @@ function benzerLinkCek(url) {
     var kmSayi = parseInt(String(d.km||'0').replace(/\D/g,''))||0;
     var kmMinEl=document.getElementById('bz-km-min'); if(kmMinEl) kmMinEl.value = kmSayi>0?kmSayi:0;
     var kmMaxEl=document.getElementById('bz-km-max'); if(kmMaxEl) kmMaxEl.value = kmSayi>0?kmSayi+50000:150000;
+    // Referans KM'yi sakla — skor hesaplamada kullanılacak
+    var refKmEl=document.getElementById('bz-ref-km'); if(refKmEl) refKmEl.value = kmSayi||0;
 
     var yakitRaw = String(d.yakit||'').toLowerCase();
     var yakitNorm = '';
@@ -2783,7 +3036,7 @@ function fiyatDegisimKontrol(ilanlar, sadeceGecmis) {
              (d.dustu ? '\u25BC' : '\u25B2') + ' ' +
              Math.abs(d.fark).toLocaleString('tr-TR') + ' \u20BA (%' + d.yuzde + ')' +
              ' \u2192 ' + d.sonFiyat.toLocaleString('tr-TR') + ' \u20BA',
-      url: './'
+      url: d.dustu ? './?filtre=dustu' : './?filtre=artti'
     });
   });
 
@@ -2799,8 +3052,77 @@ function fiyatDegisimKontrol(ilanlar, sadeceGecmis) {
   }
 }
 
+
+// ── ARAÇRADAR Bildirim Sesi — Web Audio API ──────────────────────────────
+function vroomSesiCal() {
+  try {
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    var ctx = new AudioCtx();
+
+    var basla = ctx.currentTime;
+    var sure  = 1.1; // saniye
+
+    // ── Oscilator 1: Ana motor sesi (sweep) ──
+    var osc1 = ctx.createOscillator();
+    var gain1 = ctx.createGain();
+    osc1.type = 'sawtooth'; // testere dişi = motor/egzoz sesi
+    osc1.frequency.setValueAtTime(90,  basla);
+    osc1.frequency.exponentialRampToValueAtTime(720, basla + 0.7);
+    osc1.frequency.exponentialRampToValueAtTime(400, basla + sure);
+    gain1.gain.setValueAtTime(0, basla);
+    gain1.gain.linearRampToValueAtTime(0.18, basla + 0.03);
+    gain1.gain.setValueAtTime(0.18, basla + 0.65);
+    gain1.gain.exponentialRampToValueAtTime(0.001, basla + sure);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+
+    // ── Oscilator 2: 2. harmonik ──
+    var osc2 = ctx.createOscillator();
+    var gain2 = ctx.createGain();
+    osc2.type = 'sawtooth';
+    osc2.frequency.setValueAtTime(180, basla);
+    osc2.frequency.exponentialRampToValueAtTime(1440, basla + 0.7);
+    osc2.frequency.exponentialRampToValueAtTime(800, basla + sure);
+    gain2.gain.setValueAtTime(0, basla);
+    gain2.gain.linearRampToValueAtTime(0.09, basla + 0.03);
+    gain2.gain.exponentialRampToValueAtTime(0.001, basla + sure);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+
+    // ── Oscilator 3: Tiz turbo ıslık ──
+    var osc3 = ctx.createOscillator();
+    var gain3 = ctx.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(300, basla + 0.1);
+    osc3.frequency.exponentialRampToValueAtTime(2200, basla + 0.6);
+    gain3.gain.setValueAtTime(0, basla + 0.1);
+    gain3.gain.linearRampToValueAtTime(0.06, basla + 0.2);
+    gain3.gain.exponentialRampToValueAtTime(0.001, basla + 0.75);
+    osc3.connect(gain3);
+    gain3.connect(ctx.destination);
+
+    // ── Tüm sesleri başlat ──
+    [osc1, osc2, osc3].forEach(function(o) {
+      o.start(basla);
+      o.stop(basla + sure + 0.1);
+    });
+
+    // Context'i kapat
+    setTimeout(function() {
+      try { ctx.close(); } catch(e) {}
+    }, (sure + 0.3) * 1000);
+
+  } catch(e) {
+    console.log('[ARAÇRADAR] Ses çalınamadı:', e.message);
+  }
+}
+
 function bildirimGonder(data) {
   if (Notification.permission !== 'granted') return;
+
+  // Ses çal (kullanıcı etkileşimi gerektirdiği için direkt burada)
+  vroomSesiCal();
 
   function _gonder() {
     // SW controller varsa kullan
