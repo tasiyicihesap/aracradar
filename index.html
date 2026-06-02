@@ -828,12 +828,66 @@ function _ekleIlanlar(){
   if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
 }
 
-function veriYukle(){
-  var btn=document.getElementById('btn-yenile');
-  btn.textContent='⏳';btn.disabled=true;
-  var since=new Date(Date.now()-365*24*3600*1000).toISOString(); // Tüm ilanlar
-  var headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
-  var ilanlar=[];
+// ── localStorage cache ─────────────────────────────────────────────────────
+var AR_CACHE_KEY    = 'ar_veri_cache';
+var AR_CACHE_TS_KEY = 'ar_cache_meta';
+var AR_CACHE_SURE   = 10 * 60 * 1000; // 10 dakika
+
+function arCacheKaydet(ilanlar, syncTs) {
+  try {
+    localStorage.setItem(AR_CACHE_KEY, JSON.stringify(ilanlar));
+    localStorage.setItem(AR_CACHE_TS_KEY, JSON.stringify({ts: Date.now(), sync: syncTs}));
+  } catch(e) {
+    try { localStorage.removeItem(AR_CACHE_KEY); localStorage.removeItem(AR_CACHE_TS_KEY); } catch(e2) {}
+  }
+}
+
+function arCacheOku() {
+  try {
+    var meta = JSON.parse(localStorage.getItem(AR_CACHE_TS_KEY) || 'null');
+    if (!meta || (Date.now() - meta.ts) > AR_CACHE_SURE) return null;
+    var ilanlar = JSON.parse(localStorage.getItem(AR_CACHE_KEY) || 'null');
+    if (!ilanlar || !ilanlar.length) return null;
+    return {ilanlar: ilanlar, sync: meta.sync};
+  } catch(e) { return null; }
+}
+
+// ── Veriyi UI'ya uygula ────────────────────────────────────────────────────
+function veriUygula(ilanlar, syncTs) {
+  var btn = document.getElementById('btn-yenile');
+  if (btn) { btn.textContent = '↻ Yenile'; btn.disabled = false; }
+  document.getElementById('son-sync').textContent = 'Sync: ' + (syncTs || '—');
+  veri = [];
+  ilanlar.forEach(function(il){ if(il&&il.id&&il.gecmis&&il.gecmis.length) veri.push(il); });
+  if (!veri.length) {
+    document.getElementById('liste').innerHTML = '<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';
+    return;
+  }
+  etiketDropdownDoldur();
+  markaDropdownDoldur();
+  kasaDropdownDoldur();
+  sehirDropdownDoldur();
+  goster();
+  // Fiyat değişimi kontrol (bildirim sistemi)
+  setTimeout(function(){ if(typeof fiyatDegisimKontrol==='function') fiyatDegisimKontrol(ilanlar); }, 1200);
+}
+
+// ── veriYukle — cache önce, Supabase sonra ─────────────────────────────────
+function veriYukle(zorla) {
+  // Cache kontrolü
+  if (!zorla) {
+    var cache = arCacheOku();
+    if (cache) {
+      veriUygula(cache.ilanlar, cache.sync + ' (önbellek)');
+      return;
+    }
+  }
+
+  var btn = document.getElementById('btn-yenile');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  var since = new Date(Date.now()-365*24*3600*1000).toISOString();
+  var headers = {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+  var ilanlar = [];
 
   function sayfaCek(offset){
     return fetch(SUPABASE_URL+'/rest/v1/ilanlar?guncelleme=gte.'+since+'&order=guncelleme.desc&limit=1000&offset='+offset,{headers:headers})
@@ -841,6 +895,9 @@ function veriYukle(){
       .then(function(data){
         if(!data||!data.length)return;
         ilanlar=ilanlar.concat(data);
+        // Yükleniyor mesajı
+        var liste=document.getElementById('liste');
+        if(liste&&ilanlar.length<2000)liste.innerHTML='<div class="bos"><div class="bos-ikon">⏳</div>'+ilanlar.length.toLocaleString('tr-TR')+' ilan yüklendi, devam ediyor...</div>';
         if(data.length===1000)return sayfaCek(offset+1000);
       });
   }
@@ -850,23 +907,17 @@ function veriYukle(){
       return fetch(SUPABASE_URL+'/rest/v1/meta?id=eq.1',{headers:headers}).then(function(r){return r.json();});
     })
     .then(function(metaData){
-      btn.textContent='↻ Yenile';btn.disabled=false;
       var ts='—';
       if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
         ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
       }
-      document.getElementById('son-sync').textContent='Sync: '+ts;
-      veri=[];
-      ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
-      if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
-      etiketDropdownDoldur();
-      markaDropdownDoldur();
-      kasaDropdownDoldur();
-      sehirDropdownDoldur();
-      goster();
+      arCacheKaydet(ilanlar, ts);
+      veriUygula(ilanlar, ts);
     })
     .catch(function(e){
-      btn.textContent='↻ Yenile';btn.disabled=false;
+      var cache = arCacheOku();
+      if (cache) { veriUygula(cache.ilanlar, cache.sync + ' (önbellek)'); return; }
+      if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
       document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
     });
 }
@@ -898,9 +949,110 @@ document.addEventListener('DOMContentLoaded',function(){
   ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
     document.getElementById(id).addEventListener('input',goster);
   });
-  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
+  document.getElementById('btn-yenile').addEventListener('click',function(){ arCacheKaydet([], ''); veriYukle(true); });
   veriYukle();
-  setInterval(veriYukle,5*60*1000);
+  setInterval(function(){ veriYukle(false); }, 15*60*1000);
+
+  // ── Bildirim butonu ────────────────────────────────────────────────────
+  (function() {
+    function btnDurumGuncelle() {
+      var btn = document.getElementById('btn-bildirim');
+      if (!btn) return;
+      if (!('Notification' in window)) {
+        btn.innerHTML = '🔕 Bildirim Yok';
+        btn.style.opacity = '0.4';
+        btn.disabled = true;
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        btn.innerHTML = '🔔 Bildirim ✓';
+        btn.style.background = 'rgba(34,197,94,0.3)';
+        btn.style.color = '#4ade80';
+        btn.style.borderColor = 'rgba(34,197,94,0.4)';
+        btn.title = 'Bildirimler açık — tıkla test et';
+      } else if (Notification.permission === 'denied') {
+        btn.innerHTML = '🔕 Kapalı';
+        btn.style.background = 'rgba(239,68,68,0.2)';
+        btn.style.color = '#f87171';
+        btn.title = 'Tarayıcı ayarlarından bildirimlere izin verin';
+      } else {
+        btn.innerHTML = '🔔 Bildirim';
+        btn.title = 'Fiyat değişimi bildirimleri için tıklayın';
+      }
+    }
+
+    var btn = document.getElementById('btn-bildirim');
+    if (btn) {
+      btnDurumGuncelle();
+      btn.addEventListener('click', function() {
+        if (!('Notification' in window)) {
+          alert('Bu tarayıcı bildirimleri desteklemiyor.\nAndroid Chrome veya iOS Safari kullanın.');
+          return;
+        }
+        if (Notification.permission === 'granted') {
+          // Test bildirimi gönder
+          if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'FIYAT_BILDIRIMI',
+              id: 'test',
+              baslik: '🔔 ARAÇRADAR — Test',
+              mesaj: 'Bildirimler başarıyla çalışıyor! Fiyat değişimlerinde buradan haber alacaksınız.',
+              url: './'
+            });
+          } else {
+            // SW henüz hazır değilse direkt API kullan
+            navigator.serviceWorker.ready.then(function(reg) {
+              reg.showNotification('🔔 ARAÇRADAR — Test', {
+                body: 'Bildirimler başarıyla çalışıyor!',
+                icon: './icon192.svg',
+                tag: 'test'
+              });
+            });
+          }
+          return;
+        }
+        if (Notification.permission === 'denied') {
+          alert('Bildirim izni reddedildi.\n\nAndroid: Chrome ayarları → Site ayarları → Bildirimler → izin ver\niOS: Ayarlar → Safari → Gelişmiş → Bildirimler');
+          return;
+        }
+        // İzin iste
+        Notification.requestPermission().then(function(perm) {
+          btnDurumGuncelle();
+          if (perm === 'granted') {
+            // İzin verildi — test bildirimi
+            setTimeout(function() {
+              btn.click(); // kendi kendine tekrar tıkla = test gönder
+            }, 500);
+          } else if (perm === 'denied') {
+            alert('Bildirim izni reddedildi. Tarayıcı ayarlarından açabilirsiniz.');
+          }
+        }).catch(function(e) {
+          alert('Bildirim izni alınamadı: ' + e.message);
+        });
+      });
+    }
+
+    // PWA yükle butonu
+    var _pwaPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _pwaPrompt = e;
+      var pwaBtn = document.getElementById('btn-pwa-yukle');
+      if (pwaBtn) pwaBtn.style.display = 'inline-flex';
+    });
+    var pwaBtn = document.getElementById('btn-pwa-yukle');
+    if (pwaBtn) {
+      pwaBtn.addEventListener('click', function() {
+        if (!_pwaPrompt) return;
+        _pwaPrompt.prompt();
+        _pwaPrompt.userChoice.then(function(r) {
+          if (r.outcome === 'accepted') pwaBtn.style.display = 'none';
+          _pwaPrompt = null;
+        });
+      });
+    }
+  })();
+
 });
 
 var SB_URL = SUPABASE_URL;
@@ -2579,14 +2731,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var btnPwa = document.getElementById('btn-pwa-yukle');
   if (btnPwa) btnPwa.addEventListener('click', pwaYukle);
 
-  // veriUygula hook — veri her yüklenince fiyat kontrolü yap
-  var _oriVeriUygula = window.veriUygula;
-  if (typeof window.veriUygula === 'function') {
-    window.veriUygula = function(ilanlar, ts) {
-      _oriVeriUygula(ilanlar, ts);
-      setTimeout(function(){ fiyatDegisimKontrol(ilanlar); }, 1000);
-    };
-  }
+  // fiyatDegisimKontrol direkt veriUygula içinden çağrılıyor
 });
 </script>
 
