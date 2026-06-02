@@ -916,7 +916,7 @@ function _ekleIlanlar(){
 // ── IndexedDB Cache (localStorage 5MB limitini aşar — IndexedDB sınırsız) ──
 var AR_DB_NAME    = 'aracradar_cache';
 var AR_DB_VERSION = 1;
-var AR_CACHE_SURE = 10 * 60 * 1000; // 10 dakika
+var AR_CACHE_SURE = 60 * 60 * 1000; // 60 dakika (Supabase quota tasarrufu)
 var _arDb = null;
 
 function arDbAc(callback) {
@@ -993,7 +993,17 @@ function veriUygula(ilanlar, syncTs) {
   if (btn) { btn.textContent = '↻ Yenile'; btn.disabled = false; }
   document.getElementById('son-sync').textContent = 'Sync: ' + (syncTs || '—');
   veri = [];
-  ilanlar.forEach(function(il){ if(il&&il.id&&il.gecmis&&il.gecmis.length) veri.push(il); });
+  ilanlar.forEach(function(il){
+    if(!il||!il.id) return;
+    // gecmis null/string ise normalize et
+    if(!il.gecmis) { il.gecmis=[]; }
+    else if(typeof il.gecmis === 'string') {
+      try { il.gecmis = JSON.parse(il.gecmis); } catch(e) { il.gecmis=[]; }
+    }
+    if(!Array.isArray(il.gecmis)) il.gecmis=[];
+    // gecmis boş da olsa göster (fiyat geçmişi sonradan eklenebilir)
+    veri.push(il);
+  });
   if (!veri.length) {
     document.getElementById('liste').innerHTML = '<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';
     return;
@@ -1077,11 +1087,21 @@ function _veriYukleSupabase(delta) {
       '&order=guncelleme.desc&limit=1000&offset='+offset,
       {headers:headers}
     )
-    .then(function(r){return r.json();})
+    .then(function(r){
+      // Quota aşımı veya auth hatası — JSON olmayabilir
+      if (r.status === 429 || r.status === 402 || r.status === 503) {
+        throw new Error('Supabase kota aşıldı (HTTP '+r.status+'). Supabase.com → Billing bölümünden kontrol edin.');
+      }
+      if (!r.ok) throw new Error('Supabase hatası: HTTP ' + r.status);
+      return r.json();
+    })
     .then(function(data){
+      // Supabase hata objesi döndürebilir: {message, code, hint}
+      if (data && data.message && !Array.isArray(data)) {
+        throw new Error('Supabase: ' + data.message);
+      }
       if(!data||!data.length) return;
       gelenIlanlar = gelenIlanlar.concat(data);
-      // İlerleme göster (sadece tam çekişte)
       if (tamCekis && liste && gelenIlanlar.length % 3000 < 1000) {
         liste.innerHTML = '<div class="bos"><div class="bos-ikon">⏳</div>'+
           gelenIlanlar.length.toLocaleString('tr-TR')+' ilan yüklendi...</div>';
@@ -1145,8 +1165,33 @@ function _veriYukleSupabase(delta) {
     .catch(function(e){
       arCacheOku(function(cache) {
         if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
-        if (cache) { veriUygula(cache.ilanlar, cache.sync+' (önbellek)'); return; }
-        if (liste) liste.innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
+        // Önce cache'den göster
+        if (cache) {
+          veriUygula(cache.ilanlar, cache.sync+' (önbellek)');
+          // Uyarı göster
+          setTimeout(function(){
+            var uyari = document.getElementById('sb-quota-uyari');
+            if (!uyari) {
+              uyari = document.createElement('div');
+              uyari.id = 'sb-quota-uyari';
+              uyari.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#7f1d1d;color:#fca5a5;padding:10px 18px;border-radius:10px;font-size:12px;z-index:9999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
+              uyari.innerHTML = '⚠️ <b>Supabase bağlantı sorunu</b><br>Önbellekten gösteriliyor.<br><small>'+e.message+'</small>';
+              uyari.onclick = function(){ uyari.remove(); };
+              document.body.appendChild(uyari);
+              setTimeout(function(){ if(uyari.parentNode) uyari.remove(); }, 8000);
+            }
+          }, 500);
+          return;
+        }
+        // Cache yok — hata ekranı göster
+        var kotaMi = e.message.indexOf('kota') !== -1 || e.message.indexOf('429') !== -1 || e.message.indexOf('402') !== -1;
+        if (liste) liste.innerHTML = '<div class="bos">'
+          + '<div class="bos-ikon">'+(kotaMi?'📊':'⚠️')+'</div>'
+          + (kotaMi
+            ? '<b>Supabase kotası doldu</b><br><small>Supabase.com → Billing → Usage bölümünden kontrol edin.<br>Free tier: 2GB/ay bandwidth limiti.</small>'
+            : '<b>Veri yüklenemedi</b><br><small>'+e.message+'</small>')
+          + '<br><br><button onclick="veriYukle(true)" style="padding:8px 20px;background:var(--blu);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:inherit">Tekrar Dene</button>'
+          + '</div>';
       });
     });
 }
