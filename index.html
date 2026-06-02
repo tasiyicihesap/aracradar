@@ -3108,70 +3108,75 @@ function fiyatDegisimKontrol(ilanlar, sadeceGecmis) {
 }
 
 
-// ── ARAÇRADAR Bildirim Sesi — Web Audio API ──────────────────────────────
+// ── ARAÇRADAR Bildirim Sesi — Araç Kornası ──────────────────────────────
 function vroomSesiCal() {
   try {
     var AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     var ctx = new AudioCtx();
-
     var basla = ctx.currentTime;
-    var sure  = 1.1; // saniye
 
-    // ── Oscilator 1: Ana motor sesi (sweep) ──
-    var osc1 = ctx.createOscillator();
-    var gain1 = ctx.createGain();
-    osc1.type = 'sawtooth'; // testere dişi = motor/egzoz sesi
-    osc1.frequency.setValueAtTime(90,  basla);
-    osc1.frequency.exponentialRampToValueAtTime(720, basla + 0.7);
-    osc1.frequency.exponentialRampToValueAtTime(400, basla + sure);
-    gain1.gain.setValueAtTime(0, basla);
-    gain1.gain.linearRampToValueAtTime(0.18, basla + 0.03);
-    gain1.gain.setValueAtTime(0.18, basla + 0.65);
-    gain1.gain.exponentialRampToValueAtTime(0.001, basla + sure);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-
-    // ── Oscilator 2: 2. harmonik ──
-    var osc2 = ctx.createOscillator();
-    var gain2 = ctx.createGain();
-    osc2.type = 'sawtooth';
-    osc2.frequency.setValueAtTime(180, basla);
-    osc2.frequency.exponentialRampToValueAtTime(1440, basla + 0.7);
-    osc2.frequency.exponentialRampToValueAtTime(800, basla + sure);
-    gain2.gain.setValueAtTime(0, basla);
-    gain2.gain.linearRampToValueAtTime(0.09, basla + 0.03);
-    gain2.gain.exponentialRampToValueAtTime(0.001, basla + sure);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-
-    // ── Oscilator 3: Tiz turbo ıslık ──
-    var osc3 = ctx.createOscillator();
-    var gain3 = ctx.createGain();
-    osc3.type = 'sine';
-    osc3.frequency.setValueAtTime(300, basla + 0.1);
-    osc3.frequency.exponentialRampToValueAtTime(2200, basla + 0.6);
-    gain3.gain.setValueAtTime(0, basla + 0.1);
-    gain3.gain.linearRampToValueAtTime(0.06, basla + 0.2);
-    gain3.gain.exponentialRampToValueAtTime(0.001, basla + 0.75);
-    osc3.connect(gain3);
-    gain3.connect(ctx.destination);
-
-    // ── Tüm sesleri başlat ──
-    [osc1, osc2, osc3].forEach(function(o) {
-      o.start(basla);
-      o.stop(basla + sure + 0.1);
+    // Klasik çift ton araç kornası: 440Hz + 587Hz (La + Re)
+    var tonlar = [440, 587];
+    
+    tonlar.forEach(function(freq, idx) {
+      var osc  = ctx.createOscillator();
+      var gain = ctx.createGain();
+      
+      // Distortion ekle — korna metalik sesi için
+      var distortion = ctx.createWaveShaper();
+      var curve = new Float32Array(256);
+      for (var i = 0; i < 256; i++) {
+        var x = (i * 2) / 256 - 1;
+        curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x));
+      }
+      distortion.curve = curve;
+      
+      osc.type = 'square'; // Kare dalga = kornaya benzer tiz ses
+      osc.frequency.setValueAtTime(freq, basla);
+      // Hafif vibrato — gerçek korna etkisi
+      osc.frequency.setValueAtTime(freq,        basla);
+      osc.frequency.linearRampToValueAtTime(freq * 1.01, basla + 0.05);
+      osc.frequency.linearRampToValueAtTime(freq,        basla + 0.1);
+      osc.frequency.linearRampToValueAtTime(freq * 1.01, basla + 0.15);
+      osc.frequency.linearRampToValueAtTime(freq,        basla + 0.2);
+      
+      // Zarf: hızlı atak, sert sustain, kısa release
+      gain.gain.setValueAtTime(0,    basla);
+      gain.gain.linearRampToValueAtTime(idx===0 ? 0.15 : 0.12, basla + 0.02);
+      gain.gain.setValueAtTime(idx===0 ? 0.15 : 0.12,          basla + 0.55);
+      gain.gain.exponentialRampToValueAtTime(0.001,             basla + 0.75);
+      
+      osc.connect(distortion);
+      distortion.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(basla);
+      osc.stop(basla + 0.8);
     });
 
-    // Context'i kapat
+    // Alt bas — kornaya derinlik katar
+    var bass = ctx.createOscillator();
+    var bassGain = ctx.createGain();
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(110, basla);
+    bassGain.gain.setValueAtTime(0,    basla);
+    bassGain.gain.linearRampToValueAtTime(0.08, basla + 0.03);
+    bassGain.gain.setValueAtTime(0.08,          basla + 0.5);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, basla + 0.75);
+    bass.connect(bassGain);
+    bassGain.connect(ctx.destination);
+    bass.start(basla);
+    bass.stop(basla + 0.8);
+
     setTimeout(function() {
       try { ctx.close(); } catch(e) {}
-    }, (sure + 0.3) * 1000);
+    }, 1200);
 
   } catch(e) {
     console.log('[ARAÇRADAR] Ses çalınamadı:', e.message);
   }
 }
+
 
 function bildirimGonder(data) {
   if (Notification.permission !== 'granted') return;
