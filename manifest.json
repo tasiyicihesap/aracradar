@@ -1,0 +1,31 @@
+{
+  "name": "ARAÇRADAR — Araç Fiyat Takip",
+  "short_name": "ARAÇRADAR",
+  "description": "Araç fiyatlarını takip et, anlık fiyat değişimi bildirimleri al",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#FF6B00",
+  "orientation": "portrait-primary",
+  "lang": "tr",
+  "categories": ["utilities", "finance"],
+  "icons": [
+    { "src": "./icon96.svg",  "sizes": "96x96",   "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "./icon192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "./icon512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Fiyat Düşenler",
+      "short_name": "Düşenler",
+      "url": "./?filtre=dustu",
+      "icons": [{ "src": "./icon96.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Takip Listem",
+      "short_name": "Takip",
+      "url": "./?sekme=takip",
+      "icons": [{ "src": "./icon96.svg", "sizes": "96x96" }]
+    }
+  ]
+}

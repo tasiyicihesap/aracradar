@@ -2,7 +2,13 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#FF6B00">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ARAÇRADAR">
+  <link rel="apple-touch-icon" href="./icon192.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARAÇRADAR</title>
 <style>
 :root{--bg:#f0efe9;--yuz:#fff;--brd:rgba(0,0,0,0.09);--brd2:rgba(0,0,0,0.16);--txt:#1a1a1a;--mut:#666;--hin:#aaa;--blu:#185FA5;--blul:#E6F1FB;--blud:#0C447C;--grn:#2d7a2d;--grnl:#e8f5e8;--red:#A32D2D;--redl:#FCEBEB;--org:#FF6600;}
@@ -101,6 +107,8 @@ select:focus,input:focus{border-color:var(--blu)}
   </div>
   <div class="header-sag">
     <span id="son-sync"></span>
+    <button id="btn-bildirim" style="padding:5px 11px;border:1px solid rgba(255,255,255,0.15);border-radius:7px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);cursor:pointer;font-size:12px;font-family:inherit">🔔 Bildirim</button>
+    <button id="btn-pwa-yukle" style="display:none;padding:5px 11px;border:none;border-radius:7px;background:#3b82f6;color:#fff;cursor:pointer;font-size:12px;font-family:inherit">📲 Yükle</button>
     <button class="btn-yenile" id="btn-yenile">↻ Yenile</button>
   </div>
 </header>
@@ -820,64 +828,12 @@ function _ekleIlanlar(){
   if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
 }
 
-// ── localStorage cache sabitleri ─────────────────────────────────────────────
-var CACHE_KEY = 'ar_veri_cache';
-var CACHE_TS_KEY = 'ar_veri_cache_ts';
-var CACHE_SURE = 10 * 60 * 1000; // 10 dakika
-
-function cacheKaydet(ilanlar, syncTs) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(ilanlar));
-    localStorage.setItem(CACHE_TS_KEY, JSON.stringify({ts: Date.now(), sync: syncTs}));
-  } catch(e) {
-    // localStorage dolu olabilir (5MB limit) — sessizce geç
-    try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(CACHE_TS_KEY); } catch(e2) {}
-  }
-}
-
-function cacheOku() {
-  try {
-    var meta = JSON.parse(localStorage.getItem(CACHE_TS_KEY) || 'null');
-    if (!meta || (Date.now() - meta.ts) > CACHE_SURE) return null;
-    var ilanlar = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-    if (!ilanlar || !ilanlar.length) return null;
-    return { ilanlar: ilanlar, sync: meta.sync };
-  } catch(e) { return null; }
-}
-
-function veriUygula(ilanlar, syncTs) {
-  var btn = document.getElementById('btn-yenile');
-  if(btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
-  document.getElementById('son-sync').textContent = 'Sync: ' + (syncTs||'—');
-  veri = [];
-  ilanlar.forEach(function(il){ if(il&&il.id&&il.gecmis&&il.gecmis.length) veri.push(il); });
-  if (!veri.length) {
-    document.getElementById('liste').innerHTML = '<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';
-    return;
-  }
-  etiketDropdownDoldur();
-  markaDropdownDoldur();
-  kasaDropdownDoldur();
-  sehirDropdownDoldur();
-  goster();
-}
-
-function veriYukle(zorla) {
-  var btn = document.getElementById('btn-yenile');
-
-  // Cache kontrol — zorla=true ise (Yenile butonu) cache atla
-  if (!zorla) {
-    var cache = cacheOku();
-    if (cache) {
-      veriUygula(cache.ilanlar, cache.sync);
-      return; // Cache geçerli, Supabase'e gitme
-    }
-  }
-
-  btn.textContent='⏳'; btn.disabled=true;
-  var since = new Date(Date.now()-365*24*3600*1000).toISOString();
-  var headers = {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
-  var ilanlar = [];
+function veriYukle(){
+  var btn=document.getElementById('btn-yenile');
+  btn.textContent='⏳';btn.disabled=true;
+  var since=new Date(Date.now()-365*24*3600*1000).toISOString(); // Tüm ilanlar
+  var headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+  var ilanlar=[];
 
   function sayfaCek(offset){
     return fetch(SUPABASE_URL+'/rest/v1/ilanlar?guncelleme=gte.'+since+'&order=guncelleme.desc&limit=1000&offset='+offset,{headers:headers})
@@ -885,9 +841,6 @@ function veriYukle(zorla) {
       .then(function(data){
         if(!data||!data.length)return;
         ilanlar=ilanlar.concat(data);
-        // Yükleniyor mesajı güncelle
-        var liste=document.getElementById('liste');
-        if(liste&&ilanlar.length<2000)liste.innerHTML='<div class="bos"><div class="bos-ikon">⏳</div>'+ilanlar.length.toLocaleString('tr-TR')+' ilan yüklendi, devam ediyor...</div>';
         if(data.length===1000)return sayfaCek(offset+1000);
       });
   }
@@ -897,21 +850,23 @@ function veriYukle(zorla) {
       return fetch(SUPABASE_URL+'/rest/v1/meta?id=eq.1',{headers:headers}).then(function(r){return r.json();});
     })
     .then(function(metaData){
-      var ts = '—';
+      btn.textContent='↻ Yenile';btn.disabled=false;
+      var ts='—';
       if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
-        ts = new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
+        ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
       }
-      cacheKaydet(ilanlar, ts); // Cache'e yaz
-      veriUygula(ilanlar, ts);
+      document.getElementById('son-sync').textContent='Sync: '+ts;
+      veri=[];
+      ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
+      if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
+      etiketDropdownDoldur();
+      markaDropdownDoldur();
+      kasaDropdownDoldur();
+      sehirDropdownDoldur();
+      goster();
     })
     .catch(function(e){
-      // Hata durumunda cache varsa onu göster
-      var cache = cacheOku();
-      if (cache) {
-        veriUygula(cache.ilanlar, cache.sync + ' (önbellek)');
-        return;
-      }
-      if(btn){ btn.textContent='↻ Yenile'; btn.disabled=false; }
+      btn.textContent='↻ Yenile';btn.disabled=false;
       document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
     });
 }
@@ -943,9 +898,9 @@ document.addEventListener('DOMContentLoaded',function(){
   ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
     document.getElementById(id).addEventListener('input',goster);
   });
-  document.getElementById('btn-yenile').addEventListener('click',function(){ veriYukle(true); }); // zorla=true: cache atla
+  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
   veriYukle();
-  setInterval(function(){ veriYukle(false); }, 15*60*1000); // 15dk — cache varsa atlar
+  setInterval(veriYukle,5*60*1000);
 });
 
 var SB_URL = SUPABASE_URL;
@@ -2408,5 +2363,232 @@ function piyasaKarsilastir(btn) {
 // ── /FİYAT ROBOTU ─────────────────────────────────────────────────────────────
 
 </script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// ARAÇRADAR PWA — Bildirim & Service Worker Sistemi
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _swKayitli = false;
+var _bildirimIzni = false;
+var _sw = null; // SW registration referansı
+
+// ── Service Worker Kayıt ──────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      _sw = reg;
+      _swKayitli = true;
+      console.log('[ARAÇRADAR] SW kayıtlı:', reg.scope);
+      // Periyodik sync talep et (destekleniyorsa)
+      if ('periodicSync' in reg) {
+        navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
+          if (status.state === 'granted') {
+            reg.periodicSync.register('fiyat-kontrol', { minInterval: 15 * 60 * 1000 }); // 15 dk
+          }
+        }).catch(function(){});
+      }
+    }).catch(function(err) {
+      console.warn('[ARAÇRADAR] SW kayıt hatası:', err);
+    });
+  });
+}
+
+// ── Bildirim İzni İste ────────────────────────────────────────────────────
+function bildirimIzniIste(callback) {
+  if (!('Notification' in window)) {
+    callback && callback(false, 'Bu tarayıcı bildirimleri desteklemiyor');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    _bildirimIzni = true;
+    callback && callback(true);
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    callback && callback(false, 'Bildirim izni reddedildi. Tarayıcı ayarlarından açabilirsiniz.');
+    return;
+  }
+  Notification.requestPermission().then(function(perm) {
+    _bildirimIzni = perm === 'granted';
+    callback && callback(_bildirimIzni, perm === 'denied' ? 'İzin reddedildi' : null);
+  });
+}
+
+// ── Fiyat değişimi tespit ve bildirim gönder ──────────────────────────────
+function fiyatDegisimKontrol(ilanlar) {
+  if (!ilanlar || !ilanlar.length) return;
+  if (Notification.permission !== 'granted') return;
+
+  // Önceki bilinen fiyatları localStorage'dan al
+  var oncekiFiyatlar = {};
+  try { oncekiFiyatlar = JSON.parse(localStorage.getItem('ar_son_fiyatlar') || '{}'); } catch(e) {}
+
+  // Takip listesini al
+  var takipListesi = [];
+  try { takipListesi = JSON.parse(localStorage.getItem('ar_takip_listesi') || '[]'); } catch(e) {}
+
+  var degisimler   = [];
+  var yeniFiyatlar = {};
+
+  ilanlar.forEach(function(il) {
+    if (!il || !il.id || !il.gecmis || !il.gecmis.length) return;
+    var gecmis = Array.isArray(il.gecmis) ? il.gecmis : [];
+    var sonFiyat = gecmis[gecmis.length - 1] && gecmis[gecmis.length - 1].fiyat;
+    if (!sonFiyat) return;
+
+    yeniFiyatlar[il.id] = sonFiyat;
+    var eskiFiyat = oncekiFiyatlar[il.id];
+    if (!eskiFiyat || eskiFiyat === sonFiyat) return;
+
+    var fark   = sonFiyat - eskiFiyat;
+    var yuzde  = Math.round(Math.abs(fark) / eskiFiyat * 100);
+    var dustu  = fark < 0;
+    var takipte = takipListesi.indexOf(il.id) !== -1;
+
+    // Bildirim koşulları
+    var bildir = takipte || (dustu && yuzde >= 3) || (!dustu && yuzde >= 8);
+    if (!bildir) return;
+
+    degisimler.push({ il, sonFiyat, eskiFiyat, fark, yuzde, dustu, takipte });
+  });
+
+  // Fiyatları kaydet
+  localStorage.setItem('ar_son_fiyatlar', JSON.stringify(Object.assign(oncekiFiyatlar, yeniFiyatlar)));
+
+  if (!degisimler.length) return;
+
+  // İlk yüklemede bildirim gönderme (karşılaştırma verisini yeni oluşturduk)
+  var ilkYukle = Object.keys(oncekiFiyatlar).length === 0;
+  if (ilkYukle) return;
+
+  // SW üzerinden bildirim gönder
+  degisimler.slice(0, 5).forEach(function(d) {
+    bildirimGonder({
+      id: d.il.id,
+      baslik: (d.dustu ? '📉' : '📈') + ' ' + (d.takipte ? '⭐ ' : '') + 'ARAÇRADAR',
+      mesaj: (d.il.ad || 'Araç').substring(0, 70) + '
+' +
+             (d.dustu ? '▼' : '▲') + ' ' + Math.abs(d.fark).toLocaleString('tr-TR') + ' ₺' +
+             ' (%' + d.yuzde + ') → ' + d.sonFiyat.toLocaleString('tr-TR') + ' ₺',
+      url: './?ilan=' + d.il.id
+    });
+  });
+
+  if (degisimler.length > 5) {
+    bildirimGonder({
+      id: 'ozet',
+      baslik: 'ARAÇRADAR — ' + degisimler.length + ' değişim',
+      mesaj: degisimler.length + ' ilan fiyatı değişti. Görüntülemek için dokunun.',
+      url: './'
+    });
+  }
+}
+
+function bildirimGonder(data) {
+  if (!_sw || Notification.permission !== 'granted') return;
+  // SW aracılığıyla gönder
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'FIYAT_BILDIRIMI', ...data });
+  } else if (_swKayitli) {
+    // Fallback: direkt Notification API
+    try {
+      new Notification(data.baslik, {
+        body: data.mesaj,
+        icon: './icon192.svg',
+        tag: 'fiyat-' + data.id,
+        data: { url: data.url }
+      });
+    } catch(e) {}
+  }
+}
+
+// ── Takip listesini kaydet (SW ile senkronize) ────────────────────────────
+function takipListesiKaydet(liste) {
+  localStorage.setItem('ar_takip_listesi', JSON.stringify(liste || []));
+  // SW cache'e de yaz
+  if (_swKayitli && caches) {
+    caches.open('aracradar-v1').then(function(cache) {
+      cache.put('aracradar-takip-listesi', new Response(JSON.stringify(liste || [])));
+    }).catch(function(){});
+  }
+}
+
+// ── PWA Ana Ekrana Ekle prompt ────────────────────────────────────────────
+var _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _pwaPrompt = e;
+  // Bildirim butonunun yanına "Ana Ekrana Ekle" göster
+  var btn = document.getElementById('btn-pwa-yukle');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+function pwaYukle() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(function(r) {
+    if (r.outcome === 'accepted') {
+      var btn = document.getElementById('btn-pwa-yukle');
+      if (btn) btn.style.display = 'none';
+    }
+    _pwaPrompt = null;
+  });
+}
+
+// ── Bildirim durumu göster ────────────────────────────────────────────────
+function bildirimDurumGuncelle() {
+  var btn = document.getElementById('btn-bildirim');
+  if (!btn) return;
+  var izin = ('Notification' in window) ? Notification.permission : 'unsupported';
+  if (izin === 'granted') {
+    btn.innerHTML = '🔔 Bildirim Açık';
+    btn.style.background = 'var(--grn, #22c55e)';
+    btn.style.color = '#fff';
+    btn.title = 'Bildirimler aktif — tıkla test et';
+    _bildirimIzni = true;
+  } else if (izin === 'denied') {
+    btn.innerHTML = '🔕 Bildirim Kapalı';
+    btn.style.background = 'var(--red, #ef4444)';
+    btn.style.color = '#fff';
+    btn.title = 'Tarayıcı ayarlarından etkinleştirin';
+  } else {
+    btn.innerHTML = '🔔 Bildirim';
+    btn.title = 'Fiyat değişimi bildirimleri için tıklayın';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  bildirimDurumGuncelle();
+
+  var btnBildirim = document.getElementById('btn-bildirim');
+  if (btnBildirim) {
+    btnBildirim.addEventListener('click', function() {
+      if (Notification.permission === 'granted') {
+        // Test bildirimi
+        bildirimGonder({ id:'test', baslik:'🔔 ARAÇRADAR Test', mesaj:'Bildirimler düzgün çalışıyor!', url:'./' });
+        return;
+      }
+      bildirimIzniIste(function(ok, hata) {
+        bildirimDurumGuncelle();
+        if (!ok && hata) alert(hata);
+      });
+    });
+  }
+
+  var btnPwa = document.getElementById('btn-pwa-yukle');
+  if (btnPwa) btnPwa.addEventListener('click', pwaYukle);
+
+  // veriUygula hook — veri her yüklenince fiyat kontrolü yap
+  var _oriVeriUygula = window.veriUygula;
+  if (typeof window.veriUygula === 'function') {
+    window.veriUygula = function(ilanlar, ts) {
+      _oriVeriUygula(ilanlar, ts);
+      setTimeout(function(){ fiyatDegisimKontrol(ilanlar); }, 1000);
+    };
+  }
+});
+</script>
+
 </body>
 </html>
