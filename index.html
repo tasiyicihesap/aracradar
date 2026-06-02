@@ -1339,7 +1339,7 @@ document.addEventListener('DOMContentLoaded',function(){
             alert('Bildirim izni reddedildi.');
           }
         }).catch(function(e){ alert('İzin alınamadı: '+e.message); });
-      }));
+      });
     }
 
     // PWA yükle butonu
@@ -3457,7 +3457,7 @@ function pwaPopupAc() {
     if (!isSafari) {
       var not = document.getElementById('pwa-altnot');
       if (not) {
-        not.innerHTML = '⚠️ <span style="color:#fb923c">Safari'de açmanız gerekiyor</span> — şu an Safari değilsiniz';
+        not.innerHTML = "⚠️ <span style='color:#fb923c'>Safari'de açmanız gerekiyor</span> — şu an Safari değilsiniz";
       }
     }
   } else {
