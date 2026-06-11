@@ -3735,7 +3735,7 @@ select:focus,input:focus{border-color:var(--blu)}
   50%  { transform: translateX(0%);    }
   100% { transform: translateX(100%);  }
 }
-</style>
+
 </head>
 <body>
 
@@ -7067,147 +7067,10 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<style>
-@keyframes pwaSlideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-.pwa-adim { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06) }
-.pwa-adim:last-of-type { border-bottom:none }
-.pwa-num  { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
-.pwa-vurgu { color:#FF8C00;font-weight:600 }
-</style>
 
 
-<script>
-// ── PWA Kurulum Sistemi ───────────────────────────────────────────────────
-var _pwaInstallPrompt = null;
-var _pwaYuklu = window.matchMedia('(display-mode: standalone)').matches ||
-                window.navigator.standalone === true;
 
-// Android'de Chrome install prompt'unu yakala
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  _pwaInstallPrompt = e;
-  // Yükle butonu göster
-  var btn = document.getElementById('btn-pwa-yukle');
-  if (btn) btn.style.display = 'inline-flex';
-});
 
-function pwaAndroidYukle() {
-  if (!_pwaInstallPrompt) return;
-  _pwaInstallPrompt.prompt();
-  _pwaInstallPrompt.userChoice.then(function(r) {
-    if (r.outcome === 'accepted') {
-      pwaPopupKapat();
-      var btn = document.getElementById('btn-pwa-yukle');
-      if (btn) btn.style.display = 'none';
-    }
-    _pwaInstallPrompt = null;
-  });
-}
-
-function pwaPopupAc() {
-  var popup = document.getElementById('pwa-popup');
-  if (!popup) return;
-  popup.style.display = 'flex';
-
-  // Cihaz tespiti
-  var ua = navigator.userAgent;
-  var isIOS     = /iphone|ipad|ipod/i.test(ua);
-  var isAndroid = /android/i.test(ua);
-  var isMobile  = isIOS || isAndroid;
-  var isSafari  = /safari/i.test(ua) && !/chrome/i.test(ua);
-
-  // Bölümleri gizle
-  ['pwa-android','pwa-ios','pwa-yuklu','pwa-desktop','pwa-altnot'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-
-  if (_pwaYuklu) {
-    // Zaten ana ekrana eklenmiş
-    document.getElementById('pwa-yuklu').style.display = 'block';
-  } else if (isAndroid) {
-    document.getElementById('pwa-android').style.display = 'block';
-    document.getElementById('pwa-altnot').style.display = 'block';
-    // Chrome install prompt varsa otomatik yükle butonu göster
-    var nativeBtn = document.getElementById('pwa-android-native');
-    if (nativeBtn) nativeBtn.style.display = _pwaInstallPrompt ? 'block' : 'none';
-  } else if (isIOS) {
-    document.getElementById('pwa-ios').style.display = 'block';
-    document.getElementById('pwa-altnot').style.display = 'block';
-    // Safari değilse uyar
-    if (!isSafari) {
-      var not = document.getElementById('pwa-altnot');
-      if (not) {
-        not.innerHTML = "⚠️ <span style='color:#fb923c'>Safari'de açmanız gerekiyor</span> — şu an Safari değilsiniz";
-      }
-    }
-  } else {
-    // Masaüstü — QR kod göster
-    document.getElementById('pwa-desktop').style.display = 'block';
-    // Basit QR canvas çiz (URL metni)
-    setTimeout(function(){ pwaQrCiz('https://tasiyicihesap.github.io/aracradar/'); }, 100);
-  }
-}
-
-function pwaPopupKapat() {
-  var popup = document.getElementById('pwa-popup');
-  if (popup) {
-    popup.style.animation = 'none';
-    popup.style.display = 'none';
-  }
-}
-
-// Popup dışına tıklayınca kapat
-document.addEventListener('click', function(e) {
-  var popup = document.getElementById('pwa-popup');
-  var ic = document.getElementById('pwa-popup-ic');
-  if (popup && popup.style.display !== 'none' && !ic.contains(e.target)) {
-    pwaPopupKapat();
-  }
-});
-
-// Basit QR kod (canvas ile metin URL göster — gerçek QR kütüphanesi olmadan)
-function pwaQrCiz(url) {
-  var canvas = document.getElementById('pwa-qr-canvas');
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0,0,120,120);
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 9px monospace';
-  ctx.textAlign = 'center';
-  // QR yerine URL'yi kısa göster
-  var satirlar = ['tasiyicihesap', '.github.io', '/aracradar'];
-  ctx.fillStyle = '#FF6B00';
-  ctx.font = 'bold 28px serif';
-  ctx.fillText('🚗', 60, 50);
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 8px monospace';
-  satirlar.forEach(function(s, i){ ctx.fillText(s, 60, 75 + i*13); });
-}
-
-// ── Otomatik popup: 5 saniye sonra mobilde göster (sadece ilk ziyaret) ───
-document.addEventListener('DOMContentLoaded', function() {
-  if (!_pwaYuklu) {
-    var ua = navigator.userAgent;
-    var isMobile = /iphone|ipad|ipod|android/i.test(ua);
-    var gosterildi = localStorage.getItem('ar_pwa_gosterildi');
-    if (isMobile && !gosterildi) {
-      setTimeout(function() {
-        pwaPopupAc();
-        localStorage.setItem('ar_pwa_gosterildi', '1');
-      }, 4000); // 4 saniye sonra otomatik göster
-    }
-  }
-
-  // PWA yükle butonuna tıklayınca popup aç
-  var btn = document.getElementById('btn-pwa-yukle');
-  if (btn) {
-    btn.style.display = 'inline-flex'; // Her zaman göster
-    btn.addEventListener('click', pwaPopupAc);
-  }
-});
-</script>
 
 <script>
 // ── Filtre collapse ──────────────────────────────────────────────────────
