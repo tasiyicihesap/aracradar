@@ -1,0 +1,23 @@
+{
+  "surum": "1.0",
+  "araclar": [
+    {
+      "id": "pazar",
+      "ad": "AraçRadar Pazar",
+      "aciklama": "İlan takip ve fiyat analizi. 76 bin+ kayıt, fiyat geçmişi, marka filtreleme.",
+      "ikon": "📡",
+      "dosya": "pazar.html",
+      "renk": "#ffe800",
+      "etiket": "İlan Takip"
+    },
+    {
+      "id": "kasa-linkleri",
+      "ad": "Araç Kasa Linkleri",
+      "aciklama": "Marka → model → nesil bazında sahibinden.com hazır arama linkleri.",
+      "ikon": "🚗",
+      "dosya": "kasa-linkleri.html",
+      "renk": "#3b82f6",
+      "etiket": "Hızlı Arama"
+    }
+  ]
+}

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AraçRadar Pazar — İlan Takip</title>
+<style>
+:root{
+  --sari:#ffe800; --lacivert:#233f8e; --lacivert-koyu:#1a2f6b; --link:#2d3c8c;
+  --mavi-btn:#4c98d4; --bg:#f4f4f4; --beyaz:#fff; --brd:#dcdcdc; --brd2:#e6e6e6;
+  --txt:#333; --mut:#888; --hover:#FFFBE5; --yesil:#1f7a1f; --kirmizi:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:13px;background:var(--bg);color:var(--txt)}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ÜST SARI BAR */
+.topbar{background:var(--sari);border-bottom:1px solid #e6cf00}
+.topbar-ic{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 12px}
+.logo{font-size:24px;font-weight:bold;color:var(--lacivert);letter-spacing:-1px;white-space:nowrap;cursor:pointer}
+.logo span{color:#e05206}
+.ara-kutu{flex:1;display:flex;max-width:560px}
+.ara-kutu input{flex:1;padding:8px 12px;border:1px solid #c9b800;border-right:none;border-radius:3px 0 0 3px;font-size:13px;outline:none}
+.ara-kutu button{padding:8px 22px;background:var(--mavi-btn);color:#fff;border:1px solid #3a82bd;border-radius:0 3px 3px 0;font-size:13px;font-weight:bold;cursor:pointer}
+.ara-kutu button:hover{background:#3a82bd}
+.top-sag{display:flex;gap:8px;align-items:center;white-space:nowrap}
+.top-sag .mini{font-size:11px;color:#6b5e00}
+
+/* LACİVERT MENÜ BAR */
+.navbar{background:var(--lacivert)}
+.navbar-ic{max-width:1180px;margin:0 auto;display:flex;align-items:center;padding:0 12px;flex-wrap:wrap}
+.nav-btn{padding:9px 16px;color:#dbe2f5;font-size:13px;cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:3px solid transparent}
+.nav-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-btn.aktif{background:rgba(255,255,255,.12);color:#fff;border-bottom-color:var(--sari);font-weight:bold}
+.nav-bosluk{flex:1}
+.nav-islem{padding:6px 12px;margin:4px 2px;font-size:12px;border-radius:3px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer;font-family:inherit}
+.nav-islem:hover{background:rgba(255,255,255,.15)}
+.nav-islem.sari{background:var(--sari);color:var(--lacivert);border-color:var(--sari);font-weight:bold}
+.nav-islem.kirmizi{border-color:#e08a8a;color:#ffd9d9}
+.nav-islem.kirmizi:hover{background:rgba(192,57,43,.4)}
+
+/* GÖVDE */
+.govde{max-width:1180px;margin:12px auto;padding:0 12px;display:flex;gap:14px;align-items:flex-start}
+.yan{width:210px;flex-shrink:0}
+.kutu{background:var(--beyaz);border:1px solid var(--brd);border-radius:3px;margin-bottom:12px}
+.kutu-baslik{background:#f8f8f8;border-bottom:1px solid var(--brd2);padding:8px 10px;font-weight:bold;font-size:12px;color:#555}
+.kat-liste{list-style:none;max-height:430px;overflow-y:auto}
+.kat-liste li{border-bottom:1px solid #f2f2f2}
+.kat-liste li:last-child{border-bottom:none}
+.kat-liste a{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px}
+.kat-liste a:hover{background:var(--hover);text-decoration:none}
+.kat-liste .sayi{color:var(--mut);font-size:11px}
+.kat-liste li.secili a{background:var(--lacivert);color:#fff;font-weight:bold}
+.kat-liste li.secili .sayi{color:#cdd6f0}
+.yan-filtre{padding:10px}
+.yan-filtre label{display:block;font-size:11px;color:#666;margin:8px 0 3px;font-weight:bold}
+.yan-filtre label:first-child{margin-top:0}
+.yan-filtre select,.yan-filtre input{width:100%;padding:6px 7px;border:1px solid var(--brd);border-radius:3px;font-size:12px;font-family:inherit;outline:none}
+.yan-filtre select:focus,.yan-filtre input:focus{border-color:var(--mavi-btn)}
+.ikili{display:flex;gap:6px}
+.yan-btn{width:100%;margin-top:10px;padding:8px;background:var(--mavi-btn);color:#fff;border:1px solid #3a82bd;border-radius:3px;font-weight:bold;font-size:13px;cursor:pointer;font-family:inherit}
+.yan-btn:hover{background:#3a82bd}
+.yan-btn.gri{background:#fff;color:#666;border-color:var(--brd);font-weight:normal;margin-top:6px}
+.yan-btn.gri:hover{background:#f5f5f5}
+
+/* ANA */
+.ana{flex:1;min-width:0}
+.kirinti{font-size:12px;color:var(--mut);margin-bottom:8px}
+.kirinti a{cursor:pointer}
+.sonuc-bar{background:var(--beyaz);border:1px solid var(--brd);border-radius:3px;padding:8px 12px;display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+.sonuc-bar b{color:var(--lacivert)}
+.sonuc-bar select{padding:5px 7px;border:1px solid var(--brd);border-radius:3px;font-size:12px;font-family:inherit}
+.sonuc-bar .sag{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* İLAN TABLOSU */
+table.ilanlar{width:100%;border-collapse:collapse;background:var(--beyaz);border:1px solid var(--brd)}
+table.ilanlar th{background:#f8f8f8;border-bottom:1px solid var(--brd);padding:7px 8px;font-size:11px;color:#555;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+table.ilanlar th:hover{color:var(--link)}
+table.ilanlar td{border-bottom:1px solid #ededed;padding:9px 8px;vertical-align:middle;font-size:12px}
+table.ilanlar tr.ilan:hover td{background:var(--hover)}
+.ilan-baslik{font-size:13px;color:var(--link);font-weight:normal;line-height:1.35;display:block}
+.ilan-baslik:visited{color:#7b3fa0}
+.kaynak-rozet{display:inline-block;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:9px;margin-top:3px}
+.k-sahibinden{background:#fff3cd;color:#8a6d00;border:1px solid #ffe082}
+.k-arabam{background:#fde2e2;color:#a32d2d;border:1px solid #f5b5b5}
+.k-letgo{background:#ecdcfb;color:#6b21a8;border:1px solid #d8b4fe}
+.fiyat{font-weight:bold;color:var(--lacivert);font-size:14px;white-space:nowrap;text-align:right}
+td.say{white-space:nowrap;color:#555}
+.degisim{font-size:11px;font-weight:bold;white-space:nowrap}
+.degisim.indi{color:var(--yesil)}
+.degisim.yukseldi{color:var(--kirmizi)}
+.degisim.yeni{color:var(--mut);font-weight:normal}
+tr.gecmis-satir td{background:#fbfbf4;padding:10px 14px 12px}
+.gec-tablo{font-size:12px;border-collapse:collapse}
+.gec-tablo td{border:none;padding:3px 16px 3px 0;background:transparent !important}
+.gec-yeni{font-weight:bold;color:var(--yesil)}
+.gec-fark-indi{color:var(--yesil);font-weight:bold}
+.gec-fark-arti{color:var(--kirmizi);font-weight:bold}
+.detay-ok{cursor:pointer;color:var(--mut);font-size:11px;white-space:nowrap;user-select:none}
+.detay-ok:hover{color:var(--link)}
+
+/* SAYFALAMA */
+.sayfalama{display:flex;gap:4px;justify-content:center;padding:14px 0;flex-wrap:wrap}
+.sayfalama button{min-width:32px;padding:6px 9px;border:1px solid var(--brd);background:#fff;color:var(--link);border-radius:3px;cursor:pointer;font-size:12px;font-family:inherit}
+.sayfalama button:hover{background:var(--hover)}
+.sayfalama button.aktif{background:var(--lacivert);color:#fff;border-color:var(--lacivert);font-weight:bold}
+.sayfalama button:disabled{color:#bbb;cursor:default;background:#fafafa}
+
+/* ANALİZ */
+.analiz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.stat-kart{background:var(--beyaz);border:1px solid var(--brd);border-radius:3px;padding:14px}
+.stat-kart .b{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.stat-kart .v{font-size:26px;font-weight:bold;color:var(--lacivert);margin-top:3px}
+.bar-satir{display:flex;align-items:center;gap:8px;padding:4px 10px;font-size:12px}
+.bar-satir .ad{width:110px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-satir .cubuk{height:14px;background:var(--lacivert);border-radius:2px;min-width:2px}
+.bar-satir .s{color:var(--mut);font-size:11px;white-space:nowrap}
+
+/* BOŞ / KARŞILAMA */
+.bos{background:var(--beyaz);border:1px solid var(--brd);border-radius:3px;padding:60px 30px;text-align:center;color:#666;line-height:1.9}
+.bos .buyuk{font-size:18px;color:var(--lacivert);font-weight:bold}
+.bos button{margin-top:12px;padding:10px 26px;background:var(--sari);border:1px solid #d9c400;border-radius:3px;font-weight:bold;font-size:14px;color:var(--lacivert);cursor:pointer;font-family:inherit}
+.bos button:hover{background:#f5df00}
+
+/* BİLDİRİM */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--lacivert);color:#fff;padding:11px 22px;border-radius:4px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;z-index:99;max-width:90%}
+#yukleniyor{position:fixed;inset:0;background:rgba(255,255,255,.85);display:none;align-items:center;justify-content:center;z-index:98;flex-direction:column;gap:12px}
+.spinner{width:40px;height:40px;border:4px solid var(--brd);border-top-color:var(--lacivert);border-radius:50%;animation:dn 0.8s linear infinite}
+@keyframes dn{to{transform:rotate(360deg)}}
+
+@media (max-width:860px){
+  .govde{flex-direction:column}
+  .yan{width:100%}
+  .kat-liste{max-height:200px}
+  .topbar-ic{flex-wrap:wrap}
+  table.ilanlar th:nth-child(5),table.ilanlar td:nth-child(5){display:none}
+}
+@media (prefers-reduced-motion: reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- SARI ÜST BAR -->
+<div class="topbar">
+  <div class="topbar-ic">
+    <div class="logo" onclick="anaSayfa()">araçradar<span>.</span>pazar</div>
+    <div class="ara-kutu">
+      <input type="text" id="ara" placeholder="Kelime, marka veya model ile ara" autocomplete="off">
+      <button onclick="filtreVeListele(1)">Ara</button>
+    </div>
+    <div class="top-sag">
+      <span class="mini" id="kayit-ozet">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- LACİVERT MENÜ -->
+<div class="navbar">
+  <div class="navbar-ic">
+    <button class="nav-btn aktif" id="tab-ilan" onclick="sekme('ilan')">İlan Takip</button>
+    <button class="nav-btn" id="tab-dusen" onclick="sekme('dusen')">💰 Fiyatı Değişenler</button>
+    <button class="nav-btn" id="tab-analiz" onclick="sekme('analiz')">📊 Analiz</button>
+    <div class="nav-bosluk"></div>
+    <button class="nav-islem sari" onclick="document.getElementById('dosya').click()">⬆ Yedek Yükle</button>
+    <button class="nav-islem" onclick="yedekle()">⬇ Yedekle</button>
+    <button class="nav-islem" onclick="yenile()">↻ Yenile</button>
+    <button class="nav-islem kirmizi" onclick="temizle()">✕ Temizle</button>
+  </div>
+</div>
+<input type="file" id="dosya" accept=".json,application/json" style="display:none" multiple>
+
+<div class="govde">
+  <!-- SOL SÜTUN -->
+  <div class="yan" id="yan-panel">
+    <div class="kutu">
+      <div class="kutu-baslik">Marka (Kategoriler)</div>
+      <ul class="kat-liste" id="marka-liste"></ul>
+    </div>
+    <div class="kutu">
+      <div class="kutu-baslik">Detaylı Arama</div>
+      <div class="yan-filtre">
+        <label>Kaynak</label>
+        <select id="f-kaynak">
+          <option value="">Tümü</option>
+          <option value="sahibinden">Sahibinden</option>
+          <option value="arabam">Arabam</option>
+          <option value="letgo">Letgo</option>
+        </select>
+        <label>Etiket</label>
+        <select id="f-etiket"><option value="">Tümü</option></select>
+        <label>Yıl</label>
+        <div class="ikili">
+          <input type="number" id="f-yil-min" placeholder="min" min="1950" max="2030">
+          <input type="number" id="f-yil-max" placeholder="max" min="1950" max="2030">
+        </div>
+        <label>Fiyat (TL)</label>
+        <div class="ikili">
+          <input type="number" id="f-fiyat-min" placeholder="min">
+          <input type="number" id="f-fiyat-max" placeholder="max">
+        </div>
+        <label>KM</label>
+        <div class="ikili">
+          <input type="number" id="f-km-min" placeholder="min">
+          <input type="number" id="f-km-max" placeholder="max">
+        </div>
+        <label>Fiyat Durumu</label>
+        <select id="f-durum">
+          <option value="">Tümü</option>
+          <option value="indi">Fiyatı Düşenler</option>
+          <option value="yukseldi">Fiyatı Yükselenler</option>
+          <option value="degisti">Değişenler (hepsi)</option>
+        </select>
+        <button class="yan-btn" onclick="filtreVeListele(1)">Filtrele</button>
+        <button class="yan-btn gri" onclick="filtreSifirla()">Filtreleri Sıfırla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANA İÇERİK -->
+  <div class="ana">
+    <div id="icerik-ilan">
+      <div class="kirinti" id="kirinti">Vasıta > Otomobil</div>
+      <div class="sonuc-bar" id="sonuc-bar" style="display:none">
+        <span><b id="sonuc-sayi">0</b> ilan bulundu</span>
+        <span class="sag">
+          Sıralama:
+          <select id="f-sirala" onchange="filtreVeListele(1)">
+            <option value="tarih-yeni">Tarihe göre (önce en yeni)</option>
+            <option value="tarih-eski">Tarihe göre (önce en eski)</option>
+            <option value="fiyat-artan">Fiyata göre (önce en düşük)</option>
+            <option value="fiyat-azalan">Fiyata göre (önce en yüksek)</option>
+            <option value="yil-yeni">Yıla göre (önce en yeni)</option>
+            <option value="yil-eski">Yıla göre (önce en eski)</option>
+            <option value="km-artan">KM (önce en düşük)</option>
+            <option value="indirim">İndirim oranına göre</option>
+          </select>
+          <select id="f-adet" onchange="filtreVeListele(1)">
+            <option value="20">20</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </span>
+      </div>
+      <div id="liste"></div>
+      <div class="sayfalama" id="sayfalama"></div>
+    </div>
+
+    <div id="icerik-analiz" style="display:none"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="yukleniyor"><div class="spinner"></div><div id="yukleniyor-txt">Yükleniyor…</div></div>
+
+<script>
+"use strict";
+/* ============ VERİ KATMANI ============ */
+let VERI = [];            // tüm kayıtlar
+let urlIndeks = new Map(); // url -> kayıt
+let sonFiltre = [];
+let sayfa = 1;
+let aktifSekme = 'ilan';
+
+const DB_AD = 'aracradar-pazar', STORE = 'veri', PARCA = 8000;
+
+function idb(){ return new Promise((res,rej)=>{
+  const r = indexedDB.open(DB_AD, 1);
+  r.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+  r.onsuccess = e => res(e.target.result);
+  r.onerror = () => rej(r.error);
+});}
+
+async function dbKaydet(){
+  const db = await idb();
+  const tx = db.transaction(STORE,'readwrite'); const st = tx.objectStore(STORE);
+  st.clear();
+  for(let i=0, p=0; i<VERI.length; i+=PARCA, p++) st.put(VERI.slice(i, i+PARCA), 'p'+p);
+  st.put({adet: Math.ceil(VERI.length/PARCA), zaman: Date.now()}, 'meta');
+  return new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+}
+
+async function dbYukle(){
+  const db = await idb();
+  const tx = db.transaction(STORE,'readonly'); const st = tx.objectStore(STORE);
+  const meta = await new Promise(r=>{ const g=st.get('meta'); g.onsuccess=()=>r(g.result); g.onerror=()=>r(null); });
+  if(!meta) return [];
+  const parcalar = [];
+  for(let p=0; p<meta.adet; p++){
+    parcalar.push(await new Promise(r=>{ const g=st.get('p'+p); g.onsuccess=()=>r(g.result||[]); g.onerror=()=>r([]); }));
+  }
+  return parcalar.flat();
+}
+
+async function dbSil(){
+  const db = await idb();
+  const tx = db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear();
+  return new Promise(r=>{ tx.oncomplete=r; tx.onerror=r; });
+}
+
+/* ============ NORMALİZASYON (marka/başlık URL'den) ============ */
+const MARKALAR = ["alfa-romeo","aston-martin","land-rover","range-rover","mercedes-benz","rolls-royce","lynk-co",
+"audi","bmw","bentley","buick","cadillac","chery","chevrolet","chrysler","citroen","cupra","dacia","daewoo","daihatsu",
+"dodge","ds","ferrari","fiat","ford","geely","honda","hyundai","infiniti","isuzu","jaguar","jeep","kia","lada",
+"lamborghini","lancia","lexus","lincoln","lotus","maserati","mazda","mclaren","mercedes","mg","mini","mitsubishi",
+"nissan","opel","peugeot","porsche","proton","renault","rover","saab","seat","skoda","smart","ssangyong","subaru",
+"suzuki","tata","tesla","tofas","togg","toyota","volkswagen","volvo","byd","mahindra","leapmotor","gwm","jaecoo",
+"omoda","seres","skywell","voyah","hongqi","maxus","dfsk","dfm","alfa","aion"].sort((a,b)=>b.length-a.length);
+const GUZEL = {"alfa-romeo":"Alfa Romeo","alfa":"Alfa Romeo","aston-martin":"Aston Martin","land-rover":"Land Rover",
+"range-rover":"Land Rover","mercedes-benz":"Mercedes","mercedes":"Mercedes","rolls-royce":"Rolls-Royce","bmw":"BMW",
+"mg":"MG","ds":"DS","gwm":"GWM","byd":"BYD","dfsk":"DFSK","dfm":"DFM","tofas":"Tofaş","citroen":"Citroën",
+"lynk-co":"Lynk & Co","ssangyong":"SsangYong","mclaren":"McLaren"};
+const ESKI_DUZELT = {"Alfa":"Alfa Romeo","Bmw":"BMW","Vw":"Volkswagen","Mg":"MG","Ds":"DS","Citroen":"Citroën",
+"Tofas":"Tofaş","Land":"Land Rover","Aston":"Aston Martin","Rolls":"Rolls-Royce","Ssangyong":"SsangYong",
+"Mclaren":"McLaren","Byd":"BYD","Gwm":"GWM"};
+const MARKA_SET = new Set(MARKALAR.map(m => GUZEL[m] || m.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())));
+
+function markaGuzel(s){ return GUZEL[s] || s.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+function urldenMarka(url){
+  const u = (url||'').toLowerCase();
+  let m = u.match(/\/ilan\/(?:galeriden-|sahibinden-)?satilik-([a-z0-9-]+)/) ||
+          u.match(new RegExp('/ilan/vasita-[a-z-]*?-(' + MARKALAR.join('|') + ')-')) ||
+          u.match(/\/item\/([a-z0-9-]+)/);
+  const seg = m ? m[1] : u;
+  for(const b of MARKALAR){
+    if(seg === b || seg.startsWith(b+'-') || ('-'+seg+'-').includes('-'+b+'-')) return markaGuzel(b);
+  }
+  return '';
+}
+
+function urldenBaslik(url, marka){
+  const u = (url||'').toLowerCase();
+  let m = u.match(/\/ilan\/(?:galeriden-|sahibinden-)?satilik-([a-z0-9-]+)\//) ||
+          u.match(/\/item\/([a-z0-9-]+?)(?:-iid-\d+)?$/) ||
+          u.match(/\/ilan\/vasita-(?:otomobil|arazi-suv-pickup|minivan-panelvan)-[a-z-]*?-(\d{4}-[a-z0-9-]+?)-\d+\/detay/);
+  if(!m) return marka || 'İlan';
+  let t = m[1].replace(/-/g,' ').replace(/\b(\d) (\d)\b/g,'$1.$2');
+  return t.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function kmSayi(km){
+  if(km == null || km === '') return null;
+  const s = String(km).replace(/[.\s]/g,'').replace(',','.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : Math.round(n);
+}
+
+function normallestir(r){
+  let mk = (r.marka||'').trim();
+  if(ESKI_DUZELT[mk]) mk = ESKI_DUZELT[mk];
+  if(!mk || !MARKA_SET.has(mk)){
+    const u = urldenMarka(r.url);
+    if(u) mk = u;
+  }
+  r.marka = mk || 'Diğer';
+  if(!(r.ad||'').trim() || r.ad === 'Öne Çıkan') r.ad = urldenBaslik(r.url, mk);
+  r._km = kmSayi(r.km);
+  const g = Array.isArray(r.gecmis) ? r.gecmis.slice().sort((a,b)=>a.tarih-b.tarih) : [];
+  r.gecmis = g;
+  const son = g[g.length-1], ilk = g[0];
+  r._fiyat = son ? son.fiyat : null;
+  r._tarih = son ? son.tarih : 0;
+  r._fark = (g.length > 1 && ilk && son) ? son.fiyat - ilk.fiyat : 0;
+  r._farkYuzde = (r._fark !== 0 && ilk && ilk.fiyat) ? (r._fark / ilk.fiyat * 100) : 0;
+  return r;
+}
+
+/* ============ İÇE AKTARMA & BİRLEŞTİRME ============ */
+function gecmisBirlestir(eski, yeni){
+  const harita = new Map();
+  for(const g of eski) harita.set(g.tarih + '|' + g.fiyat, g);
+  for(const g of (yeni||[])){
+    // aynı fiyatın yakın zamanlı tekrarını alma (1 saat tolerans)
+    let var_mi = false;
+    for(const e of harita.values()){
+      if(e.fiyat === g.fiyat && Math.abs(e.tarih - g.tarih) < 3600000){ var_mi = true; break; }
+    }
+    if(!var_mi) harita.set(g.tarih + '|' + g.fiyat, g);
+  }
+  return [...harita.values()].sort((a,b)=>a.tarih-b.tarih);
+}
+
+function iceAktar(json){
+  const liste = Array.isArray(json) ? json : (json.veri || []);
+  let yeni = 0, guncel = 0;
+  for(const ham of liste){
+    if(!ham || !ham.url) continue;
+    const anahtar = ham.url.trim();
+    const mevcut = urlIndeks.get(anahtar);
+    if(mevcut){
+      const oncekiAdet = mevcut.gecmis.length;
+      mevcut.gecmis = gecmisBirlestir(mevcut.gecmis, ham.gecmis);
+      // boş alanları yeni veriden doldur
+      for(const k of ['ad','marka','seri','model','km','etiket','kasa','yil']){
+        if((!mevcut[k] || mevcut[k]==='') && ham[k]) mevcut[k] = ham[k];
+      }
+      normallestir(mevcut);
+      if(mevcut.gecmis.length > oncekiAdet) guncel++;
+    } else {
+      const r = normallestir({...ham});
+      VERI.push(r);
+      urlIndeks.set(anahtar, r);
+      yeni++;
+    }
+  }
+  return {yeni, guncel, toplam: liste.length};
+}
+
+/* ============ YARDIMCI ============ */
+const TL = n => n == null ? '—' : new Intl.NumberFormat('tr-TR').format(n) + ' TL';
+const KM = n => n == null ? '—' : new Intl.NumberFormat('tr-TR').format(n) + ' km';
+const TARIH = t => !t ? '—' : new Date(t).toLocaleDateString('tr-TR', {day:'2-digit', month:'long', year:'numeric'});
+const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, sure=3500){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._z); t._z = setTimeout(()=> t.style.display='none', sure);
+}
+function bekle(goster, txt){
+  document.getElementById('yukleniyor').style.display = goster ? 'flex' : 'none';
+  if(txt) document.getElementById('yukleniyor-txt').textContent = txt;
+}
+
+/* ============ FİLTRELEME ============ */
+function filtrele(){
+  const ara = document.getElementById('ara').value.trim().toLocaleLowerCase('tr');
+  const kaynak = document.getElementById('f-kaynak').value;
+  const etiket = document.getElementById('f-etiket').value;
+  const marka = secimliMarka;
+  const yMin = +document.getElementById('f-yil-min').value || 0;
+  const yMax = +document.getElementById('f-yil-max').value || 9999;
+  const fMin = +document.getElementById('f-fiyat-min').value || 0;
+  const fMax = +document.getElementById('f-fiyat-max').value || Infinity;
+  const kMin = +document.getElementById('f-km-min').value || 0;
+  const kMax = +document.getElementById('f-km-max').value || Infinity;
+  const durum = document.getElementById('f-durum').value;
+
+  let s = VERI.filter(r => {
+    if(kaynak && r.kaynak !== kaynak) return false;
+    if(marka && r.marka !== marka) return false;
+    if(etiket && r.etiket !== etiket) return false;
+    if(r.yil && (r.yil < yMin || r.yil > yMax)) return false;
+    if(!r.yil && (yMin > 0)) return false;
+    if(r._fiyat == null || r._fiyat < fMin || r._fiyat > fMax) return false;
+    if(kMin > 0 || kMax < Infinity){
+      if(r._km == null || r._km < kMin || r._km > kMax) return false;
+    }
+    if(durum === 'indi' && !(r._fark < 0)) return false;
+    if(durum === 'yukseldi' && !(r._fark > 0)) return false;
+    if(durum === 'degisti' && r._fark === 0) return false;
+    if(ara){
+      const hedef = (r.ad + ' ' + r.marka + ' ' + (r.seri||'') + ' ' + (r.model||'') + ' ' + r.url).toLocaleLowerCase('tr');
+      for(const kelime of ara.split(/\s+/)) if(!hedef.includes(kelime)) return false;
+    }
+    return true;
+  });
+
+  const sirala = document.getElementById('f-sirala').value;
+  const cmp = {
+    'tarih-yeni': (a,b)=> b._tarih - a._tarih,
+    'tarih-eski': (a,b)=> a._tarih - b._tarih,
+    'fiyat-artan': (a,b)=> a._fiyat - b._fiyat,
+    'fiyat-azalan': (a,b)=> b._fiyat - a._fiyat,
+    'yil-yeni': (a,b)=> (b.yil||0) - (a.yil||0),
+    'yil-eski': (a,b)=> (a.yil||9999) - (b.yil||9999),
+    'km-artan': (a,b)=> (a._km ?? Infinity) - (b._km ?? Infinity),
+    'indirim': (a,b)=> a._farkYuzde - b._farkYuzde,
+  }[sirala];
+  s.sort(cmp);
+  return s;
+}
+
+let secimliMarka = '';
+
+function filtreVeListele(yeniSayfa){
+  if(aktifSekme === 'analiz'){ sekme('ilan'); }
+  sonFiltre = filtrele();
+  sayfa = yeniSayfa || 1;
+  ciz();
+}
+
+function filtreSifirla(){
+  for(const id of ['ara','f-yil-min','f-yil-max','f-fiyat-min','f-fiyat-max','f-km-min','f-km-max'])
+    document.getElementById(id).value = '';
+  document.getElementById('f-kaynak').value = '';
+  document.getElementById('f-etiket').value = '';
+  document.getElementById('f-durum').value = '';
+  secimliMarka = '';
+  markaListesiCiz();
+  filtreVeListele(1);
+}
+
+function anaSayfa(){ sekme('ilan'); filtreSifirla(); }
+
+/* ============ ÇİZİM ============ */
+function ciz(){
+  const liste = document.getElementById('liste');
+  const bar = document.getElementById('sonuc-bar');
+  document.getElementById('kayit-ozet').textContent =
+    VERI.length ? new Intl.NumberFormat('tr-TR').format(VERI.length) + ' kayıtlı ilan' : 'Veri yok';
+
+  if(!VERI.length){
+    bar.style.display = 'none';
+    document.getElementById('sayfalama').innerHTML = '';
+    liste.innerHTML = `<div class="bos">
+      <div class="buyuk">Hoş geldiniz 👋</div>
+      Başlamak için AraçRadar yedek dosyanızı (JSON) yükleyin.<br>
+      Yeni veri çektikçe aynı butonla tekrar yükleyin — kayıtlar otomatik birleştirilir,<br>fiyat geçmişleri korunur, mükerrer ilan oluşmaz.<br>
+      <button onclick="document.getElementById('dosya').click()">⬆ Yedek Dosyası Yükle</button>
+    </div>`;
+    return;
+  }
+
+  bar.style.display = 'flex';
+  document.getElementById('sonuc-sayi').textContent = new Intl.NumberFormat('tr-TR').format(sonFiltre.length);
+
+  const kr = ['Vasıta', 'Otomobil'];
+  if(secimliMarka) kr.push(secimliMarka);
+  const kaynakSecim = document.getElementById('f-kaynak').value;
+  if(kaynakSecim) kr.push(kaynakSecim.charAt(0).toUpperCase() + kaynakSecim.slice(1));
+  document.getElementById('kirinti').innerHTML =
+    '<a onclick="anaSayfa()">Vasıta</a> &gt; ' + kr.slice(1).map(esc).join(' &gt; ');
+
+  const adet = +document.getElementById('f-adet').value;
+  const toplamSayfa = Math.max(1, Math.ceil(sonFiltre.length / adet));
+  if(sayfa > toplamSayfa) sayfa = toplamSayfa;
+  const dilim = sonFiltre.slice((sayfa-1)*adet, sayfa*adet);
+
+  if(!dilim.length){
+    liste.innerHTML = `<div class="bos">Bu kriterlere uygun ilan bulunamadı.<br>Filtreleri değiştirip tekrar deneyin.</div>`;
+    document.getElementById('sayfalama').innerHTML = '';
+    return;
+  }
+
+  let html = `<table class="ilanlar"><thead><tr>
+    <th style="width:46%">İlan Başlığı</th>
+    <th>Yıl</th><th>KM</th>
+    <th style="text-align:right">Fiyat</th>
+    <th>Değişim</th><th>Son Görülme</th><th></th>
+  </tr></thead><tbody>`;
+
+  for(const r of dilim){
+    const kd = {sahibinden:'k-sahibinden', arabam:'k-arabam', letgo:'k-letgo'}[r.kaynak] || '';
+    let deg;
+    if(r.gecmis.length < 2) deg = '<span class="degisim yeni">—</span>';
+    else if(r._fark < 0) deg = `<span class="degisim indi">▼ ${TL(-r._fark)} (%${Math.abs(r._farkYuzde).toFixed(1)})</span>`;
+    else if(r._fark > 0) deg = `<span class="degisim yukseldi">▲ ${TL(r._fark)} (%${r._farkYuzde.toFixed(1)})</span>`;
+    else deg = '<span class="degisim yeni">aynı</span>';
+
+    html += `<tr class="ilan" data-id="${esc(r.id)}">
+      <td>
+        <a class="ilan-baslik" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.ad)}</a>
+        <span class="kaynak-rozet ${kd}">${esc(r.kaynak)}</span>
+        ${r.etiket && r.etiket !== 'Genel' && !r.etiket.startsWith('http') ? `<span class="kaynak-rozet" style="background:#eef;color:#445;border:1px solid #ccd">${esc(r.etiket)}</span>` : ''}
+      </td>
+      <td class="say">${r.yil || '—'}</td>
+      <td class="say">${KM(r._km)}</td>
+      <td class="fiyat">${TL(r._fiyat)}</td>
+      <td>${deg}</td>
+      <td class="say">${TARIH(r._tarih)}</td>
+      <td><span class="detay-ok" data-ac="${esc(r.id)}">${r.gecmis.length > 1 ? '⌄ geçmiş ('+r.gecmis.length+')' : ''}</span></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  liste.innerHTML = html;
+
+  // geçmiş aç/kapa
+  liste.querySelectorAll('.detay-ok[data-ac]').forEach(el => {
+    if(!el.textContent) return;
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = el.dataset.ac;
+      const tr = el.closest('tr');
+      const acik = tr.nextElementSibling && tr.nextElementSibling.classList.contains('gecmis-satir');
+      if(acik){ tr.nextElementSibling.remove(); el.textContent = el.textContent.replace('⌃','⌄'); return; }
+      const r = sonFiltre.find(x => x.id === id) || urlIndeks.get(id);
+      if(!r) return;
+      let g = '<tr class="gecmis-satir"><td colspan="7"><b style="font-size:11px;color:#888">FİYAT GEÇMİŞİ</b><table class="gec-tablo">';
+      let onceki = null;
+      for(const h of r.gecmis){
+        let fark = '';
+        if(onceki != null){
+          const d = h.fiyat - onceki;
+          if(d < 0) fark = `<span class="gec-fark-indi">▼ ${TL(-d)}</span>`;
+          else if(d > 0) fark = `<span class="gec-fark-arti">▲ ${TL(d)}</span>`;
+        }
+        g += `<tr><td>${TARIH(h.tarih)}</td><td class="${h === r.gecmis[r.gecmis.length-1] ? 'gec-yeni' : ''}">${TL(h.fiyat)}</td><td>${fark}</td></tr>`;
+        onceki = h.fiyat;
+      }
+      g += '</table></td></tr>';
+      tr.insertAdjacentHTML('afterend', g);
+      el.textContent = el.textContent.replace('⌄','⌃');
+    });
+  });
+
+  // sayfalama
+  const sp = document.getElementById('sayfalama');
+  let p = `<button ${sayfa<=1?'disabled':''} onclick="gitSayfa(${sayfa-1})">‹ Önceki</button>`;
+  const aralik = [];
+  for(let i=1; i<=toplamSayfa; i++){
+    if(i<=2 || i>toplamSayfa-2 || Math.abs(i-sayfa)<=2) aralik.push(i);
+    else if(aralik[aralik.length-1] !== '…') aralik.push('…');
+  }
+  for(const i of aralik){
+    p += i === '…' ? '<button disabled>…</button>'
+       : `<button class="${i===sayfa?'aktif':''}" onclick="gitSayfa(${i})">${i}</button>`;
+  }
+  p += `<button ${sayfa>=toplamSayfa?'disabled':''} onclick="gitSayfa(${sayfa+1})">Sonraki ›</button>`;
+  sp.innerHTML = toplamSayfa > 1 ? p : '';
+}
+
+function gitSayfa(n){ sayfa = n; ciz(); window.scrollTo({top:0, behavior:'smooth'}); }
+
+function markaListesiCiz(){
+  const sayilar = new Map();
+  for(const r of VERI) sayilar.set(r.marka, (sayilar.get(r.marka)||0)+1);
+  const sirali = [...sayilar.entries()].sort((a,b)=>b[1]-a[1]);
+  const ul = document.getElementById('marka-liste');
+  let html = `<li class="${!secimliMarka?'secili':''}"><a onclick="markaSec('')">Tüm Markalar <span class="sayi">(${new Intl.NumberFormat('tr-TR').format(VERI.length)})</span></a></li>`;
+  for(const [m, s] of sirali){
+    html += `<li class="${secimliMarka===m?'secili':''}"><a onclick="markaSec('${esc(m).replace(/'/g,"\\'")}')">${esc(m)} <span class="sayi">(${new Intl.NumberFormat('tr-TR').format(s)})</span></a></li>`;
+  }
+  ul.innerHTML = html;
+}
+
+function markaSec(m){
+  secimliMarka = m;
+  markaListesiCiz();
+  filtreVeListele(1);
+}
+
+function etiketleriDoldur(){
+  const set = new Set();
+  for(const r of VERI){
+    const e = (r.etiket||'').trim();
+    if(e && !e.startsWith('http')) set.add(e);
+  }
+  const sel = document.getElementById('f-etiket');
+  const onceki = sel.value;
+  sel.innerHTML = '<option value="">Tümü</option>' + [...set].sort((a,b)=>a.localeCompare(b,'tr')).map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  sel.value = onceki;
+}
+
+/* ============ SEKMELER ============ */
+function sekme(ad){
+  aktifSekme = ad;
+  for(const t of ['ilan','dusen','analiz']) document.getElementById('tab-'+t).classList.toggle('aktif', t===ad);
+  document.getElementById('icerik-ilan').style.display = ad==='analiz' ? 'none' : '';
+  document.getElementById('icerik-analiz').style.display = ad==='analiz' ? '' : 'none';
+  document.getElementById('yan-panel').style.display = ad==='analiz' ? 'none' : '';
+  if(ad === 'dusen'){
+    document.getElementById('f-durum').value = 'indi';
+    document.getElementById('f-sirala').value = 'indirim';
+    sonFiltre = filtrele(); sayfa = 1; ciz();
+  } else if(ad === 'ilan'){
+    if(document.getElementById('f-durum').value === 'indi' && document.getElementById('f-sirala').value === 'indirim'){
+      document.getElementById('f-durum').value = '';
+      document.getElementById('f-sirala').value = 'tarih-yeni';
+    }
+    sonFiltre = filtrele(); sayfa = 1; ciz();
+  } else {
+    analizCiz();
+  }
+}
+
+function analizCiz(){
+  const k = document.getElementById('icerik-analiz');
+  if(!VERI.length){ k.innerHTML = '<div class="bos">Analiz için önce veri yükleyin.</div>'; return; }
+  const fmt = n => new Intl.NumberFormat('tr-TR').format(n);
+  const fiyatli = VERI.filter(r => r._fiyat != null);
+  const dusen = VERI.filter(r => r._fark < 0);
+  const yukselen = VERI.filter(r => r._fark > 0);
+  const ort = fiyatli.length ? Math.round(fiyatli.reduce((a,r)=>a+r._fiyat,0)/fiyatli.length) : 0;
+  const kaynaklar = {};
+  for(const r of VERI) kaynaklar[r.kaynak] = (kaynaklar[r.kaynak]||0)+1;
+
+  // marka bar grafiği
+  const ms = new Map();
+  for(const r of VERI) ms.set(r.marka, (ms.get(r.marka)||0)+1);
+  const top = [...ms.entries()].sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const maxM = top[0] ? top[0][1] : 1;
+  let barlar = '';
+  for(const [m,s] of top)
+    barlar += `<div class="bar-satir"><span class="ad">${esc(m)}</span><div class="cubuk" style="width:${(s/maxM*100).toFixed(1)}%"></div><span class="s">${fmt(s)}</span></div>`;
+
+  // yıl dağılımı
+  const ys = new Map();
+  for(const r of VERI) if(r.yil >= 1980 && r.yil <= 2027) ys.set(r.yil, (ys.get(r.yil)||0)+1);
+  const yillar = [...ys.entries()].sort((a,b)=>b[0]-a[0]).slice(0,25);
+  const maxY = Math.max(...yillar.map(y=>y[1]), 1);
+  let ybar = '';
+  for(const [y,s] of yillar)
+    ybar += `<div class="bar-satir"><span class="ad">${y}</span><div class="cubuk" style="width:${(s/maxY*100).toFixed(1)}%;background:#4c98d4"></div><span class="s">${fmt(s)}</span></div>`;
+
+  // marka ortalama fiyat (en az 30 ilan)
+  const mf = new Map();
+  for(const r of fiyatli){
+    if(!mf.has(r.marka)) mf.set(r.marka, []);
+    mf.get(r.marka).push(r._fiyat);
+  }
+  const ortalar = [...mf.entries()].filter(([,v])=>v.length>=30)
+    .map(([m,v])=>[m, Math.round(v.sort((a,b)=>a-b)[Math.floor(v.length/2)])])
+    .sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const maxF = ortalar[0] ? ortalar[0][1] : 1;
+  let fbar = '';
+  for(const [m,f] of ortalar)
+    fbar += `<div class="bar-satir"><span class="ad">${esc(m)}</span><div class="cubuk" style="width:${(f/maxF*100).toFixed(1)}%;background:#1f7a1f"></div><span class="s">${fmt(f)} TL</span></div>`;
+
+  k.innerHTML = `
+    <div class="analiz-grid" style="margin-bottom:12px">
+      <div class="stat-kart"><div class="b">Toplam İlan</div><div class="v">${fmt(VERI.length)}</div></div>
+      <div class="stat-kart"><div class="b">Ortalama Fiyat</div><div class="v" style="font-size:21px">${fmt(ort)} TL</div></div>
+      <div class="stat-kart"><div class="b">Fiyatı Düşen</div><div class="v" style="color:var(--yesil)">${fmt(dusen.length)}</div></div>
+      <div class="stat-kart"><div class="b">Fiyatı Yükselen</div><div class="v" style="color:var(--kirmizi)">${fmt(yukselen.length)}</div></div>
+      <div class="stat-kart"><div class="b">Sahibinden</div><div class="v" style="font-size:21px">${fmt(kaynaklar.sahibinden||0)}</div></div>
+      <div class="stat-kart"><div class="b">Arabam</div><div class="v" style="font-size:21px">${fmt(kaynaklar.arabam||0)}</div></div>
+      <div class="stat-kart"><div class="b">Letgo</div><div class="v" style="font-size:21px">${fmt(kaynaklar.letgo||0)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="analiz-cift">
+      <div class="kutu"><div class="kutu-baslik">Marka Dağılımı (ilk 20)</div><div style="padding:8px 0">${barlar}</div></div>
+      <div class="kutu"><div class="kutu-baslik">Yıl Dağılımı</div><div style="padding:8px 0">${ybar}</div></div>
+    </div>
+    <div class="kutu" style="margin-top:12px"><div class="kutu-baslik">Markaya Göre Medyan Fiyat (en az 30 ilan)</div><div style="padding:8px 0">${fbar}</div></div>
+    <style>@media(max-width:860px){.analiz-cift{grid-template-columns:1fr !important}}</style>`;
+}
+
+/* ============ İŞLEM BUTONLARI ============ */
+document.getElementById('dosya').addEventListener('change', async e => {
+  const dosyalar = [...e.target.files];
+  e.target.value = '';
+  if(!dosyalar.length) return;
+  bekle(true, 'Dosya okunuyor…');
+  await new Promise(r => setTimeout(r, 30));
+  let tYeni = 0, tGuncel = 0;
+  try{
+    for(const d of dosyalar){
+      const metin = await d.text();
+      bekle(true, 'Veriler işleniyor…');
+      await new Promise(r => setTimeout(r, 30));
+      const json = JSON.parse(metin);
+      const s = iceAktar(json);
+      tYeni += s.yeni; tGuncel += s.guncel;
+    }
+    bekle(true, 'Tarayıcıya kaydediliyor…');
+    await new Promise(r => setTimeout(r, 30));
+    await dbKaydet();
+    etiketleriDoldur();
+    markaListesiCiz();
+    filtreVeListele(1);
+    toast(`✓ Yükleme tamam: ${new Intl.NumberFormat('tr-TR').format(tYeni)} yeni ilan, ${new Intl.NumberFormat('tr-TR').format(tGuncel)} fiyat güncellemesi. Toplam: ${new Intl.NumberFormat('tr-TR').format(VERI.length)}`, 6000);
+  } catch(err){
+    console.error(err);
+    toast('⚠ Dosya okunamadı: ' + err.message, 6000);
+  }
+  bekle(false);
+});
+
+function yedekle(){
+  if(!VERI.length){ toast('Yedeklenecek veri yok.'); return; }
+  bekle(true, 'Yedek hazırlanıyor…');
+  setTimeout(()=>{
+    const temiz = VERI.map(r => {
+      const {_km, _fiyat, _tarih, _fark, _farkYuzde, ...kalan} = r;
+      return kalan;
+    });
+    const json = JSON.stringify({veri: temiz, yedekTarihi: Date.now(), versiyon: 1});
+    const blob = new Blob([json], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const t = new Date();
+    a.download = `aracradar-yedek-${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    bekle(false);
+    toast('✓ Yedek indirildi. Bu dosya AraçRadar eklentisine de geri yüklenebilir.');
+  }, 30);
+}
+
+function yenile(){
+  sonFiltre = filtrele(); ciz();
+  if(aktifSekme === 'analiz') analizCiz();
+  toast('↻ Liste yenilendi.');
+}
+
+async function temizle(){
+  if(!VERI.length){ toast('Silinecek veri yok.'); return; }
+  if(!confirm(`DİKKAT: ${new Intl.NumberFormat('tr-TR').format(VERI.length)} ilan ve tüm fiyat geçmişleri bu tarayıcıdan silinecek.\n\nÖnce "Yedekle" ile dosya indirmeniz önerilir.\n\nDevam edilsin mi?`)) return;
+  VERI = []; urlIndeks.clear(); sonFiltre = [];
+  await dbSil();
+  markaListesiCiz();
+  etiketleriDoldur();
+  ciz();
+  toast('Tüm veriler silindi.');
+}
+
+document.getElementById('ara').addEventListener('keydown', e => { if(e.key === 'Enter') filtreVeListele(1); });
+for(const id of ['f-kaynak','f-etiket','f-durum'])
+  document.getElementById(id).addEventListener('change', ()=> filtreVeListele(1));
+
+/* ============ BAŞLANGIÇ ============ */
+(async function(){
+  bekle(true, 'Kayıtlı veriler açılıyor…');
+  try{
+    const kayitli = await dbYukle();
+    if(kayitli.length){
+      VERI = kayitli.map(normallestir);
+      for(const r of VERI) urlIndeks.set(r.url.trim(), r);
+    }
+  } catch(e){ console.error('IndexedDB:', e); }
+  etiketleriDoldur();
+  markaListesiCiz();
+  filtreVeListele(1);
+  bekle(false);
+})();
+</script>
+
+<!-- AraçRadar Hub: ana panel butonu -->
+<a href="index.html" id="hubDon" title="Ana Panele Dön" style="position:fixed;bottom:18px;right:18px;z-index:99999;width:48px;height:48px;border-radius:50%;background:#0c1117;border:2px solid #35e08c;color:#35e08c;display:flex;align-items:center;justify-content:center;font-size:1.3rem;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:sans-serif">⌂</a>
+</body>
+</html>
