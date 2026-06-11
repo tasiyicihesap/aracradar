@@ -945,7 +945,7 @@ function _ekleIlanlar(){
 // ── IndexedDB Cache (localStorage 5MB limitini aşar — IndexedDB sınırsız) ──
 var AR_DB_NAME    = 'aracradar_cache';
 var AR_DB_VERSION = 1;
-var AR_CACHE_SURE = 60 * 60 * 1000; // 60 dakika (Supabase quota tasarrufu)
+var AR_CACHE_SURE = 24 * 60 * 60 * 1000; // 24 saat — GitHub değişmeden yeniden çekilmez
 var _arDb = null;
 
 function arDbAc(callback) {
@@ -1051,8 +1051,8 @@ function veriYukle(zorla) {
   var btn = document.getElementById('btn-yenile');
 
   if (zorla) {
-    // Zorla yenile: cache temizle, tam çekiş yap
-    arCacheTemizle(function() { _veriYukleSupabase(false); });
+    // Zorla yenile: meta kontrol et, değişmişse çek, değişmemişse cache kullan
+    arCacheTemizle(function() { _veriYukleSupabase(true); }); // true=delta mod
     return;
   }
 
@@ -1094,15 +1094,26 @@ function _veriYukleSupabase(delta) {
     ghFetch('data/meta.json').then(function(meta) {
       var cachedMeta = null;
       try { cachedMeta = JSON.parse(localStorage.getItem('ar_gh_meta') || 'null'); } catch(e) {}
-      if (cachedMeta && cachedMeta.guncelleme === meta.guncelleme && veri.length > 0) {
-        // Değişim yok
+      // Guncelleme timestamp'ini string olarak karşılaştır
+      var cachedTs = cachedMeta ? String(cachedMeta.guncelleme) : '';
+      var yeniTs   = String(meta.guncelleme);
+      if (cachedTs && cachedTs === yeniTs && veri.length > 0) {
+        // Değişim yok — sadece sync zamanını güncelle
         if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
         var syncEl = document.getElementById('son-sync');
         if(syncEl) syncEl.textContent = 'Sync: ' + new Date(meta.guncelleme).toLocaleString('tr-TR') + ' ✓';
         return;
       }
-      // Değişim var — tam yükle
-      _ghTamYukle(meta);
+      // Meta değişmiş veya ilk kez — cache var mı kontrol et
+      arCacheOku(function(cache) {
+        if (cache && cachedTs && cachedTs === yeniTs) {
+          // Cache güncel
+          if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
+          return;
+        }
+        // Gerçekten değişmiş — tam yükle
+        _ghTamYukle(meta);
+      });
     }).catch(function() {
       if (btn) { btn.textContent='↻ Yenile'; btn.disabled=false; }
     });
@@ -4572,7 +4583,7 @@ function _ekleIlanlar(){
 // ── IndexedDB Cache (localStorage 5MB limitini aşar — IndexedDB sınırsız) ──
 var AR_DB_NAME    = 'aracradar_cache';
 var AR_DB_VERSION = 1;
-var AR_CACHE_SURE = 60 * 60 * 1000; // 60 dakika (Supabase quota tasarrufu)
+var AR_CACHE_SURE = 24 * 60 * 60 * 1000; // 24 saat — GitHub değişmeden yeniden çekilmez
 var _arDb = null;
 
 function arDbAc(callback) {
