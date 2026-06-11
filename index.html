@@ -109,6 +109,14 @@ select:focus,input:focus{border-color:var(--blu)}
   100% { transform: translateX(100%);  }
 }
 </style>
+
+<style>
+@keyframes pwaSlideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.pwa-adim { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06) }
+.pwa-adim:last-of-type { border-bottom:none }
+.pwa-num  { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
+.pwa-vurgu { color:#FF8C00;font-weight:600 }
+</style>
 </head>
 <body>
 
@@ -1091,7 +1099,7 @@ function _veriYukleSupabase(delta) {
 
   // Delta: sadece meta'yı kontrol et, veri değişmişse yenile
   if (delta) {
-    ghFetch('data/meta.json').then(function(meta) {
+    ghFetchFresh('data/meta.json').then(function(meta) {
       var cachedMeta = null;
       try { cachedMeta = JSON.parse(localStorage.getItem('ar_gh_meta') || 'null'); } catch(e) {}
       // Guncelleme timestamp'ini string olarak karşılaştır
@@ -1331,7 +1339,13 @@ var GH_BASE = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
 var GH_TOKEN = ''; // Public repo — token gerekmez
 
 function ghFetch(path) {
-  // Public repo — token gerektirmez
+  // Public repo — browser cache kullan (24 saat geçerli)
+  return fetch(GH_BASE + '/' + path, { cache: 'force-cache' })
+    .then(function(r){ if(!r.ok) throw new Error('GitHub HTTP '+r.status); return r.json(); });
+}
+
+function ghFetchFresh(path) {
+  // Cache bypass — meta kontrolü için
   return fetch(GH_BASE + '/' + path + '?t=' + Date.now())
     .then(function(r){ if(!r.ok) throw new Error('GitHub HTTP '+r.status); return r.json(); });
 }
@@ -3451,13 +3465,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<style>
-@keyframes pwaSlideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-.pwa-adim { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06) }
-.pwa-adim:last-of-type { border-bottom:none }
-.pwa-num  { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
-.pwa-vurgu { color:#FF8C00;font-weight:600 }
-</style>
+
 
 
 <script>
@@ -4729,7 +4737,7 @@ function _veriYukleSupabase(delta) {
 
   // Delta: sadece meta'yı kontrol et, veri değişmişse yenile
   if (delta) {
-    ghFetch('data/meta.json').then(function(meta) {
+    ghFetchFresh('data/meta.json').then(function(meta) {
       var cachedMeta = null;
       try { cachedMeta = JSON.parse(localStorage.getItem('ar_gh_meta') || 'null'); } catch(e) {}
       if (cachedMeta && cachedMeta.guncelleme === meta.guncelleme && veri.length > 0) {
