@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AraçRadar Hub</title>
+<meta name="theme-color" content="#0a0f18">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0f18;
+  --panel: #111824;
+  --border: #1e2a38;
+  --txt: #dde4ed;
+  --muted: #6b7d8f;
+  --green: #2ecc8a;
+  --green-dim: rgba(46,204,138,0.08);
+  --yellow: #ffe033;
+  --blue: #3b8beb;
+  --orange: #f07030;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── RADAR CANVAS ── */
+#radar-canvas {
+  position: fixed;
+  top: -120px;
+  right: -120px;
+  width: 420px;
+  height: 420px;
+  opacity: 0.13;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.logo-text span {
+  color: var(--yellow);
+}
+
+.badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+/* ── MAIN ── */
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 36px 24px 60px;
+}
+
+.section-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* ── TOOL CARDS ── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 48px;
+}
+
+.tool-card {
+  display: block;
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 20px 18px;
+  transition: border-color 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.tool-card:hover {
+  border-color: var(--card-color, var(--green));
+  transform: translateY(-2px);
+}
+
+.tool-card:active {
+  transform: translateY(0);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.card-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.card-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--green-dim);
+  color: var(--card-color, var(--green));
+  border: 1px solid color-mix(in srgb, var(--card-color, var(--green)) 30%, transparent);
+}
+
+.card-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.15;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card-arrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--card-color, var(--green));
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tool-card:hover .card-arrow {
+  opacity: 1;
+}
+
+/* ── INSTALL BANNER ── */
+#install-banner {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  background: var(--green-dim);
+  border: 1px solid rgba(46,204,138,0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+
+#install-banner.visible { display: flex; }
+
+.install-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--txt);
+}
+
+.install-text strong {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+#install-btn {
+  background: var(--green);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+/* ── MOBILE ── */
+@media (max-width: 480px) {
+  header { padding: 16px 18px 14px; }
+  main { padding: 24px 16px 48px; }
+  .tools-grid { grid-template-columns: 1fr; }
+  .logo-text { font-size: 22px; }
+  .card-arrow { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="radar-canvas"></canvas>
+
+<header>
+  <div class="logo-mark">🚗</div>
+  <div class="logo-text">Araç<span>Radar</span></div>
+  <div class="badge">HUB</div>
+</header>
+
+<main>
+
+  <div id="install-banner">
+    <div class="install-text">
+      <strong>Ana ekrana ekle</strong>
+      Her cihazdan hızlı erişim için yükle
+    </div>
+    <button id="install-btn">Yükle</button>
+  </div>
+
+  <div class="section-label">Araçlar</div>
+
+  <div class="tools-grid" id="tools-grid">
+    <!-- JS ile doldurulur -->
+  </div>
+
+</main>
+
+<footer>AraçRadar · tasiyicihesap.github.io</footer>
+
+<script>
+// ── RADAR ANİMASYONU ──
+const canvas = document.getElementById('radar-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 420;
+canvas.height = 420;
+const cx = 210, cy = 210, R = 190;
+let angle = 0;
+
+function drawRadar() {
+  ctx.clearRect(0, 0, 420, 420);
+  // circles
+  [0.25, 0.5, 0.75, 1].forEach(r => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(46,204,138,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+  // crosshairs
+  ctx.strokeStyle = 'rgba(46,204,138,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  // sweep
+  const grad = ctx.createConicalGradient
+    ? null
+    : (() => {
+        const g = ctx.createLinearGradient(cx, cy, cx + R * Math.cos(angle), cy + R * Math.sin(angle));
+        return g;
+      })();
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  const sweep = ctx.createLinearGradient(0, 0, R, 0);
+  sweep.addColorStop(0, 'rgba(46,204,138,0.0)');
+  sweep.addColorStop(0.6, 'rgba(46,204,138,0.18)');
+  sweep.addColorStop(1, 'rgba(46,204,138,0.45)');
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, R, -0.6, 0.6);
+  ctx.closePath();
+  ctx.fillStyle = sweep;
+  ctx.fill();
+  ctx.restore();
+  // dot
+  ctx.beginPath();
+  ctx.arc(cx + R * 0.55 * Math.cos(angle - 0.3), cy + R * 0.55 * Math.sin(angle - 0.3), 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(46,204,138,0.9)';
+  ctx.fill();
+  angle += 0.015;
+  requestAnimationFrame(drawRadar);
+}
+
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  drawRadar();
+}
+
+// ── ARAÇLAR ──
+const tools = [
+  {
+    id: "aracradar",
+    ad: "AraçRadar",
+    aciklama: "76.000+ ilan takibi. Fiyat değişimi, filtre, gruplama ve bildirimler.",
+    ikon: "📡",
+    dosya: "index.html",
+    renk: "#ffe033",
+    etiket: "Ana Uygulama"
+  },
+  {
+    id: "pazar",
+    ad: "Pazar",
+    aciklama: "Sahibinden tarzı arayüzde tüm ilanları görüntüle, ara ve filtrele.",
+    ikon: "🏪",
+    dosya: "pazar.html",
+    renk: "#2ecc8a",
+    etiket: "İlan Listesi"
+  },
+  {
+    id: "kasa-linkleri",
+    ad: "Kasa Linkleri",
+    aciklama: "Marka → model → nesil bazında hazır sahibinden ve arabam arama linkleri.",
+    ikon: "🔗",
+    dosya: "kasa-linkleri.html",
+    renk: "#3b8beb",
+    etiket: "Hızlı Arama"
+  }
+];
+
+const grid = document.getElementById('tools-grid');
+
+tools.forEach(t => {
+  const card = document.createElement('a');
+  card.href = t.dosya;
+  card.className = 'tool-card';
+  card.style.setProperty('--card-color', t.renk);
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-icon">${t.ikon}</div>
+      <div class="card-tag" style="color:${t.renk};border-color:${t.renk}33;background:${t.renk}11">${t.etiket}</div>
+    </div>
+    <div class="card-name">${t.ad}</div>
+    <div class="card-desc">${t.aciklama}</div>
+    <div class="card-arrow">Aç →</div>
+  `;
+  grid.appendChild(card);
+});
+
+// ── PWA KURULUM ──
+let deferredPrompt = null;
+const banner = document.getElementById('install-banner');
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  banner.classList.add('visible');
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.classList.remove('visible');
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('visible');
+});
+</script>
+
+</body>
+</html>
