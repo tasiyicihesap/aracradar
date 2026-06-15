@@ -531,47 +531,105 @@ function _ekleIlanlar(){
   if(dfBtn2)dfBtn2.addEventListener('click',function(){_sayfaOffset+=_SAYFA;_ekleIlanlar();});
 }
 
-function veriYukle(){
+function veriYukle(zorla){
   var btn=document.getElementById('btn-yenile');
-  btn.textContent='⏳';btn.disabled=true;
-  var since=new Date(Date.now()-72*3600*1000).toISOString();
-  var headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
-  var ilanlar=[];
+  var liste=document.getElementById('liste');
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
 
-  function sayfaCek(offset){
-    return fetch(SUPABASE_URL+'/rest/v1/ilanlar?guncelleme=gte.'+since+'&order=guncelleme.desc&limit=1000&offset='+offset,{headers:headers})
+  // IndexedDB cache kontrol
+  var GH_BASE='https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
+  var CACHE_KEY='ar_idb_v1';
+  var CACHE_TS_KEY='ar_idb_ts';
+  var CACHE_SURE=24*60*60*1000; // 24 saat
+
+  function veriUygula(ilanlar,ts){
+    if(btn){btn.textContent='↻ Yenile';btn.disabled=false;}
+    var syncEl=document.getElementById('son-sync');
+    if(syncEl)syncEl.textContent='Sync: '+(ts||'—');
+    veri=[];
+    ilanlar.forEach(function(il){
+      if(!il||!il.id)return;
+      if(!il.gecmis)il.gecmis=[];
+      if(typeof il.gecmis==='string'){try{il.gecmis=JSON.parse(il.gecmis);}catch(e){il.gecmis=[];}}
+      if(!Array.isArray(il.gecmis))il.gecmis=[];
+      veri.push(il);
+    });
+    if(!veri.length){
+      if(liste)liste.innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile tarama başlatın.</div>';
+      return;
+    }
+    etiketDropdownDoldur();markaDropdownDoldur();kasaDropdownDoldur();sehirDropdownDoldur();
+    goster();
+  }
+
+  function ghYukle(){
+    if(liste)liste.innerHTML='<div class="bos" style="padding:60px;text-align:center"><div style="font-size:56px">⏳</div><div style="margin-top:12px;font-size:15px;font-weight:600">İlanlar yükleniyor...</div></div>';
+    
+    fetch(GH_BASE+'/data/meta.json?t='+Date.now())
       .then(function(r){return r.json();})
-      .then(function(data){
-        if(!data||!data.length)return;
-        ilanlar=ilanlar.concat(data);
-        if(data.length===1000)return sayfaCek(offset+1000);
+      .then(function(meta){
+        var parcalar=meta.parcalar||[];
+        var tumIlanlar=[];
+        var tamam=0;
+        if(!parcalar.length){veriUygula([],null);return;}
+        parcalar.forEach(function(p){
+          var yol=p.replace('data/','');
+          fetch(GH_BASE+'/data/'+yol)
+            .then(function(r){return r.json();})
+            .then(function(parca){
+              tumIlanlar=tumIlanlar.concat(parca);
+              tamam++;
+              if(liste&&tamam<parcalar.length){
+                liste.innerHTML='<div class="bos" style="padding:60px;text-align:center"><div style="font-size:56px">⏳</div><div style="margin-top:12px;font-size:15px;font-weight:600">'+Math.round(tamam/parcalar.length*100)+'%</div></div>';
+              }
+              if(tamam===parcalar.length){
+                var ts=new Date(meta.guncelleme||Date.now()).toLocaleString('tr-TR');
+                try{localStorage.setItem(CACHE_TS_KEY,JSON.stringify({ts:Date.now(),sync:ts,toplam:meta.toplam}));}catch(e){}
+                // IndexedDB'ye kaydet
+                try{
+                  var req=indexedDB.open('ar_web_cache',1);
+                  req.onupgradeneeded=function(e){e.target.result.createObjectStore('veri');};
+                  req.onsuccess=function(e){
+                    var db=e.target.result;
+                    var tx=db.transaction('veri','readwrite');
+                    tx.objectStore('veri').put(tumIlanlar,'ilanlar');
+                  };
+                }catch(e){}
+                veriUygula(tumIlanlar,ts);
+              }
+            }).catch(function(){tamam++;if(tamam===parcalar.length)veriUygula(tumIlanlar,null);});
+        });
+      }).catch(function(e){
+        if(btn){btn.textContent='↻ Yenile';btn.disabled=false;}
+        if(liste)liste.innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
       });
   }
 
-  sayfaCek(0)
-    .then(function(){
-      return fetch(SUPABASE_URL+'/rest/v1/meta?id=eq.1',{headers:headers}).then(function(r){return r.json();});
-    })
-    .then(function(metaData){
-      btn.textContent='↻ Yenile';btn.disabled=false;
-      var ts='—';
-      if(metaData&&metaData[0]&&metaData[0].son_guncelleme){
-        ts=new Date(metaData[0].son_guncelleme).toLocaleString('tr-TR');
-      }
-      document.getElementById('son-sync').textContent='Sync: '+ts;
-      veri=[];
-      ilanlar.forEach(function(il){if(il&&il.id&&il.gecmis&&il.gecmis.length)veri.push(il);});
-      if(!veri.length){document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">📡</div>Henüz veri yok.<br>Extension ile bir tarama başlatın.</div>';return;}
-      etiketDropdownDoldur();
-      markaDropdownDoldur();
-      kasaDropdownDoldur();
-      sehirDropdownDoldur();
-      goster();
-    })
-    .catch(function(e){
-      btn.textContent='↻ Yenile';btn.disabled=false;
-      document.getElementById('liste').innerHTML='<div class="bos"><div class="bos-ikon">⚠️</div>Veri yüklenemedi.<br>'+e.message+'</div>';
-    });
+  if(zorla){ghYukle();return;}
+
+  // Cache kontrol
+  try{
+    var meta=JSON.parse(localStorage.getItem(CACHE_TS_KEY)||'null');
+    if(meta&&(Date.now()-meta.ts)<CACHE_SURE){
+      // IndexedDB'den oku
+      var req=indexedDB.open('ar_web_cache',1);
+      req.onupgradeneeded=function(e){e.target.result.createObjectStore('veri');};
+      req.onsuccess=function(e){
+        var db=e.target.result;
+        var tx=db.transaction('veri','readonly');
+        var r2=tx.objectStore('veri').get('ilanlar');
+        r2.onsuccess=function(){
+          if(r2.result&&r2.result.length){
+            veriUygula(r2.result,meta.sync+' ✓');
+          }else{ghYukle();}
+        };
+        r2.onerror=function(){ghYukle();};
+      };
+      req.onerror=function(){ghYukle();};
+      return;
+    }
+  }catch(e){}
+  ghYukle();
 }
 
 document.addEventListener('DOMContentLoaded',function(){
@@ -601,7 +659,7 @@ document.addEventListener('DOMContentLoaded',function(){
   ['f-ara','f-min','f-max','f-yil-min','f-yil-max'].forEach(function(id){
     document.getElementById(id).addEventListener('input',goster);
   });
-  document.getElementById('btn-yenile').addEventListener('click',veriYukle);
+  document.getElementById('btn-yenile').addEventListener('click',function(){veriYukle(true);});
   veriYukle();
   setInterval(veriYukle,5*60*1000);
 });
