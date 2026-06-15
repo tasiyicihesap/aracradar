@@ -1,6 +1,6 @@
 // AraçRadar Hub — Service Worker
 // Sürümü artırınca eski önbellek otomatik temizlenir.
-const SURUM = 'aracradar-hub-v1';
+const SURUM = 'aracradar-hub-v5';
 
 // Kabuk: her zaman önbelleğe alınan çekirdek dosyalar
 const KABUK = [
