@@ -800,23 +800,63 @@ for(const id of ['f-kaynak','f-etiket','f-durum'])
   document.getElementById(id).addEventListener('change', ()=> filtreVeListele(1));
 
 /* ============ BAŞLANGIÇ ============ */
+const GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
+
+async function githubdanYukle(){
+  bekle(true, 'GitHub'dan veriler çekiliyor…');
+  try {
+    const meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(r => r.json());
+    const parcalar = meta.parcalar || [];
+    if (!parcalar.length) { bekle(false); return false; }
+
+    let tumIlanlar = [];
+    let tamamlanan = 0;
+    await Promise.all(parcalar.map(async (yol) => {
+      const dosya = yol.replace('data/', '');
+      const parca = await fetch(GH_RAW + '/data/' + dosya + '?t=' + Date.now()).then(r => r.json()).catch(() => []);
+      tumIlanlar = tumIlanlar.concat(parca);
+      tamamlanan++;
+      bekle(true, `Yükleniyor… ${tamamlanan}/${parcalar.length} parça (${tumIlanlar.length.toLocaleString('tr-TR')} ilan)`);
+    }));
+
+    VERI = tumIlanlar.map(normallestir);
+    for(const r of VERI) urlIndeks.set(r.url.trim(), r);
+    await dbKaydet();
+    return true;
+  } catch(e) {
+    console.error('GitHub yükleme hatası:', e);
+    return false;
+  }
+}
+
 (async function(){
-  bekle(true, 'Kayıtlı veriler açılıyor…');
+  // Önce IndexedDB'den dene
+  bekle(true, 'Veriler açılıyor…');
   try{
     const kayitli = await dbYukle();
     if(kayitli.length){
       VERI = kayitli.map(normallestir);
       for(const r of VERI) urlIndeks.set(r.url.trim(), r);
+      bekle(false);
+      etiketleriDoldur();
+      markaListesiCiz();
+      filtreVeListele(1);
+      // Arka planda güncelle (sessiz)
+      githubdanYukle().then(ok => {
+        if(ok) { etiketleriDoldur(); markaListesiCiz(); filtreVeListele(1); }
+      });
+      return;
     }
   } catch(e){ console.error('IndexedDB:', e); }
+
+  // IndexedDB boşsa GitHub'dan çek
+  const ok = await githubdanYukle();
+  if(!ok) toast('⚠ Veri yüklenemedi. JSON dosyası yükleyin.');
   etiketleriDoldur();
   markaListesiCiz();
   filtreVeListele(1);
   bekle(false);
 })();
 </script>
-
-<!-- AraçRadar Hub: ana panel butonu -->
-<a href="index.html" id="hubDon" title="Ana Panele Dön" style="position:fixed;bottom:18px;right:18px;z-index:99999;width:48px;height:48px;border-radius:50%;background:#0c1117;border:2px solid #35e08c;color:#35e08c;display:flex;align-items:center;justify-content:center;font-size:1.3rem;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:sans-serif">⌂</a>
 </body>
 </html>
