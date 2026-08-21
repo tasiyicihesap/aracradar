@@ -189,7 +189,6 @@ button.kirmizi:hover{background:var(--redl)}
     <button class="mavi" id="btn-yenile">↻ Yenile</button>
     <button id="btn-fb-cek" style="padding:6px 14px;background:#2ecc8a;color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📡 Verileri Yükle</button>
     <!-- GitHub'a Yükle: sadece extension'dan -->
-    <button id="btn-bildirim-web" onclick="bildirimTikla(this)" style="padding:5px 11px;border:1px solid rgba(255,255,255,0.15);border-radius:7px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);cursor:pointer;font-size:12px;font-family:inherit">🔔 Bildirim</button>
     <button class="kirmizi" id="btn-hepsisil">Temizle</button>
     
   </div>
@@ -2270,14 +2269,18 @@ function goster(){
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
         '<div style="display:flex;align-items:center;gap:4px">'+
           '<span style="font-size:11px;color:var(--mut)">Min değişim:</span>'+
-          '<div id="min-btn-grup" style="display:flex;gap:4px;flex-wrap:wrap">'+
-          '<button class="min-btn" data-val="0" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===0?'var(--blu)':'transparent')+';color:'+(minDegisim===0?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">Hepsi</button>'+
-          '<button class="min-btn" data-val="5000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===5000?'var(--blu)':'transparent')+';color:'+(minDegisim===5000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">5 bin ₺</button>'+
-          '<button class="min-btn" data-val="10000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===10000?'var(--blu)':'transparent')+';color:'+(minDegisim===10000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">10 bin ₺</button>'+
-          '<button class="min-btn" data-val="30000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===30000?'var(--blu)':'transparent')+';color:'+(minDegisim===30000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">30 bin ₺</button>'+
-          '<button class="min-btn" data-val="50000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===50000?'var(--blu)':'transparent')+';color:'+(minDegisim===50000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">50 bin ₺</button>'+
-          '<button class="min-btn" data-val="100000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===100000?'var(--blu)':'transparent')+';color:'+(minDegisim===100000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">100 bin ₺</button>'+
-          '</div>'+
+          '<select id="f-min-degisim" style="font-size:11px;padding:3px 6px;border:1px solid var(--brd2);border-radius:5px;background:var(--yuz);cursor:pointer;color:var(--txt)">'+
+            '<option value="0"'+(minDegisim===0?' selected':'')+'>Hepsi</option>'+
+            '<option value="5000"'+(minDegisim===5000?' selected':'')+'>5.000 ₺</option>'+
+            '<option value="10000"'+(minDegisim===10000?' selected':'')+'>10.000 ₺</option>'+
+            '<option value="15000"'+(minDegisim===15000?' selected':'')+'>15.000 ₺</option>'+
+            '<option value="20000"'+(minDegisim===20000?' selected':'')+'>20.000 ₺</option>'+
+            '<option value="25000"'+(minDegisim===25000?' selected':'')+'>25.000 ₺</option>'+
+            '<option value="30000"'+(minDegisim===30000?' selected':'')+'>30.000 ₺ ✓</option>'+
+            '<option value="35000"'+(minDegisim===35000?' selected':'')+'>35.000 ₺</option>'+
+            '<option value="50000"'+(minDegisim===50000?' selected':'')+'>50.000 ₺</option>'+
+            '<option value="100000"'+(minDegisim===100000?' selected':'')+'>100.000 ₺</option>'+
+          '</select>'+
         '</div>'+
         '<select id="f-degisim-srt" style="font-size:11px;padding:3px 8px;border:1px solid var(--brd2);border-radius:5px;background:var(--yuz);cursor:pointer">'+
           '<option value="">Tarih (Yeni→Eski)</option>'+
@@ -5912,299 +5915,22 @@ window.addEventListener('load', function() {
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// ARAÇRADAR — GitHub Veri + PWA Bildirim Sistemi
-// ═══════════════════════════════════════════════════════════════════════════
-
-var GH_RAW   = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
-var _sw = null;
-
-// ── Service Worker Kayıt ────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').then(function(reg) {
-      _sw = reg;
-      console.log('[ARAÇRADAR] SW kayıtlı');
-    }).catch(function(e){ console.warn('[ARAÇRADAR] SW hatası:', e.message); });
-  });
-}
-
-// ── GitHub'dan veri çek ─────────────────────────────────────────────────────
-var _ghVeri = [];
-var _ghYukleniyor = false;
-
-function ghVeriYukle(tamamCb) {
-  if (_ghYukleniyor) return;
-  _ghYukleniyor = true;
-
-  var liste = document.getElementById('liste');
-  if (liste) liste.innerHTML = '<div style="text-align:center;padding:60px 20px">'
-    + '<div style="font-size:48px;margin-bottom:12px">⏳</div>'
-    + '<div style="font-size:15px;font-weight:600">İlanlar yükleniyor...</div>'
-    + '</div>';
-
-  fetch(GH_RAW + '/data/meta.json?t=' + Date.now())
-    .then(function(r){ return r.json(); })
-    .then(function(meta) {
-      var parcalar = meta.parcalar || [];
-      var tumIlanlar = [];
-      var tamamlanan = 0;
-      if (!parcalar.length) { _ghYukleniyor=false; if(tamamCb) tamamCb([]); return; }
-
-      parcalar.forEach(function(yol) {
-        var fname = yol.split('/').pop();
-        fetch(GH_RAW + '/data/' + fname + '?t=' + Date.now())
-          .then(function(r){ return r.json(); })
-          .then(function(parca) {
-            tumIlanlar = tumIlanlar.concat(parca);
-            tamamlanan++;
-            if (liste && tamamlanan < parcalar.length) {
-              liste.innerHTML = '<div style="text-align:center;padding:60px 20px">'
-                + '<div style="font-size:48px;margin-bottom:12px">⏳</div>'
-                + '<div style="font-size:13px;color:#94a3b8">'
-                + tumIlanlar.length.toLocaleString("tr-TR") + ' / ' + (meta.toplam||0).toLocaleString("tr-TR") + ' ilan</div>'
-                + '</div>';
-            }
-            if (tamamlanan === parcalar.length) {
-              _ghVeri = tumIlanlar;
-              _ghYukleniyor = false;
-              // Fiyat değişimi kontrolü
-              setTimeout(function(){ ghFiyatKontrol(tumIlanlar); }, 1000);
-              if (tamamCb) tamamCb(tumIlanlar);
-            }
-          })
-          .catch(function() {
-            tamamlanan++;
-            if (tamamlanan === parcalar.length) {
-              _ghYukleniyor = false;
-              if (tamamCb) tamamCb(tumIlanlar);
-            }
-          });
-      });
-    })
-    .catch(function(e) {
-      _ghYukleniyor = false;
-      if (liste) liste.innerHTML = '<div style="text-align:center;padding:40px;color:#f87171">⚠️ Veri yüklenemedi: ' + e.message + '</div>';
-    });
-}
-
-// ── Fiyat değişimi tespiti ve bildirim ─────────────────────────────────────
-function ghFiyatKontrol(ilanlar) {
-  if (Notification.permission !== 'granted') return;
-  var onceki = {};
-  try { onceki = JSON.parse(localStorage.getItem('ar_son_fiyatlar') || '{}'); } catch(e) {}
-  var takip = {};
-  try { takip = JSON.parse(localStorage.getItem('ar_takip') || '{}'); } catch(e) {}
-
-  var degisimler = [];
-  var yeniFiyatlar = {};
-
-  ilanlar.forEach(function(il) {
-    if (!il || !il.id) return;
-    var gecmis = Array.isArray(il.gecmis) ? il.gecmis : [];
-    var sonFiyat = il.fiyat || (gecmis.length ? gecmis[gecmis.length-1].fiyat : 0);
-    if (!sonFiyat) return;
-    yeniFiyatlar[il.id] = sonFiyat;
-    var eskiFiyat = onceki[il.id];
-    if (!eskiFiyat || eskiFiyat === sonFiyat) return;
-    var fark   = sonFiyat - eskiFiyat;
-    var yuzde  = Math.round(Math.abs(fark) / eskiFiyat * 100);
-    var dustu  = fark < 0;
-    var takipte = !!takip[il.id];
-    if (!takipte && yuzde < 3) return;
-    degisimler.push({ il:il, sonFiyat:sonFiyat, eskiFiyat:eskiFiyat, fark:fark, yuzde:yuzde, dustu:dustu, takipte:takipte });
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg){ window._sw = reg; console.log('[ARAÇRADAR] SW kayıtlı'); })
+      .catch(function(e){ console.warn('[ARAÇRADAR] SW hatası:', e.message); });
   });
 
-  // Fiyatları güncelle
-  Object.assign(onceki, yeniFiyatlar);
-  try { localStorage.setItem('ar_son_fiyatlar', JSON.stringify(onceki)); } catch(e) {}
-
-  if (!degisimler.length) return;
-  degisimler.sort(function(a,b){ return Math.abs(b.yuzde)-Math.abs(a.yuzde); });
-
-  // Bildirim gönder
-  degisimler.slice(0, 5).forEach(function(d) {
-    ghBildirimGonder({
-      baslik: (d.dustu ? '📉' : '📈') + (d.takipte ? ' ⭐' : '') + ' ARAÇRADAR',
-      mesaj: (d.il.ad || 'Araç').substring(0,60) + '
-'
-        + (d.dustu ? '▼' : '▲') + ' '
-        + Math.abs(d.fark).toLocaleString('tr-TR') + ' ₺'
-        + ' (%' + d.yuzde + ') → ' + d.sonFiyat.toLocaleString('tr-TR') + ' ₺',
-      url: './'
-    });
-  });
-
-  if (degisimler.length > 5) {
-    setTimeout(function(){
-      ghBildirimGonder({
-        baslik: '🔔 ARAÇRADAR — ' + degisimler.length + ' fiyat değişimi',
-        mesaj: degisimler.length + ' ilanda fiyat değişti.',
-        url: './'
-      });
-    }, 2000);
-  }
-}
-
-function ghBildirimGonder(data) {
-  if (Notification.permission !== 'granted') return;
-  var sesiz = localStorage.getItem('ar_sesiz') === '1';
-  if (sesiz) return;
-
-  // Ses çal
-  try { vroomSesiCal && vroomSesiCal(); } catch(e) {}
-
-  if (_sw && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'FIYAT_BILDIRIMI',
-      baslik: data.baslik, mesaj: data.mesaj, url: data.url,
-      id: 'ar-' + Date.now()
-    });
-  } else {
-    navigator.serviceWorker.ready.then(function(reg) {
-      reg.showNotification(data.baslik, {
-        body: data.mesaj, icon: './icon192.svg',
-        tag: 'ar-' + Date.now(), vibrate: [200,100,200]
-      });
-    }).catch(function() {
-      new Notification(data.baslik, { body: data.mesaj, icon: './icon192.svg' });
-    });
-  }
-}
-
-// ── Bildirim butonu ─────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  // Bildirim butonunu oluştur ve header'a ekle
-  var header = document.querySelector('header .header-sag, header [class*="hbtn"], header');
-  if (header) {
-    var btnBildirim = document.createElement('button');
-    btnBildirim.id = 'btn-bildirim-web';
-    btnBildirim.style.cssText = 'padding:5px 11px;border:1px solid rgba(255,255,255,0.15);border-radius:7px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);cursor:pointer;font-size:12px;font-family:inherit;margin-right:6px';
-    btnBildirim.textContent = '🔔 Bildirim';
-
-    function bildirimDurumGuncelle() {
-      var sesiz = localStorage.getItem('ar_sesiz') === '1';
-      if (Notification.permission === 'granted' && !sesiz) {
-        btnBildirim.textContent = '🔔 Açık';
-        btnBildirim.style.color = '#4ade80';
-      } else if (Notification.permission === 'granted' && sesiz) {
-        btnBildirim.textContent = '🔕 Sessiz';
-        btnBildirim.style.color = '#94a3b8';
-      } else if (Notification.permission === 'denied') {
-        btnBildirim.textContent = '🔕 Kapalı';
-        btnBildirim.style.color = '#f87171';
-      }
+  navigator.serviceWorker.addEventListener('message', function(e) {
+    if (!e.data || e.data.type !== 'BILDIRIM_TIKLA') return;
+    var url = e.data.url || '';
+    if (url.includes('filtre=dustu') && typeof anaSekmeDegistir === 'function') {
+      anaSekmeDegistir('degisim');
     }
-
-    btnBildirim.addEventListener('click', function() {
-      if (Notification.permission === 'granted') {
-        var sesiz = localStorage.getItem('ar_sesiz') === '1';
-        localStorage.setItem('ar_sesiz', sesiz ? '0' : '1');
-        bildirimDurumGuncelle();
-        if (!sesiz) {
-          // Sessiz moda geçtik — test gönderme
-        } else {
-          // Açtık — test bildirimi
-          ghBildirimGonder({ baslik: '🔔 ARAÇRADAR', mesaj: 'Bildirimler açıldı!', url: './' });
-        }
-        return;
-      }
-      if (Notification.permission === 'denied') {
-        alert('Bildirim izni reddedildi.\nTarayıcı ayarlarından açabilirsiniz.');
-        return;
-      }
-      Notification.requestPermission().then(function(p) {
-        bildirimDurumGuncelle();
-        if (p === 'granted') {
-          setTimeout(function(){
-            ghBildirimGonder({ baslik: '🔔 ARAÇRADAR', mesaj: 'Fiyat değişimlerinde bildirim alacaksınız!', url: './' });
-          }, 500);
-        }
-      });
-    });
-
-    // Buton ekle
-    var yenileBtn = document.getElementById('btn-yenile');
-    if (yenileBtn) yenileBtn.parentNode.insertBefore(btnBildirim, yenileBtn);
-    else header.appendChild(btnBildirim);
-    bildirimDurumGuncelle();
-  }
-
-  // GitHub'dan veri yükle — chrome.storage yoksa
-  var hasChrome = typeof chrome !== 'undefined' && chrome.storage;
-  if (!hasChrome) {
-    ghVeriYukle(function(ilanlar) {
-      if (typeof veriUygula === 'function') veriUygula(ilanlar, 'GitHub');
-      // Toplam ilan sayısını güncelle
-      var stEl = document.getElementById('st-toplam');
-      if (stEl) stEl.textContent = ilanlar.length.toLocaleString('tr-TR');
-      else if (typeof goster === 'function') {
-        window.veri = ilanlar;
-        goster();
-      }
-    });
-    // 15 dakikada bir güncelle
-    setInterval(function() { ghVeriYukle(function(){}); }, 15*60*1000);
-  }
-});
-</script>
-
-
-  // Min değişim butonları (site versiyonu için event delegation)
-  document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.min-btn');
-    if (!btn) return;
-    window._minDegisim = parseInt(btn.getAttribute('data-val')) || 0;
-    if (typeof goster === 'function') goster();
-  });
-
-
-<script>
-function bildirimTikla(btn) {
-  if (!('Notification' in window)) {
-    alert('Bu tarayıcı bildirimleri desteklemiyor.');
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    var sesiz = localStorage.getItem('ar_sesiz') === '1';
-    localStorage.setItem('ar_sesiz', sesiz ? '0' : '1');
-    btn.textContent = sesiz ? '🔔 Açık' : '🔕 Sessiz';
-    btn.style.color  = sesiz ? '#4ade80' : '#94a3b8';
-    return;
-  }
-  if (Notification.permission === 'denied') {
-    alert('Bildirim izni reddedildi.\nTarayıcı ayarlarından açabilirsiniz.');
-    return;
-  }
-  Notification.requestPermission().then(function(p) {
-    if (p === 'granted') {
-      btn.textContent = '🔔 Açık';
-      btn.style.color = '#4ade80';
-      if (typeof ghBildirimGonder === 'function') {
-        setTimeout(function(){
-          ghBildirimGonder({baslik:'🔔 ARAÇRADAR', mesaj:'Fiyat değişimlerinde bildirim alacaksınız!', url:'./'});
-        }, 300);
-      }
-    } else {
-      btn.textContent = '🔕 Kapalı';
-      btn.style.color = '#f87171';
-    }
+    window.focus();
   });
 }
-
-// Sayfa yüklenince bildirim durumunu göster
-document.addEventListener('DOMContentLoaded', function() {
-  var btn = document.getElementById('btn-bildirim-web');
-  if (!btn) return;
-  var sesiz = localStorage.getItem('ar_sesiz') === '1';
-  if (Notification.permission === 'granted' && !sesiz) {
-    btn.textContent = '🔔 Açık'; btn.style.color = '#4ade80';
-  } else if (Notification.permission === 'granted' && sesiz) {
-    btn.textContent = '🔕 Sessiz'; btn.style.color = '#94a3b8';
-  } else if (Notification.permission === 'denied') {
-    btn.textContent = '🔕 Kapalı'; btn.style.color = '#f87171';
-  }
-});
 </script>
 
 </body>
