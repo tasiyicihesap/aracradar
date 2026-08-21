@@ -189,6 +189,7 @@ button.kirmizi:hover{background:var(--redl)}
     <button class="mavi" id="btn-yenile">↻ Yenile</button>
     <button id="btn-fb-cek" style="padding:6px 14px;background:#2ecc8a;color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📡 Verileri Yükle</button>
     <!-- GitHub'a Yükle: sadece extension'dan -->
+    <button id="btn-bildirim-web" onclick="bildirimTikla(this)" style="padding:5px 11px;border:1px solid rgba(255,255,255,0.15);border-radius:7px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);cursor:pointer;font-size:12px;font-family:inherit">🔔 Bildirim</button>
     <button class="kirmizi" id="btn-hepsisil">Temizle</button>
     
   </div>
@@ -2269,18 +2270,14 @@ function goster(){
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
         '<div style="display:flex;align-items:center;gap:4px">'+
           '<span style="font-size:11px;color:var(--mut)">Min değişim:</span>'+
-          '<select id="f-min-degisim" style="font-size:11px;padding:3px 6px;border:1px solid var(--brd2);border-radius:5px;background:var(--yuz);cursor:pointer;color:var(--txt)">'+
-            '<option value="0"'+(minDegisim===0?' selected':'')+'>Hepsi</option>'+
-            '<option value="5000"'+(minDegisim===5000?' selected':'')+'>5.000 ₺</option>'+
-            '<option value="10000"'+(minDegisim===10000?' selected':'')+'>10.000 ₺</option>'+
-            '<option value="15000"'+(minDegisim===15000?' selected':'')+'>15.000 ₺</option>'+
-            '<option value="20000"'+(minDegisim===20000?' selected':'')+'>20.000 ₺</option>'+
-            '<option value="25000"'+(minDegisim===25000?' selected':'')+'>25.000 ₺</option>'+
-            '<option value="30000"'+(minDegisim===30000?' selected':'')+'>30.000 ₺ ✓</option>'+
-            '<option value="35000"'+(minDegisim===35000?' selected':'')+'>35.000 ₺</option>'+
-            '<option value="50000"'+(minDegisim===50000?' selected':'')+'>50.000 ₺</option>'+
-            '<option value="100000"'+(minDegisim===100000?' selected':'')+'>100.000 ₺</option>'+
-          '</select>'+
+          '<div id="min-btn-grup" style="display:flex;gap:4px;flex-wrap:wrap">'+
+          '<button class="min-btn" data-val="0" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===0?'var(--blu)':'transparent')+';color:'+(minDegisim===0?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">Hepsi</button>'+
+          '<button class="min-btn" data-val="5000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===5000?'var(--blu)':'transparent')+';color:'+(minDegisim===5000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">5 bin ₺</button>'+
+          '<button class="min-btn" data-val="10000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===10000?'var(--blu)':'transparent')+';color:'+(minDegisim===10000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">10 bin ₺</button>'+
+          '<button class="min-btn" data-val="30000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===30000?'var(--blu)':'transparent')+';color:'+(minDegisim===30000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">30 bin ₺</button>'+
+          '<button class="min-btn" data-val="50000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===50000?'var(--blu)':'transparent')+';color:'+(minDegisim===50000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">50 bin ₺</button>'+
+          '<button class="min-btn" data-val="100000" style="padding:3px 10px;border-radius:20px;border:1px solid var(--brd2);background:'+(minDegisim===100000?'var(--blu)':'transparent')+';color:'+(minDegisim===100000?'#fff':'var(--mut)')+';font-size:11px;cursor:pointer;font-family:inherit">100 bin ₺</button>'+
+          '</div>'+
         '</div>'+
         '<select id="f-degisim-srt" style="font-size:11px;padding:3px 8px;border:1px solid var(--brd2);border-radius:5px;background:var(--yuz);cursor:pointer">'+
           '<option value="">Tarih (Yeni→Eski)</option>'+
@@ -6138,6 +6135,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!hasChrome) {
     ghVeriYukle(function(ilanlar) {
       if (typeof veriUygula === 'function') veriUygula(ilanlar, 'GitHub');
+      // Toplam ilan sayısını güncelle
+      var stEl = document.getElementById('st-toplam');
+      if (stEl) stEl.textContent = ilanlar.length.toLocaleString('tr-TR');
       else if (typeof goster === 'function') {
         window.veri = ilanlar;
         goster();
@@ -6145,6 +6145,64 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // 15 dakikada bir güncelle
     setInterval(function() { ghVeriYukle(function(){}); }, 15*60*1000);
+  }
+});
+</script>
+
+
+  // Min değişim butonları (site versiyonu için event delegation)
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.min-btn');
+    if (!btn) return;
+    window._minDegisim = parseInt(btn.getAttribute('data-val')) || 0;
+    if (typeof goster === 'function') goster();
+  });
+
+
+<script>
+function bildirimTikla(btn) {
+  if (!('Notification' in window)) {
+    alert('Bu tarayıcı bildirimleri desteklemiyor.');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    var sesiz = localStorage.getItem('ar_sesiz') === '1';
+    localStorage.setItem('ar_sesiz', sesiz ? '0' : '1');
+    btn.textContent = sesiz ? '🔔 Açık' : '🔕 Sessiz';
+    btn.style.color  = sesiz ? '#4ade80' : '#94a3b8';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    alert('Bildirim izni reddedildi.\nTarayıcı ayarlarından açabilirsiniz.');
+    return;
+  }
+  Notification.requestPermission().then(function(p) {
+    if (p === 'granted') {
+      btn.textContent = '🔔 Açık';
+      btn.style.color = '#4ade80';
+      if (typeof ghBildirimGonder === 'function') {
+        setTimeout(function(){
+          ghBildirimGonder({baslik:'🔔 ARAÇRADAR', mesaj:'Fiyat değişimlerinde bildirim alacaksınız!', url:'./'});
+        }, 300);
+      }
+    } else {
+      btn.textContent = '🔕 Kapalı';
+      btn.style.color = '#f87171';
+    }
+  });
+}
+
+// Sayfa yüklenince bildirim durumunu göster
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('btn-bildirim-web');
+  if (!btn) return;
+  var sesiz = localStorage.getItem('ar_sesiz') === '1';
+  if (Notification.permission === 'granted' && !sesiz) {
+    btn.textContent = '🔔 Açık'; btn.style.color = '#4ade80';
+  } else if (Notification.permission === 'granted' && sesiz) {
+    btn.textContent = '🔕 Sessiz'; btn.style.color = '#94a3b8';
+  } else if (Notification.permission === 'denied') {
+    btn.textContent = '🔕 Kapalı'; btn.style.color = '#f87171';
   }
 });
 </script>
