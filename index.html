@@ -5915,22 +5915,100 @@ window.addEventListener('load', function() {
 </div>
 
 <script>
+// ── GitHub + Chrome Shim (Web versiyonu için) ──────────────────────────────
+var GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
+var _swReg = null;
+
+// Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js')
-      .then(function(reg){ window._sw = reg; console.log('[ARAÇRADAR] SW kayıtlı'); })
-      .catch(function(e){ console.warn('[ARAÇRADAR] SW hatası:', e.message); });
-  });
-
-  navigator.serviceWorker.addEventListener('message', function(e) {
-    if (!e.data || e.data.type !== 'BILDIRIM_TIKLA') return;
-    var url = e.data.url || '';
-    if (url.includes('filtre=dustu') && typeof anaSekmeDegistir === 'function') {
-      anaSekmeDegistir('degisim');
-    }
-    window.focus();
+      .then(function(r){ _swReg=r; })
+      .catch(function(){});
   });
 }
+
+// Chrome.storage shim — web'de localStorage kullan
+if (typeof chrome === 'undefined' || !chrome.storage) {
+  window.chrome = window.chrome || {};
+  chrome.storage = {
+    local: {
+      get: function(keys, cb) {
+        var result = {};
+        var ks = typeof keys === 'string' ? [keys] : (Array.isArray(keys) ? keys : Object.keys(keys));
+        ks.forEach(function(k) {
+          try { var v = localStorage.getItem(k); result[k] = v ? JSON.parse(v) : undefined; } catch(e) {}
+        });
+        cb && cb(result);
+      },
+      set: function(obj, cb) {
+        Object.keys(obj).forEach(function(k) {
+          try { localStorage.setItem(k, JSON.stringify(obj[k])); } catch(e) {}
+        });
+        cb && cb();
+      },
+      remove: function(keys, cb) {
+        var ks = Array.isArray(keys) ? keys : [keys];
+        ks.forEach(function(k){ localStorage.removeItem(k); });
+        cb && cb();
+      }
+    }
+  };
+  chrome.runtime = chrome.runtime || { lastError: null };
+  chrome.notifications = { create: function(){}, clear: function(){} };
+  chrome.alarms = { create: function(){}, onAlarm: { addListener: function(){} } };
+}
+
+// GitHub'dan veri çek
+function ghVeriYukle(cb) {
+  fetch(GH_RAW + '/data/meta.json?t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(meta) {
+      var parcalar = meta.parcalar || [];
+      var tumIlanlar = [];
+      var done = 0;
+      if (!parcalar.length) { cb && cb([]); return; }
+      parcalar.forEach(function(yol) {
+        var fname = yol.split('/').pop();
+        fetch(GH_RAW + '/data/' + fname + '?t=' + Date.now())
+          .then(function(r){ return r.json(); })
+          .then(function(p) {
+            tumIlanlar = tumIlanlar.concat(p);
+            done++;
+            if (done === parcalar.length) { cb && cb(tumIlanlar); }
+          })
+          .catch(function() { done++; if (done===parcalar.length) { cb&&cb(tumIlanlar); } });
+      });
+    })
+    .catch(function() { cb && cb([]); });
+}
+
+// Sayfa hazır olunca GitHub'dan veri yükle
+document.addEventListener('DOMContentLoaded', function() {
+  // Chrome extension'da değilsek GitHub'dan yükle
+  if (typeof chrome === 'undefined' || !chrome.storage || !window._isExtension) {
+    ghVeriYukle(function(ilanlar) {
+      if (!ilanlar.length) return;
+      // veri global değişkenini doldur
+      window.veri = ilanlar;
+      if (typeof goster === 'function') goster();
+      if (typeof etiketDropdownDoldur === 'function') etiketDropdownDoldur();
+      if (typeof markaDropdownDoldur === 'function') markaDropdownDoldur();
+      if (typeof kasaDropdownDoldur === 'function') kasaDropdownDoldur();
+      // İlan sayısını güncelle
+      var stEl = document.getElementById('st-toplam');
+      if (stEl) stEl.textContent = ilanlar.length.toLocaleString('tr-TR');
+    });
+    // 15dk'da bir güncelle
+    setInterval(function() {
+      ghVeriYukle(function(ilanlar) {
+        if (!ilanlar.length) return;
+        window.veri = ilanlar;
+        if (typeof goster === 'function') goster();
+      });
+    }, 15 * 60 * 1000);
+  }
+});
 </script>
 
 </body>
