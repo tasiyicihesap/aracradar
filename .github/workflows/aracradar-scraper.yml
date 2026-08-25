@@ -1,64 +1,29 @@
-name: ARAÇRADAR — Otomatik Tarama
-
+name: ARAÇRADAR Otomatik Tarama
 on:
   schedule:
-    - cron: '0 2 * * *'
-    - cron: '0 8 * * *'
-    - cron: '0 14 * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
-    inputs:
-      mod:
-        description: 'Tarama modu'
-        required: true
-        default: 'yeni'
-        type: choice
-        options:
-          - yeni
-          - guncelleme
-          - tam
-      max_sayfa:
-        description: 'Max sayfa sayısı (0 = sınırsız)'
-        required: false
-        default: '50'
-
 jobs:
-  tara:
+  tarama:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
-
+    timeout-minutes: 8
     steps:
-      - name: Repo'yu çek
-        uses: actions/checkout@v4
-
-      - name: Python kur
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Bağımlılıkları kur
-        run: |
-          pip install requests beautifulsoup4 lxml supabase fake-useragent tenacity
-
-      - name: Sahibinden tarama
+      - run: pip install requests beautifulsoup4 lxml
+      - name: Tarama
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          TARAMA_MOD: ${{ github.event.inputs.mod || 'yeni' }}
-          MAX_SAYFA: ${{ github.event.inputs.max_sayfa || '50' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python scripts/tarama.py
+      - name: Commit
         run: |
-          python scripts/tara_sahibinden.py
-
-      - name: Arabam tarama
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          TARAMA_MOD: ${{ github.event.inputs.mod || 'yeni' }}
-          MAX_SAYFA: ${{ github.event.inputs.max_sayfa || '50' }}
-        run: |
-          python scripts/tara_arabam.py
-
-      - name: Özet rapor
-        if: always()
-        run: |
-          echo "## Tarama Özeti" >> $GITHUB_STEP_SUMMARY
-          echo "Tarih: $(date '+%Y-%m-%d %H:%M')" >> $GITHUB_STEP_SUMMARY
+          git config user.email "action@github.com"
+          git config user.name "ARAÇRADAR Bot"
+          git add data/
+          git diff --staged --quiet || git commit -m "Otomatik tarama [$(date '+%H:%M')]"
+          git push
