@@ -1,0 +1,6 @@
+{
+  "versiyon": 1,
+  "tarih": 1787660696640,
+  "sb_ayarlar": null,
+  "ot_ayarlar": "{\"baseUrl\":\"https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000\",\"urls\":[{\"url\":\"https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000\",\"sayfa\":100,\"site\":\"sahibinden\",\"maxIlan\":0,\"etiket\":\"\"},{\"url\":\"https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50\",\"sayfa\":50,\"site\":\"arabam\",\"maxIlan\":0,\"etiket\":\"\"},{\"url\":\"https://www.letgo.com/arabalar_c15706?filter=yil:[2005-];km:[-350000];yakit-tipi:benzin,dizel;vites-tipi:otomatik;agir-hasar-kayitli:hayir;lpg:var,yok;takas-durumu:evet,hayir\",\"sayfa\":50,\"site\":\"letgo\",\"maxIlan\":0,\"etiket\":\"\"}],\"etiket\":\"\",\"toplamSayfa\":100,\"aralik\":5000,\"periyot\":30}"
+}
