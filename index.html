@@ -755,6 +755,8 @@ function filtrele(liste) {
       var hay = (il.ad||'')+(il.marka||'')+(il.seri||'')+(il.model||'')+(il.kasa||'');
       if (hay.toLowerCase().indexOf(s)===-1) return false;
     }
+    // Yayından kalkmış Letgo ilanları
+    if (il.url && il.url.includes('redirectedItem=true')) return false;
     return true;
   });
 }
