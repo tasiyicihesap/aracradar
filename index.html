@@ -310,6 +310,10 @@ select { cursor: pointer; }
   <div class="yukleme-bar-wrap"><div class="yukleme-bar" id="yukleme-bar" style="width:0%"></div></div>
   <div class="yukleme-sayi" id="yukleme-sayi">Veriler yükleniyor...</div>
   <div class="yukleme-alt">tasiyicihesap.github.io/aracradar</div>
+  <button onclick="document.getElementById('yukleme-ekrani').style.display='none';veriUygula();" 
+    style="margin-top:16px;padding:8px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer">
+    ⚠️ Yüklenmiyor mu? Buraya Bas
+  </button>
 </div>
 
 <!-- HEADER -->
@@ -640,7 +644,11 @@ function ghVeriYukle(zorla) {
 
 function _ghFetch(bar, sayi, yukleme) {
   if (yukleme) yukleme.style.display = 'flex';
-  fetch(GH_RAW + '/data/meta.json?t=' + Date.now())
+  // 15sn timeout — iOS'ta fetch takılmasın
+  var metaController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var metaTimer = metaController ? setTimeout(function(){ metaController.abort(); }, 15000) : null;
+  fetch(GH_RAW + '/data/meta.json?t=' + Date.now(), metaController ? {signal: metaController.signal} : {})
+    .then(function(r){ if(metaTimer) clearTimeout(metaTimer); return r; })
     .then(function(r){ return r.json(); })
     .then(function(meta) {
       var parcalar = meta.parcalar || [];
@@ -680,11 +688,15 @@ function _ghFetch(bar, sayi, yukleme) {
       });
     })
     .catch(function(e) {
-      if (sayi) sayi.textContent = 'Hata: ' + e.message;
+      console.warn('[AR] Meta fetch hata:', e.message);
+      if (yukleme) yukleme.style.display = 'none';
+      if (sayi) sayi.textContent = 'Veri yuklenemedi. Yenile butonuna basin.';
+      veriUygula();
     });
 }
 
 function veriUygula() {
+  if (!veri) veri = [];
   // Dropdown'ları doldur
   markaDropdownDoldur();
   kasaDropdownDoldur();
