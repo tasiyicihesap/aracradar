@@ -1266,5 +1266,210 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<script>
+// ── Otomatik Bildirim Sistemi ─────────────────────────────────────────────
+var _swReg = null;
+
+// Service Worker kaydet
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(r) { _swReg = r; console.log('[AR] SW kayıtlı'); })
+      .catch(function(e) { console.warn('[AR] SW hatası:', e.message); });
+  });
+}
+
+// Bildirim gönder
+function arBildirimGonder(baslik, mesaj, url) {
+  if (Notification.permission !== 'granted') return;
+  if (localStorage.getItem('ar_sesiz') === '1') return;
+  zilSesiCal && zilSesiCal();
+  if (_swReg) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.showNotification(baslik, {
+        body: mesaj,
+        icon: './icon192.svg',
+        badge: './icon192.svg',
+        tag: 'ar-' + Date.now(),
+        vibrate: [200, 100, 200],
+        data: { url: url || './' },
+        actions: [{ action: 'ac', title: 'Görüntüle' }]
+      });
+    });
+  } else {
+    try { new Notification(baslik, { body: mesaj, icon: './icon192.svg' }); } catch(e) {}
+  }
+}
+
+// Otomatik bildirim izni iste
+function bildirimIzniOtomatikIste() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    bildirimBtnGuncelle();
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    bildirimBtnGuncelle();
+    return;
+  }
+  // iOS PWA kontrolü
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  var isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  
+  if (isIOS && !isPWA) {
+    // iOS'ta tarayıcıdan bildirim gitmiyor — banner göster
+    iosEkleBanner();
+    return;
+  }
+  // Android / Desktop / iOS PWA — direkt izin iste
+  setTimeout(function() {
+    Notification.requestPermission().then(function(p) {
+      bildirimBtnGuncelle();
+      if (p === 'granted') {
+        setTimeout(function() {
+          arBildirimGonder('🔔 ARAÇRADAR', 'Fiyat değişimlerinde bildirim alacaksınız!');
+        }, 500);
+      }
+    });
+  }, 2000); // 2sn bekle — sayfa yüklendikten sonra sor
+}
+
+function bildirimBtnGuncelle() {
+  var btn = document.getElementById('btn-bildirim-web');
+  if (!btn) return;
+  var sesiz = localStorage.getItem('ar_sesiz') === '1';
+  if (Notification.permission === 'granted' && !sesiz) {
+    btn.textContent = '🔔 Açık'; btn.style.color = '#4ade80';
+  } else if (Notification.permission === 'granted' && sesiz) {
+    btn.textContent = '🔕 Sessiz'; btn.style.color = '#94a3b8';
+  } else if (Notification.permission === 'denied') {
+    btn.textContent = '🔕 Kapalı'; btn.style.color = '#f87171';
+  } else {
+    btn.textContent = '🔔 Bildirim'; btn.style.color = '';
+  }
+}
+
+function bildirimTikla(btn) {
+  if (!('Notification' in window)) { return; }
+  if (Notification.permission === 'granted') {
+    var sesiz = localStorage.getItem('ar_sesiz') === '1';
+    localStorage.setItem('ar_sesiz', sesiz ? '0' : '1');
+    bildirimBtnGuncelle();
+    if (sesiz) arBildirimGonder('🔔 ARAÇRADAR', 'Bildirimler açıldı!');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    alert('Bildirim izni reddedildi.\nTarayıcı ayarlarından açabilirsiniz.');
+    return;
+  }
+  Notification.requestPermission().then(function(p) {
+    bildirimBtnGuncelle();
+    if (p === 'granted') arBildirimGonder('🔔 ARAÇRADAR', 'Bildirimler açıldı!');
+  });
+}
+
+// iOS "Ana Ekrana Ekle" banner
+function iosEkleBanner() {
+  if (document.getElementById('ios-banner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'ios-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#1a2235,#0d1117);border-top:1px solid rgba(255,255,255,0.15);padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,0.5)';
+  banner.innerHTML = '<div style="font-size:28px">📱</div>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Bildirimleri Aktifleştir</div>'
+    + '<div style="font-size:11px;color:#94a3b8">iPhone'da bildirim almak için: Safari menüsü → <b style="color:#fff">Ana Ekrana Ekle</b> → Uygulamayı aç → Bildirime izin ver</div>'
+    + '</div>'
+    + '<button onclick="document.getElementById('ios-banner').remove();localStorage.setItem('ar_ios_banner','1')" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;padding:4px">✕</button>';
+  document.body.appendChild(banner);
+}
+
+// Fiyat değişimi bildirim kontrolü
+function fiyatBildirimKontrol(ilanlar) {
+  if (Notification.permission !== 'granted') return;
+  if (localStorage.getItem('ar_sesiz') === '1') return;
+  var onceki = {};
+  try { onceki = JSON.parse(localStorage.getItem('ar_son_fiyatlar') || '{}'); } catch(e) {}
+  
+  var degisimler = [];
+  var yeniF = {};
+  var ilkKez = Object.keys(onceki).length === 0;
+  
+  ilanlar.forEach(function(il) {
+    if (!il || !il.id || !il.fiyat) return;
+    yeniF[il.id] = il.fiyat;
+    if (ilkKez) return; // İlk yüklemede bildirim gönderme
+    var eski = onceki[il.id];
+    if (!eski || eski === il.fiyat) return;
+    var fark = eski - il.fiyat;
+    var pct  = Math.round(Math.abs(fark) / eski * 100);
+    if (pct < 2) return; // %2'den az değişim — görmezden gel
+    degisimler.push({ il: il, fark: fark, pct: pct, dustu: fark > 0 });
+  });
+
+  // Fiyatları kaydet
+  Object.assign(onceki, yeniF);
+  try { localStorage.setItem('ar_son_fiyatlar', JSON.stringify(onceki)); } catch(e) {}
+
+  if (!degisimler.length) return;
+  
+  // En önemli 3 değişimi bildir
+  degisimler.sort(function(a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
+  degisimler.slice(0, 3).forEach(function(d, i) {
+    setTimeout(function() {
+      arBildirimGonder(
+        (d.dustu ? '📉' : '📈') + ' ARAÇRADAR — Fiyat ' + (d.dustu ? 'Düştü' : 'Arttı'),
+        (d.il.ad || 'Araç').substring(0, 60) + '\n'
+          + (d.dustu ? '▼' : '▲') + ' '
+          + Math.abs(d.fark).toLocaleString('tr-TR') + ' ₺'
+          + ' (%' + d.pct + ') → '
+          + d.il.fiyat.toLocaleString('tr-TR') + ' ₺',
+        d.il.url
+      );
+    }, i * 1500);
+  });
+
+  if (degisimler.length > 3) {
+    setTimeout(function() {
+      arBildirimGonder(
+        '🔔 ARAÇRADAR — ' + degisimler.length + ' fiyat değişimi',
+        degisimler.length + ' ilanda fiyat değişti.'
+      );
+    }, 5000);
+  }
+}
+
+// Zil sesi
+function zilSesiCal() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var t = ctx.currentTime;
+    [[880,0,0.12],[1108,0.15,0.10],[1318,0.28,0.18]].forEach(function(n) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = n[0];
+      g.gain.setValueAtTime(0, t+n[1]);
+      g.gain.linearRampToValueAtTime(0.2, t+n[1]+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t+n[1]+n[2]+0.25);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t+n[1]); o.stop(t+n[1]+n[2]+0.3);
+    });
+    setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 1000);
+  } catch(e) {}
+}
+
+// iOS banner daha önce kapatılmadıysa göster
+document.addEventListener('DOMContentLoaded', function() {
+  bildirimBtnGuncelle();
+  // İzin zaten varsa güncelle, yoksa iste
+  if (localStorage.getItem('ar_ios_banner') !== '1') {
+    bildirimIzniOtomatikIste();
+  } else {
+    bildirimIzniOtomatikIste(); // yine de sor — sadece banner'ı gösterme
+  }
+});
+</script>
+
 </body>
 </html>
