@@ -2,7 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> <!-- iOS -->
+  <meta name="viewport_bak" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -613,31 +614,26 @@ function ghVeriYukle(zorla) {
   var sayi = document.getElementById('yukleme-sayi');
   var yukleme = document.getElementById('yukleme-ekrani');
 
-  // Cache kontrolü
+  // iOS ve diğer tarayıcılar için güvenli cache kontrolü
   if (!zorla) {
-    var meta = null;
-    try { meta = JSON.parse(localStorage.getItem('ar_gh_meta')||'null'); } catch(e) {}
-    if (meta && (Date.now()-meta.ts) < 10*60*1000) {
-      var cached = null;
-      try {
-        var db = indexedDB.open('ar_cache', 1);
-        db.onsuccess = function(e) {
-          var tx = e.target.result.transaction('veri','readonly');
-          var req = tx.objectStore('veri').get('ilanlar');
-          req.onsuccess = function(ev) {
-            if (ev.target.result && ev.target.result.length) {
-              veri = ev.target.result;
+    try {
+      var meta = JSON.parse(localStorage.getItem('ar_gh_meta')||'null');
+      if (meta && (Date.now()-meta.ts) < 10*60*1000) {
+        // IndexedDB olmadan localStorage'dan kontrol
+        var cachedStr = localStorage.getItem('ar_veri_mini');
+        if (cachedStr) {
+          try {
+            var cached = JSON.parse(cachedStr);
+            if (cached && cached.length > 0) {
+              veri = cached;
               if (yukleme) yukleme.style.display = 'none';
               veriUygula();
-            } else { _ghFetch(bar, sayi, yukleme); }
-          };
-          req.onerror = function() { _ghFetch(bar, sayi, yukleme); };
-        };
-        db.onerror = function() { _ghFetch(bar, sayi, yukleme); };
-        db.onupgradeneeded = function(e) { e.target.result.createObjectStore('veri'); };
-      } catch(e) { _ghFetch(bar, sayi, yukleme); }
-      return;
-    }
+              return;
+            }
+          } catch(e2) {}
+        }
+      }
+    } catch(e) {}
   }
   _ghFetch(bar, sayi, yukleme);
 }
@@ -665,15 +661,11 @@ function _ghFetch(bar, sayi, yukleme) {
             if (sayi) sayi.textContent = tumIlanlar.length.toLocaleString('tr-TR') + ' / ' + toplam.toLocaleString('tr-TR') + ' ilan yüklendi';
             if (tamamlanan === parcalar.length) {
               veri = tumIlanlar;
-              // Cache'e yaz
+              // Cache'e yaz — iOS uyumlu (localStorage)
               try {
                 localStorage.setItem('ar_gh_meta', JSON.stringify({ts:Date.now(), toplam:toplam}));
-                var db = indexedDB.open('ar_cache',1);
-                db.onsuccess = function(e) {
-                  var tx = e.target.result.transaction('veri','readwrite');
-                  tx.objectStore('veri').put(tumIlanlar, 'ilanlar');
-                };
-                db.onupgradeneeded = function(e){ e.target.result.createObjectStore('veri'); };
+                // Büyük veriyi localStorage'a yazmayı dene (iOS sınırı ~5MB)
+                // Sadece meta kaydet, veriyi her seferinde fetch et
               } catch(e){}
               if (yukleme) yukleme.style.display = 'none';
               veriUygula();
