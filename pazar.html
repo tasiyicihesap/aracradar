@@ -803,11 +803,10 @@ for(const id of ['f-kaynak','f-etiket','f-durum'])
 const GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
 
 async function githubdanYukle() {
-  bekle(true, 'GitHub’dan veriler yükleniyor…');
   try {
     const meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(function(r){ return r.json(); });
     const parcalar = meta.parcalar || [];
-    if (!parcalar.length) { bekle(false); return false; }
+    if (!parcalar.length) return false;
     let tumIlanlar = [];
     let tamamlanan = 0;
     for (const yol of parcalar) {
@@ -821,7 +820,7 @@ async function githubdanYukle() {
     }
     VERI = tumIlanlar.map(normallestir);
     for (const r of VERI) urlIndeks.set(r.url.trim(), r);
-    await dbKaydet();
+    try { await dbKaydet(); } catch(e) {}
     return true;
   } catch(e) {
     console.error('GitHub yükleme hatası:', e);
@@ -830,30 +829,21 @@ async function githubdanYukle() {
 }
 
 (async function(){
-  bekle(true, 'Veriler açılıyor…');
-  let yuklendiMi = false;
-  try {
-    const kayitli = await dbYukle();
-    if (kayitli.length) {
-      VERI = kayitli.map(normallestir);
-      for (const r of VERI) urlIndeks.set(r.url.trim(), r);
-      yuklendiMi = true;
-    }
-  } catch(e) { console.error('IndexedDB:', e); }
-
-  if (!yuklendiMi) {
-    await githubdanYukle();
-  } else {
-    bekle(false);
-    etiketleriDoldur();
-    markaListesiCiz();
-    filtreVeListele(1);
-    githubdanYukle().then(function(ok) {
-      if (ok) { etiketleriDoldur(); markaListesiCiz(); filtreVeListele(1); }
-    });
-    return;
+  // Her zaman GitHub'dan taze veri çek
+  bekle(true, 'Veriler yükleniyor…');
+  urlIndeks = new Map();
+  VERI = [];
+  const ok = await githubdanYukle();
+  if (!ok) {
+    // GitHub başarısız olursa IndexedDB'ye bak
+    try {
+      const kayitli = await dbYukle();
+      if (kayitli.length) {
+        VERI = kayitli.map(normallestir);
+        for (const r of VERI) urlIndeks.set(r.url.trim(), r);
+      }
+    } catch(e) {}
   }
-
   etiketleriDoldur();
   markaListesiCiz();
   filtreVeListele(1);
