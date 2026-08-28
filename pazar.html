@@ -802,25 +802,25 @@ for(const id of ['f-kaynak','f-etiket','f-durum'])
 /* ============ BAŞLANGIÇ ============ */
 const GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
 
-async function githubdanYukle(){
-  bekle(true, 'GitHub'dan veriler çekiliyor…');
+async function githubdanYukle() {
+  bekle(true, 'GitHub’dan veriler yükleniyor…');
   try {
-    const meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(r => r.json());
+    const meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(function(r){ return r.json(); });
     const parcalar = meta.parcalar || [];
     if (!parcalar.length) { bekle(false); return false; }
-
     let tumIlanlar = [];
     let tamamlanan = 0;
-    await Promise.all(parcalar.map(async (yol) => {
+    for (const yol of parcalar) {
       const dosya = yol.replace('data/', '');
-      const parca = await fetch(GH_RAW + '/data/' + dosya + '?t=' + Date.now()).then(r => r.json()).catch(() => []);
-      tumIlanlar = tumIlanlar.concat(parca);
+      try {
+        const parca = await fetch(GH_RAW + '/data/' + dosya + '?t=' + Date.now()).then(function(r){ return r.json(); });
+        tumIlanlar = tumIlanlar.concat(parca);
+      } catch(e) {}
       tamamlanan++;
-      bekle(true, `Yükleniyor… ${tamamlanan}/${parcalar.length} parça (${tumIlanlar.length.toLocaleString('tr-TR')} ilan)`);
-    }));
-
+      bekle(true, 'Yükleniyor… ' + tamamlanan + '/' + parcalar.length + ' parça (' + tumIlanlar.length.toLocaleString('tr-TR') + ' ilan)');
+    }
     VERI = tumIlanlar.map(normallestir);
-    for(const r of VERI) urlIndeks.set(r.url.trim(), r);
+    for (const r of VERI) urlIndeks.set(r.url.trim(), r);
     await dbKaydet();
     return true;
   } catch(e) {
@@ -830,28 +830,30 @@ async function githubdanYukle(){
 }
 
 (async function(){
-  // Önce IndexedDB'den dene
   bekle(true, 'Veriler açılıyor…');
-  try{
+  let yuklendiMi = false;
+  try {
     const kayitli = await dbYukle();
-    if(kayitli.length){
+    if (kayitli.length) {
       VERI = kayitli.map(normallestir);
-      for(const r of VERI) urlIndeks.set(r.url.trim(), r);
-      bekle(false);
-      etiketleriDoldur();
-      markaListesiCiz();
-      filtreVeListele(1);
-      // Arka planda güncelle (sessiz)
-      githubdanYukle().then(ok => {
-        if(ok) { etiketleriDoldur(); markaListesiCiz(); filtreVeListele(1); }
-      });
-      return;
+      for (const r of VERI) urlIndeks.set(r.url.trim(), r);
+      yuklendiMi = true;
     }
-  } catch(e){ console.error('IndexedDB:', e); }
+  } catch(e) { console.error('IndexedDB:', e); }
 
-  // IndexedDB boşsa GitHub'dan çek
-  const ok = await githubdanYukle();
-  if(!ok) toast('⚠ Veri yüklenemedi. JSON dosyası yükleyin.');
+  if (!yuklendiMi) {
+    await githubdanYukle();
+  } else {
+    bekle(false);
+    etiketleriDoldur();
+    markaListesiCiz();
+    filtreVeListele(1);
+    githubdanYukle().then(function(ok) {
+      if (ok) { etiketleriDoldur(); markaListesiCiz(); filtreVeListele(1); }
+    });
+    return;
+  }
+
   etiketleriDoldur();
   markaListesiCiz();
   filtreVeListele(1);
