@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AraçRadar Hub</title>
 <meta name="theme-color" content="#0a0f18">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="hub-manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -219,6 +219,29 @@ main {
   flex-shrink: 0;
 }
 
+/* ── MANUEL KISAYOL KUTUSU ── */
+#manual-help {
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+#manual-help.visible { display: block; }
+#manual-help strong { color: #fff; }
+#manual-help code {
+  background: #0a0f18;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--green);
+  font-size: 12px;
+}
+
 /* ── FOOTER ── */
 footer {
   position: relative;
@@ -253,10 +276,16 @@ footer {
 <main>
   <div id="install-banner">
     <div class="install-text">
-      <strong>Ana ekrana ekle</strong>
-      Her cihazdan hızlı erişim için yükle
+      <strong>Bilgisayarına kısayol ekle</strong>
+      Hub'ı ayrı bir pencerede, uygulama gibi aç
     </div>
     <button id="install-btn">Yükle</button>
+  </div>
+
+  <div id="manual-help">
+    <strong>Masaüstü kısayolu eklemek için</strong>
+    Chrome: sağ üstteki <code>⋮</code> → Yayınla, kaydet ve paylaş → Kısayol oluştur → “Pencere olarak aç” işaretle.<br>
+    Edge: <code>⋯</code> → Uygulamalar → Bu siteyi uygulama olarak yükle.
   </div>
 
   <div class="section-label">Araçlar</div>
@@ -367,6 +396,8 @@ const grid = document.getElementById('tools-grid');
 tools.forEach(t => {
   const card = document.createElement('a');
   card.href = t.dosya;
+  card.target = '_blank';
+  card.rel = 'noopener';
   card.className = 'tool-card';
   card.style.setProperty('--card-color', t.renk);
   card.innerHTML = `
@@ -381,28 +412,47 @@ tools.forEach(t => {
   grid.appendChild(card);
 });
 
+// ── SERVICE WORKER (kurulabilirlik için gerekli) ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
 // ── PWA KURULUM ──
 let deferredPrompt = null;
 const banner = document.getElementById('install-banner');
 const installBtn = document.getElementById('install-btn');
+const manualHelp = document.getElementById('manual-help');
+
+const zatenKurulu = window.matchMedia('(display-mode: standalone)').matches;
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
+  manualHelp.classList.remove('visible');
   banner.classList.add('visible');
 });
 
 installBtn.addEventListener('click', async () => {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
+  await deferredPrompt.userChoice;
   deferredPrompt = null;
   banner.classList.remove('visible');
 });
 
 window.addEventListener('appinstalled', () => {
   banner.classList.remove('visible');
+  manualHelp.classList.remove('visible');
 });
+
+// Yükle butonu 2 sn içinde çıkmazsa manuel yolu göster
+setTimeout(() => {
+  if (!deferredPrompt && !zatenKurulu) {
+    manualHelp.classList.add('visible');
+  }
+}, 2000);
 </script>
 
 </body>
