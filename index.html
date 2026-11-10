@@ -5764,7 +5764,7 @@ chrome.runtime.onMessage.addListener(function(msg){
         });
       })
       .then(function(r){
-        if(r.ok){ flash('✓ GitHub'a kaydedildi'); _urls = liste; }
+        if(r.ok){ flash("✓ GitHub'a kaydedildi"); _urls = liste; }
         else{ r.text().then(function(t){flash('✗ Hata: '+t.substring(0,80));});}
       })
       .catch(function(e){ flash('✗ '+e.message); });
@@ -5785,12 +5785,12 @@ chrome.runtime.onMessage.addListener(function(msg){
       el.style.background='rgba(42,122,59,0.15)';el.style.border='1px solid rgba(42,122,59,0.3)';
       if(ikon) ikon.textContent='✅';
       if(baslik) baslik.textContent='Extension bağlı ve aktif';
-      if(acik) acik.textContent='Tarama popup'tan başlatılabilir. Bu sayfada URL listesini düzenleyebilirsin.';
+      if(acik) acik.textContent="Tarama popup'tan başlatılabilir. Bu sayfada URL listesini düzenleyebilirsin.";
     } else {
       el.style.background='rgba(255,152,0,0.1)';el.style.border='1px solid rgba(255,152,0,0.3)';
       if(ikon) ikon.textContent='🌐';
       if(baslik) baslik.textContent='Web görünümü — Tarama extension ile yapılır';
-      if(acik) acik.textContent='URL listesini buradan düzenle ve GitHub'a kaydet. Extension'ı aynı hesapla açtığında ayarları okur.';
+      if(acik) acik.textContent="URL listesini buradan düzenle ve GitHub'a kaydet. Extension'ı aynı hesapla açtığında ayarları okur.";
       if(indir) indir.style.display='block';
     }
   }
