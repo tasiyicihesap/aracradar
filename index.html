@@ -737,15 +737,17 @@ button.kirmizi:hover{background:var(--redl)}
         <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔌 Extension Kurulumu</div>
         <div style="font-size:12px;color:var(--mut);margin-bottom:10px">AraçRadar tarama extension'ı henüz kurulu değil. Chrome/Edge'e eklemek için:</div>
         <ol style="font-size:12px;line-height:2;padding-left:18px;color:var(--txt)">
-          <li>Aşağıdaki ZIP'i indir ve çıkart</li>
+          <li>Aşağıdaki ZIP'i indir</li>
+          <li>ZIP'i bir klasöre çıkart — içinde <code>manifest.json</code> olan <strong>extension</strong> klasörünü bul</li>
           <li>Chrome'da <code>chrome://extensions</code> aç</li>
-          <li>"Geliştirici modu"nu aç (sağ üst)</li>
-          <li>"Paketlenmemiş öğe yükle" → çıkarttığın klasörü seç</li>
+          <li>Sağ üstte <strong>"Geliştirici modu"</strong>nu aç</li>
+          <li><strong>"Paketlenmemiş öğe yükle"</strong> → <code>extension</code> klasörünü seç (manifest.json olan klasör)</li>
         </ol>
-        <a href="https://github.com/tasiyicihesap/aracradar/archive/refs/heads/main.zip" 
+        <a href="https://github.com/tasiyicihesap/aracradar/archive/refs/heads/main.zip"
            style="display:inline-block;margin-top:8px;padding:8px 16px;background:#E31837;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-weight:600">
           ⬇️ Extension ZIP İndir
         </a>
+        <div style="font-size:11px;color:var(--mut);margin-top:8px">⚠️ ZIP içindeki <code>extension/</code> klasörünü seç — ana klasörü değil</div>
       </div>
 
     </div>
