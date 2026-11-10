@@ -7,9 +7,6 @@ on:
       - '*.css'
       - '*.js'
       - '.github/workflows/pages.yml'
-    paths-ignore:
-      - 'data/**'
-      - 'extension/**'
 
 permissions:
   contents: read
