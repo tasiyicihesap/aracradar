@@ -2566,7 +2566,15 @@ document.getElementById('btn-kose-temizle').addEventListener('click', kosePanelT
 document.getElementById('btn-kose-test').addEventListener('click', koseTestBildirimi);
 document.getElementById('kose-btn-ac').addEventListener('click', kosePanelAc);
 
-yukle();
+// Web modunda (eklenti yok) ilk yukle() webGitHubdanAl tamamlanınca çağrılır
+// Eklenti varsa hemen çağır
+var _extGercek = (function(){
+  try { return !!(window._arExtGercek || (chrome && chrome.runtime && chrome.runtime.id && chrome.runtime.id.length > 10)); } catch(e){ return false; }
+})();
+if (_extGercek) {
+  yukle();
+}
+// Web modunda window.load → webGitHubdanAl → yukle(true) zinciri çalışır (aşağıda)
 
 // Sayfa açılınca tarama devam ediyorsa interval'ı başlat
 chrome.runtime.sendMessage({action:'taramaDurumu'}, function(res) {
@@ -6289,6 +6297,8 @@ function piyasaKarsilastir(btn) {
 
 // Web: sayfa açılınca GitHub'dan otomatik yükle
 window.addEventListener('load', function() {
+  // Eklenti gerçekse web yükleme yapmaya gerek yok
+  if (_extGercek) return;
   setTimeout(function() {
     webGitHubdanAl(function(r) {
       if (r && r.ok && r.toplam > 0) {
@@ -6297,11 +6307,11 @@ window.addEventListener('load', function() {
         } else {
           flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan yüklendi');
         }
-        yukle(true);
+        yukle(true); // veri hazır, şimdi göster
       } else {
         flash('⚠ Veri yüklenemedi — "Verileri Yükle" butonuna bas');
       }
-    }); // zorlaIndir=false (varsayılan) → cache varsa kullan
+    }); // zorlaIndir=false → cache varsa kullan
   }, 300);
 });
 </script>
