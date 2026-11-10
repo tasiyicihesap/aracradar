@@ -753,6 +753,41 @@ button.kirmizi:hover{background:var(--redl)}
 var GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
 var _webVeri = []; // bellekteki ilan verisi
 
+// ── IndexedDB cache: veriyi tarayıcıda sakla, gereksiz indirmeyi önle ──────
+var _idb = null;
+function idbAc(cb) {
+  if (_idb) { cb(_idb); return; }
+  var req = indexedDB.open('aracradar_cache', 1);
+  req.onupgradeneeded = function(e) {
+    var db = e.target.result;
+    if (!db.objectStoreNames.contains('veri')) db.createObjectStore('veri');
+  };
+  req.onsuccess = function(e) { _idb = e.target.result; cb(_idb); };
+  req.onerror = function() { cb(null); };
+}
+function idbYaz(key, val, cb) {
+  idbAc(function(db) {
+    if (!db) { if(cb)cb(); return; }
+    try {
+      var tx = db.transaction('veri','readwrite');
+      tx.objectStore('veri').put(val, key);
+      tx.oncomplete = function(){ if(cb)cb(); };
+      tx.onerror = function(){ if(cb)cb(); };
+    } catch(e){ if(cb)cb(); }
+  });
+}
+function idbOku(key, cb) {
+  idbAc(function(db) {
+    if (!db) { cb(null); return; }
+    try {
+      var tx = db.transaction('veri','readonly');
+      var req = tx.objectStore('veri').get(key);
+      req.onsuccess = function(){ cb(req.result || null); };
+      req.onerror = function(){ cb(null); };
+    } catch(e){ cb(null); }
+  });
+}
+
 // chrome.storage.local → localStorage
 window.chrome = {
   storage: {
@@ -800,7 +835,7 @@ window.chrome = {
         return;
       }
       if (msg.action === 'firebaseCek') {
-        webGitHubdanAl(function(r) { cb(r); });
+        webGitHubdanAl(function(r) { cb(r); }, true); // zorlaIndir=true: Yenile butonuna basıldı
         return;
       }
       if (msg.action === 'tamSync') {
@@ -832,14 +867,13 @@ window.chrome = {
 };
 
 // GitHub'dan tüm ilanları çek
-function webGitHubdanAl(cb) {
+function webGitHubdanAl(cb, zorlaIndir) {
   var yuklemeEl = document.getElementById('web-yukleme');
   var progEl = document.getElementById('web-yukleme-prog');
-  if (yuklemeEl) yuklemeEl.style.display = 'flex';
 
-  // async/await ile sıralı fetch — race condition yok
   (async function() {
     try {
+      // Önce meta.json'dan son commit/tarih al
       var meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(function(r){ return r.json(); });
       var parcalar = meta.parcalar || [];
       if (!parcalar.length) {
@@ -847,6 +881,24 @@ function webGitHubdanAl(cb) {
         if (cb) cb({ok:false, yeni:0});
         return;
       }
+      var metaKey = 'meta_v_' + (meta.tarih || '') + '_' + parcalar.length;
+
+      // Cache'te aynı versiyon varsa direkt kullan
+      if (!zorlaIndir) {
+        var cachedKey = await new Promise(function(res){ idbOku('meta_key', res); });
+        if (cachedKey === metaKey) {
+          var cachedVeri = await new Promise(function(res){ idbOku('ilanlar', res); });
+          if (cachedVeri && cachedVeri.length > 0) {
+            _webVeri = cachedVeri;
+            if (yuklemeEl) yuklemeEl.style.display = 'none';
+            if (cb) cb({ ok: true, yeni: cachedVeri.length, toplam: cachedVeri.length, cache: true });
+            return;
+          }
+        }
+      }
+
+      // Cache yok veya versiyon değişmiş — GitHub'dan indir
+      if (yuklemeEl) yuklemeEl.style.display = 'flex';
       var tumIlanlar = [];
       for (var i = 0; i < parcalar.length; i++) {
         var dosya = parcalar[i].replace('data/', '');
@@ -857,6 +909,9 @@ function webGitHubdanAl(cb) {
         } catch(e) {}
       }
       _webVeri = tumIlanlar;
+      // İndirilen veriyi cache'e yaz
+      idbYaz('meta_key', metaKey);
+      idbYaz('ilanlar', tumIlanlar);
       if (yuklemeEl) yuklemeEl.style.display = 'none';
       if (cb) cb({ ok: true, yeni: tumIlanlar.length, toplam: tumIlanlar.length });
     } catch(e) {
@@ -6237,12 +6292,16 @@ window.addEventListener('load', function() {
   setTimeout(function() {
     webGitHubdanAl(function(r) {
       if (r && r.ok && r.toplam > 0) {
-        flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan yüklendi');
+        if (r.cache) {
+          flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan (önbellek)');
+        } else {
+          flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan yüklendi');
+        }
         yukle(true);
       } else {
         flash('⚠ Veri yüklenemedi — "Verileri Yükle" butonuna bas');
       }
-    });
+    }); // zorlaIndir=false (varsayılan) → cache varsa kullan
   }, 300);
 });
 </script>
