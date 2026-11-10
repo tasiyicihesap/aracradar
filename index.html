@@ -15,8 +15,8 @@
     var ok = false;
     try { ok = localStorage.getItem(LS_KEY) === HASH; } catch(e){}
     if(ok){ document.documentElement.style.display=''; return; }
-    // Giriş ekranı göster
-    document.documentElement.style.display='none';
+    // Giriş ekranı göster - body'yi gizle, overlay'i doğrudan html'e ekle
+    document.body.style.display='none';
     var overlay = document.createElement('div');
     overlay.style.cssText='position:fixed;inset:0;background:#0d1117;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif';
     overlay.innerHTML='<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px;width:320px;text-align:center">'+
@@ -27,7 +27,7 @@
       '<button id="ar-btn" style="width:100%;padding:10px;background:#238636;border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer">Giriş</button>'+
       '<div id="ar-err" style="color:#f85149;font-size:13px;margin-top:10px;min-height:18px"></div>'+
       '</div>';
-    document.body.appendChild(overlay);
+    document.documentElement.appendChild(overlay);
     function dene(){
       var pwd = document.getElementById('ar-pwd').value;
       if(!pwd) return;
@@ -35,7 +35,7 @@
         if(h === HASH){
           try{ localStorage.setItem(LS_KEY, HASH); }catch(e){}
           overlay.remove();
-          document.documentElement.style.display='';
+          document.body.style.display='';
         } else {
           document.getElementById('ar-err').textContent='Hatalı şifre';
           document.getElementById('ar-pwd').value='';
