@@ -92,7 +92,7 @@ var _sonSyncZamani = 0;
 // ── TAM SYNC — Tüm IndexedDB ilanlarını Supabase'e gönder ────────────────────
 var _tamSyncCalisiyor = false;
 // GitHub yazma için token
-var GH_TOKEN = 'GITHUB_TOKEN_REMOVED';
+var GH_TOKEN = ''; // Token chrome.storage'dan okunur
 var GH_REPO  = 'tasiyicihesap/aracradar';
 var GH_API   = 'https://api.github.com';
 
