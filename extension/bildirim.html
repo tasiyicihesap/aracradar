@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a1a;color:#fff;width:380px;padding:0;overflow:hidden}
+.baslik{background:#185FA5;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.baslik-txt{font-size:13px;font-weight:600}
+.baslik-alt{font-size:11px;opacity:.8;margin-top:2px}
+.kapat{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.7;padding:0 4px}
+.kapat:hover{opacity:1}
+.liste{max-height:420px;overflow-y:auto}
+.ilan{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.ilan:last-child{border-bottom:none}
+.ilan-ad{font-size:12px;color:rgba(255,255,255,0.75);margin-bottom:6px;line-height:1.4}
+.fiyat-satir{display:flex;align-items:center;gap:10px}
+.eski{font-size:14px;text-decoration:line-through;color:rgba(255,255,255,0.4)}
+.ok{font-size:16px;color:#4ade80}
+.yeni{font-size:18px;font-weight:700;color:#4ade80}
+.fark{font-size:11px;background:rgba(74,222,128,0.15);color:#4ade80;padding:2px 8px;border-radius:20px;margin-left:auto}
+.bos{padding:24px;text-align:center;color:rgba(255,255,255,0.4);font-size:13px}
+.alt{padding:10px 16px;display:flex;gap:8px;background:rgba(255,255,255,0.05)}
+.btn{flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit}
+.btn-panel{background:#185FA5;color:#fff}
+.btn-panel:hover{background:#0C447C}
+.btn-temizle{background:rgba(255,255,255,0.1);color:#fff}
+.btn-temizle:hover{background:rgba(255,255,255,0.18)}
+</style>
+</head>
+<body>
+<div class="baslik">
+  <div>
+    <div class="baslik-txt">📉 Fiyat Düşüşleri</div>
+    <div class="baslik-alt" id="alt-txt">Yükleniyor...</div>
+  </div>
+  <button class="kapat" id="btn-kapat">✕</button>
+</div>
+<div class="liste" id="liste"></div>
+<div class="alt">
+  <button class="btn btn-panel" id="btn-panel">📊 Paneli Aç</button>
+  <button class="btn btn-temizle" id="btn-temizle">Bildirimleri Temizle</button>
+</div>
+<script>
+var KEY = 'sb_bildirimler';
+
+function yukle() {
+  chrome.storage.local.get([KEY], function(r) {
+    var bildirimler = [];
+    try { if(r[KEY]) bildirimler = JSON.parse(r[KEY]); } catch(e) {}
+    
+    document.getElementById('alt-txt').textContent = bildirimler.length + ' yeni fiyat düşüşü';
+    
+    var el = document.getElementById('liste');
+    if (!bildirimler.length) {
+      el.innerHTML = '<div class="bos">Henüz fiyat düşüşü yok</div>';
+      return;
+    }
+
+    // En yeni önce
+    bildirimler = bildirimler.slice().reverse();
+    
+    el.innerHTML = bildirimler.map(function(b) {
+      var fark = b.eskiFiyat - b.yeniFiyat;
+      var pct = ((fark / b.eskiFiyat) * 100).toFixed(1);
+      var tarihStr = new Date(b.tarih).toLocaleDateString('tr-TR') + ' ' + new Date(b.tarih).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'});
+      return '<div class="ilan">' +
+        '<div class="ilan-ad">' + b.ad.substring(0, 80) + ' <span style="opacity:.5;font-size:10px">· ' + tarihStr + '</span></div>' +
+        '<div class="fiyat-satir">' +
+        '<span class="eski">' + b.eskiFiyat.toLocaleString('tr-TR') + ' ₺</span>' +
+        '<span class="ok">→</span>' +
+        '<span class="yeni">' + b.yeniFiyat.toLocaleString('tr-TR') + ' ₺</span>' +
+        '<span class="fark">▼ ' + fark.toLocaleString('tr-TR') + ' ₺ (%' + pct + ')</span>' +
+        '</div></div>';
+    }).join('');
+  });
+}
+
+function temizle() {
+  chrome.storage.local.set({ [KEY]: '[]' }, function() { yukle(); });
+}
+
+function panelAc() {
+  chrome.tabs.create({ url: chrome.runtime.getURL('panel.html') });
+  window.close();
+}
+
+yukle();
+document.getElementById("btn-kapat").addEventListener("click", function(){ window.close(); });
+document.getElementById("btn-temizle").addEventListener("click", temizle);
+document.getElementById("btn-panel").addEventListener("click", panelAc);
+</script>
+</body>
+</html>

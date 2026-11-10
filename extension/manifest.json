@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "ARA\u00c7RADAR \u2014 Ara\u00e7 Fiyat Takip",
+  "version": "17.6",
+  "description": "Sahibinden, Arabam.com, Letgo ara\u00e7 fiyatlar\u0131n\u0131 otomatik takip eder.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "tabs",
+    "windows",
+    "downloads",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.sahibinden.com/*",
+    "https://www.arabam.com/*",
+    "https://www.letgo.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.sahibinden.com/*",
+        "https://www.arabam.com/*",
+        "https://www.letgo.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "panel.html",
+        "panel.js",
+        "bildirim.html",
+        "logo.png",
+        "icon48.png",
+        "kasa_db.json",
+        "model_slugs.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
