@@ -616,7 +616,92 @@ button.kirmizi:hover{background:var(--redl)}
     </div>
   </div>
 
+
   <!-- AYARLAR & TARAMA -->
+  <div class="ana-icerik" id="icerik-ayarlar">
+    <div style="max-width:900px;margin:0 auto;padding:16px 8px">
+
+      <!-- Durum kutusu -->
+      <div id="ay-ext-durum" style="border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;line-height:1.6;display:flex;align-items:center;gap:10px">
+        <span id="ay-ext-ikon" style="font-size:20px">⏳</span>
+        <div><div id="ay-ext-baslik" style="font-weight:600">Kontrol ediliyor...</div>
+        <div id="ay-ext-aciklama" style="font-size:11px;opacity:.8"></div></div>
+      </div>
+
+      <!-- Tarama URL Listesi -->
+      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700">📋 Tarama URL Listesi</div>
+          <div style="display:flex;gap:6px">
+            <button id="ay-url-ekle" style="padding:5px 10px;font-size:11px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">+ URL Ekle</button>
+            <button id="ay-kaydet" style="padding:5px 12px;font-size:11px;background:#2a7a3b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 GitHub'a Kaydet</button>
+          </div>
+        </div>
+        <div id="ay-url-listesi" style="display:flex;flex-direction:column;gap:7px;min-height:40px">
+          <div style="text-align:center;padding:20px;color:var(--mut);font-size:12px">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- Genel Ayarlar -->
+      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚙️ Genel Ayarlar</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Varsayılan sayfa aralığı</div>
+            <select id="ay-aralik" style="width:100%;padding:7px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+              <option value="30000">30 sn</option>
+              <option value="60000">1 dk</option>
+              <option value="120000">2 dk</option>
+              <option value="180000">3 dk</option>
+              <option value="240000" selected>4 dk</option>
+              <option value="300000">5 dk</option>
+              <option value="480000">8 dk</option>
+              <option value="600000">10 dk</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Tarama sıklığı (otomatik)</div>
+            <select id="ay-periyot" style="width:100%;padding:7px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+              <option value="15">15 dakikada bir</option>
+              <option value="30" selected>30 dakikada bir</option>
+              <option value="60">Saatte bir</option>
+              <option value="120">2 saatte bir</option>
+              <option value="360">6 saatte bir</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- GitHub Token -->
+      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔑 GitHub Token (Kaydetmek için)</div>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="ay-gh-token" placeholder="ghp_..." style="flex:1;padding:8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;font-family:monospace">
+          <button id="ay-token-kaydet" style="padding:8px 14px;font-size:12px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">Kaydet</button>
+        </div>
+        <div style="font-size:11px;color:var(--mut);margin-top:5px">Token sadece bu tarayıcıda saklanır (localStorage). Extension da buradan okur.</div>
+        <div id="ay-token-durum" style="font-size:11px;margin-top:4px"></div>
+      </div>
+
+      <!-- Extension Yükle -->
+      <div id="ay-ext-indir" style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔌 Extension Kurulumu</div>
+        <div style="font-size:12px;color:var(--mut);margin-bottom:10px">AraçRadar tarama extension'ı henüz kurulu değil. Chrome/Edge'e eklemek için:</div>
+        <ol style="font-size:12px;line-height:2;padding-left:18px;color:var(--txt)">
+          <li>Aşağıdaki ZIP'i indir ve çıkart</li>
+          <li>Chrome'da <code>chrome://extensions</code> aç</li>
+          <li>"Geliştirici modu"nu aç (sağ üst)</li>
+          <li>"Paketlenmemiş öğe yükle" → çıkarttığın klasörü seç</li>
+        </ol>
+        <a href="https://github.com/tasiyicihesap/aracradar/archive/refs/heads/main.zip" 
+           style="display:inline-block;margin-top:8px;padding:8px 16px;background:#E31837;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-weight:600">
+          ⬇️ Extension ZIP İndir
+        </a>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ANALİZ -->
   <div class="ana-icerik" id="icerik-analiz" style="display:none">
     <div id="analiz-panel"></div>
@@ -5481,6 +5566,227 @@ chrome.runtime.onMessage.addListener(function(msg){
 });
 
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// AYARLAR & TARAMA SEKMESİ
+// ═══════════════════════════════════════════════════════
+(function(){
+  var GH_REPO = 'tasiyicihesap/aracradar';
+  var GH_API  = 'https://api.github.com';
+  var _urls = [];
+  var _aralik = 240000;
+  var _periyot = 30;
+
+  function ghToken() {
+    try { return localStorage.getItem('ar_gh_token') || ''; } catch(e) { return ''; }
+  }
+
+  function renkUrl(url) {
+    var u = (url||'').toLowerCase();
+    return u.indexOf('arabam')!==-1?'#E31837':u.indexOf('letgo')!==-1?'#6B3FA0':'#FF6600';
+  }
+  function siteEtiketi(url) {
+    var u = (url||'').toLowerCase();
+    return u.indexOf('arabam')!==-1?'ARB':u.indexOf('letgo')!==-1?'LTG':'SHB';
+  }
+
+  function urlSatirOlustur(obj, idx) {
+    var renk = renkUrl(obj.url);
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--brd2);border-radius:7px;padding:7px 9px';
+    div.innerHTML =
+      '<span style="font-size:10px;background:'+renk+';color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0;font-weight:700">'+siteEtiketi(obj.url)+'</span>'+
+      '<input type="text" class="ay-url-inp" value="'+((obj.url||'').replace(/"/g,'&quot;'))+'" placeholder="https://..." style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px">'+
+      '<select class="ay-etiket-sel ot-satir-etiket" style="width:110px;padding:5px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px"><option value="">--</option></select>'+
+      '<input type="number" class="ay-sayfa-inp" value="'+(obj.sayfa||9999)+'" min="1" title="Max sayfa" style="width:55px;padding:5px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px;text-align:center">'+
+      '<button class="ay-sil-btn" data-idx="'+idx+'" style="padding:3px 7px;background:transparent;color:var(--red);border:1px solid var(--brd2);border-radius:5px;cursor:pointer;font-size:14px">✕</button>';
+    // Renk güncelle + auto-etiket
+    var urlInp = div.querySelector('.ay-url-inp');
+    urlInp.addEventListener('input', function(){
+      var u = this.value;
+      div.querySelector('span').style.background = renkUrl(u);
+      if(window.urldenEtiketCikar){
+        var e2=window.urldenEtiketCikar(u);
+        var sel=div.querySelector('.ay-etiket-sel');
+        if(e2&&sel&&!sel.value){if(window._etiketEkle)window._etiketEkle(e2);setTimeout(function(){if(window._etSelectDoldur)window._etSelectDoldur();setTimeout(function(){sel.value=e2;},20);},30);}
+      }
+    });
+    // Etiket select doldur
+    var selEt = div.querySelector('.ay-etiket-sel');
+    if(window._etiketListesi){
+      window._etiketListesi().forEach(function(e){
+        var o=document.createElement('option');o.value=e;o.textContent=e;
+        if(e===(obj.etiket||''))o.selected=true;
+        selEt.appendChild(o);
+      });
+    } else if(obj.etiket){
+      var o=document.createElement('option');o.value=obj.etiket;o.textContent=obj.etiket;o.selected=true;selEt.appendChild(o);
+    }
+    if(obj.etiket) selEt.value = obj.etiket;
+    return div;
+  }
+
+  function listeyiGoster() {
+    var el = document.getElementById('ay-url-listesi');
+    if(!el) return;
+    el.innerHTML = '';
+    if(!_urls.length){
+      el.innerHTML='<div style="text-align:center;padding:20px;color:var(--mut);font-size:12px">Henüz URL yok. "+ URL Ekle" ile başla.</div>';
+      return;
+    }
+    _urls.forEach(function(obj,i){ el.appendChild(urlSatirOlustur(obj,i)); });
+    if(window._etSelectDoldur) window._etSelectDoldur();
+  }
+
+  function listeyiOku() {
+    var el = document.getElementById('ay-url-listesi');
+    if(!el) return [];
+    var satirlar = el.querySelectorAll('div[style*="display:flex"]');
+    var liste = [];
+    satirlar.forEach(function(div){
+      var urlInp = div.querySelector('.ay-url-inp');
+      var etSel  = div.querySelector('.ay-etiket-sel');
+      var sayfaI = div.querySelector('.ay-sayfa-inp');
+      if(!urlInp||!urlInp.value.trim()) return;
+      var u = urlInp.value.trim();
+      var site = u.indexOf('arabam')!==-1?'arabam':u.indexOf('letgo')!==-1?'letgo':'sahibinden';
+      liste.push({url:u, site:site, sayfa:parseInt(sayfaI&&sayfaI.value||'9999')||9999,
+        maxIlan:0, aralik:_aralik, etiket:etSel?etSel.value:''});
+    });
+    return liste;
+  }
+
+  function ayarlariYukle() {
+    // Önce ayarlar.json'dan oku (GitHub raw)
+    fetch('https://raw.githubusercontent.com/'+GH_REPO+'/main/data/ayarlar.json?t='+Date.now())
+      .then(function(r){return r.json();})
+      .then(function(d){
+        try {
+          var ot = typeof d.ot_ayarlar==='string' ? JSON.parse(d.ot_ayarlar) : d.ot_ayarlar;
+          if(ot && ot.urls && ot.urls.length) { _urls = ot.urls; }
+          if(ot && ot.aralik) _aralik = ot.aralik;
+          if(ot && ot.periyot) _periyot = ot.periyot;
+        } catch(e){}
+        // Genel ayarları set et
+        var selA = document.getElementById('ay-aralik');
+        if(selA) selA.value = String(_aralik);
+        var selP = document.getElementById('ay-periyot');
+        if(selP) selP.value = String(_periyot);
+        listeyiGoster();
+      })
+      .catch(function(){ listeyiGoster(); });
+  }
+
+  function ghKaydet() {
+    var token = ghToken();
+    if(!token){ flash('⚠ GitHub token girilmedi — aşağıdan kaydet'); return; }
+    var liste = listeyiOku();
+    _aralik = parseInt((document.getElementById('ay-aralik')||{value:'240000'}).value)||240000;
+    _periyot = parseInt((document.getElementById('ay-periyot')||{value:'30'}).value)||30;
+    var ot = {urls:liste, etiket:liste[0]?liste[0].etiket:'', aralik:_aralik, periyot:_periyot,
+              toplamSayfa:9999, baseUrl:liste[0]?liste[0].url:''};
+    var yeniIcerik = JSON.stringify({versiyon:1, tarih:Date.now(),
+      sb_ayarlar:null, ot_ayarlar:JSON.stringify(ot)});
+    // GitHub API ile dosyayı güncelle
+    fetch(GH_API+'/repos/'+GH_REPO+'/contents/data/ayarlar.json',
+      {headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}})
+      .then(function(r){return r.json();})
+      .then(function(mevcut){
+        var sha = mevcut.sha;
+        return fetch(GH_API+'/repos/'+GH_REPO+'/contents/data/ayarlar.json',{
+          method:'PUT',
+          headers:{'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+          body:JSON.stringify({message:'AraçRadar ayarlar güncellendi',
+            content:btoa(unescape(encodeURIComponent(yeniIcerik))),sha:sha})
+        });
+      })
+      .then(function(r){
+        if(r.ok){ flash('✓ GitHub'a kaydedildi'); _urls = liste; }
+        else{ r.text().then(function(t){flash('✗ Hata: '+t.substring(0,80));});}
+      })
+      .catch(function(e){ flash('✗ '+e.message); });
+  }
+
+  function extDurumGoster() {
+    var el = document.getElementById('ay-ext-durum');
+    var ikon = document.getElementById('ay-ext-ikon');
+    var baslik = document.getElementById('ay-ext-baslik');
+    var acik = document.getElementById('ay-ext-aciklama');
+    var indir = document.getElementById('ay-ext-indir');
+    if(!el) return;
+    // chrome.runtime.id var mı?
+    var extVar = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+    // Web shim'i mi gerçek mi? — shim'de sendMessage her zaman cevap verir ama id yok
+    var gercekExt = extVar && chrome.runtime.id !== 'web-shim';
+    if(gercekExt){
+      el.style.background='rgba(42,122,59,0.15)';el.style.border='1px solid rgba(42,122,59,0.3)';
+      if(ikon) ikon.textContent='✅';
+      if(baslik) baslik.textContent='Extension bağlı ve aktif';
+      if(acik) acik.textContent='Tarama popup'tan başlatılabilir. Bu sayfada URL listesini düzenleyebilirsin.';
+    } else {
+      el.style.background='rgba(255,152,0,0.1)';el.style.border='1px solid rgba(255,152,0,0.3)';
+      if(ikon) ikon.textContent='🌐';
+      if(baslik) baslik.textContent='Web görünümü — Tarama extension ile yapılır';
+      if(acik) acik.textContent='URL listesini buradan düzenle ve GitHub'a kaydet. Extension'ı aynı hesapla açtığında ayarları okur.';
+      if(indir) indir.style.display='block';
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', function(){
+    ayarlariYukle();
+    extDurumGoster();
+
+    // Token kaydet
+    var tokenInp = document.getElementById('ay-gh-token');
+    var tokenKaydet = document.getElementById('ay-token-kaydet');
+    var tokenDurum = document.getElementById('ay-token-durum');
+    // Kayıtlı token'ı göster (kısaltılmış)
+    if(tokenInp){
+      var kt = ghToken();
+      if(kt) tokenInp.value = kt;
+    }
+    if(tokenKaydet) tokenKaydet.addEventListener('click', function(){
+      var v = (tokenInp&&tokenInp.value.trim())||'';
+      if(!v){flash('⚠ Token boş'); return;}
+      try { localStorage.setItem('ar_gh_token', v); } catch(e){}
+      if(tokenDurum) tokenDurum.innerHTML = '<span style="color:#2a7a3b">✓ Token kaydedildi</span>';
+      flash('✓ Token kaydedildi');
+    });
+
+    // URL ekle
+    var btnEkle = document.getElementById('ay-url-ekle');
+    if(btnEkle) btnEkle.addEventListener('click', function(){
+      _urls.push({url:'',site:'sahibinden',sayfa:9999,maxIlan:0,aralik:_aralik,etiket:''});
+      listeyiGoster();
+      // Son satıra scroll
+      var el=document.getElementById('ay-url-listesi');
+      if(el){var son=el.lastElementChild;if(son)son.scrollIntoView({behavior:'smooth'});
+        var inp=son&&son.querySelector('.ay-url-inp');if(inp)inp.focus();}
+    });
+
+    // Sil (event delegation)
+    var listeEl = document.getElementById('ay-url-listesi');
+    if(listeEl) listeEl.addEventListener('click', function(e){
+      var btn = e.target.closest('.ay-sil-btn');
+      if(!btn) return;
+      var idx = parseInt(btn.getAttribute('data-idx'));
+      _urls.splice(idx,1);
+      listeyiGoster();
+    });
+
+    // GitHub'a kaydet
+    var btnKaydet = document.getElementById('ay-kaydet');
+    if(btnKaydet) btnKaydet.addEventListener('click', ghKaydet);
+
+    // Aralik/periyot değişince _aralik güncelle
+    var selA = document.getElementById('ay-aralik');
+    if(selA) selA.addEventListener('change', function(){ _aralik=parseInt(this.value)||240000; });
+    var selP = document.getElementById('ay-periyot');
+    if(selP) selP.addEventListener('change', function(){ _periyot=parseInt(this.value)||30; });
+  });
+})();
+// ═══════════════════════════════════════════════════════
+
 // ETİKET SİSTEMİ
 // ═══════════════════════════════════════════════════════
 (function(){
