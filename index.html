@@ -3,6 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(function(){
+  var HASH = '298dada6b0f134de83309cde9d39f7089c2125ca865776da64cd389e7687b858';
+  var LS_KEY = 'ar_auth';
+  function sha256(str){
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+      .then(function(b){ return [...new Uint8Array(b)].map(function(x){return x.toString(16).padStart(2,'0');}).join(''); });
+  }
+  function kontrol(){
+    var ok = false;
+    try { ok = localStorage.getItem(LS_KEY) === HASH; } catch(e){}
+    if(ok){ document.documentElement.style.display=''; return; }
+    // Giriş ekranı göster
+    document.documentElement.style.display='none';
+    var overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:#0d1117;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif';
+    overlay.innerHTML='<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px;width:320px;text-align:center">'+
+      '<div style="font-size:28px;margin-bottom:8px">🛡️</div>'+
+      '<div style="color:#e6edf3;font-size:18px;font-weight:700;margin-bottom:4px">AraçRadar</div>'+
+      '<div style="color:#8b949e;font-size:13px;margin-bottom:24px">Erişim için şifre gerekli</div>'+
+      '<input id="ar-pwd" type="password" placeholder="Şifre" style="width:100%;box-sizing:border-box;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:15px;outline:none;margin-bottom:12px">'+
+      '<button id="ar-btn" style="width:100%;padding:10px;background:#238636;border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer">Giriş</button>'+
+      '<div id="ar-err" style="color:#f85149;font-size:13px;margin-top:10px;min-height:18px"></div>'+
+      '</div>';
+    document.body.appendChild(overlay);
+    function dene(){
+      var pwd = document.getElementById('ar-pwd').value;
+      if(!pwd) return;
+      sha256(pwd).then(function(h){
+        if(h === HASH){
+          try{ localStorage.setItem(LS_KEY, HASH); }catch(e){}
+          overlay.remove();
+          document.documentElement.style.display='';
+        } else {
+          document.getElementById('ar-err').textContent='Hatalı şifre';
+          document.getElementById('ar-pwd').value='';
+          document.getElementById('ar-pwd').focus();
+        }
+      });
+    }
+    document.getElementById('ar-btn').addEventListener('click', dene);
+    document.getElementById('ar-pwd').addEventListener('keydown', function(e){ if(e.key==='Enter') dene(); });
+    setTimeout(function(){ document.getElementById('ar-pwd').focus(); }, 100);
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', kontrol);
+  } else { kontrol(); }
+})();
+</script>
 <style>
 /* Side panel genişliği ~400px olabilir — responsive düzelt */
 @media (max-width: 500px) {
