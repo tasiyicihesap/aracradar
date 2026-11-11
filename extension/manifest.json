@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ARA\u00c7RADAR \u2014 Ara\u00e7 Fiyat Takip",
-  "version": "17.6",
+  "version": "17.7",
   "description": "Sahibinden, Arabam.com, Letgo ara\u00e7 fiyatlar\u0131n\u0131 otomatik takip eder.",
   "permissions": [
     "storage",
@@ -15,7 +15,8 @@
   "host_permissions": [
     "https://www.sahibinden.com/*",
     "https://www.arabam.com/*",
-    "https://www.letgo.com/*"
+    "https://www.letgo.com/*",
+    "https://tasiyicihesap.github.io/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -46,6 +47,15 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://tasiyicihesap.github.io/aracradar*"
+      ],
+      "js": [
+        "panel_bridge.js"
+      ],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
