@@ -5991,32 +5991,26 @@ chrome.runtime.onMessage.addListener(function(msg){
       var etiket= (document.getElementById('ot-etiket')||{}).value||'';
       var siteName = {sb:'sahibinden',ar:'arabam',lg:'letgo'}[site];
       var durumEl = document.getElementById(durumId);
-      if(!url){if(durumEl)durumEl.textContent='⚠ URL boş'; return;}
+      if(!url){if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ URL boş</span>'; return;}
 
-      // Extension varsa ona gönder
-      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
-      if(extGercek){
-        var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
-          etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
-        if(durumEl)durumEl.textContent='⏳ Tarama başlatılıyor...';
-        chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
-          if(durumEl)durumEl.textContent='✓ Tarama başlatıldı';
-        });
-      } else {
-        // Web modunda tarama başlat (panelOtaramayiBaslat benzeri)
-        var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
-          etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
-        if(durumEl)durumEl.textContent='⏳ Tarama başlatılıyor...';
-        if(typeof panelOtaramayiBaslat==='function'){
-          panelOtaramayiBaslat(ot);
-          if(durumEl)durumEl.textContent='✓ Tarama başlatıldı';
-        } else {
-          if(durumEl)durumEl.textContent='⚠ Extension gerekli';
-        }
+      if(!_extGercek){
+        if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ Tarama için AraçRadar extension\'ı gerekli — popup\'tan başlat</span>';
+        return;
       }
+      var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
+        etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
+      if(durumEl)durumEl.innerHTML='<span style="color:#8b949e">⏳ Başlatılıyor...</span>';
+      chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
+        if(durumEl)durumEl.innerHTML='<span style="color:#3fb950">✓ Tarama başlatıldı</span>';
+      });
     }
 
     function topluTara() {
+      var durumEl = document.getElementById('ay-kaydet-durum');
+      if(!_extGercek){
+        if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ Tarama için AraçRadar extension\'ı gerekli — popup\'tan başlat</span>';
+        return;
+      }
       var etiket= (document.getElementById('ot-etiket')||{}).value||'';
       var urlSb = (document.getElementById('ot-url-sb')||{}).value||'';
       var urlAr = (document.getElementById('ot-url-ar')||{}).value||'';
@@ -6033,21 +6027,10 @@ chrome.runtime.onMessage.addListener(function(msg){
       if(urlLg) urls.push({url:urlLg,site:'letgo',sayfa:spLg,maxIlan:0,aralik:arLg*1000,etiket:etiket});
       if(!urls.length){flash('⚠ En az bir URL gerekli'); return;}
       var ot = {urls:urls,etiket:etiket,aralik:arSb*1000,periyot:_periyot,toplamSayfa:spSb,baseUrl:urlSb};
-      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
-      var durumEl = document.getElementById('ay-kaydet-durum');
-      if(extGercek){
-        if(durumEl)durumEl.textContent='⏳ Toplu tarama başlatılıyor...';
-        chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
-          if(durumEl)durumEl.textContent='✓ Toplu tarama başlatıldı (3 site)';
-        });
-      } else {
-        if(typeof panelOtaramayiBaslat==='function'){
-          panelOtaramayiBaslat(ot);
-          if(durumEl)durumEl.textContent='✓ Toplu tarama başlatıldı (3 site)';
-        } else {
-          if(durumEl)durumEl.textContent='⚠ Extension gerekli';
-        }
-      }
+      if(durumEl)durumEl.innerHTML='<span style="color:#8b949e">⏳ Başlatılıyor...</span>';
+      chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
+        if(durumEl)durumEl.innerHTML='<span style="color:#3fb950">✓ Toplu tarama başlatıldı (3 site)</span>';
+      });
     }
 
     // Toggle görsel
