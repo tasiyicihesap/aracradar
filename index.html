@@ -677,39 +677,106 @@ button.kirmizi:hover{background:var(--redl)}
         <div id="ay-ext-aciklama" style="font-size:11px;opacity:.8"></div></div>
       </div>
 
-      <!-- Tarama URL Listesi -->
+      <!-- Otomatik Tarama — 3 Site (extension popup ile birebir) -->
       <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:13px;font-weight:700">📋 Tarama URL Listesi</div>
-          <div style="display:flex;gap:6px">
-            <button id="ay-url-ekle" style="padding:5px 10px;font-size:11px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">+ URL Ekle</button>
-            <button id="ay-kaydet" style="padding:5px 12px;font-size:11px;background:#2a7a3b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">💾 GitHub'a Kaydet</button>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700">⏰ Otomatik Tarama — 3 Site</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);cursor:pointer">
+            Otomatik tarama
+            <span style="position:relative;display:inline-block;width:38px;height:20px">
+              <input type="checkbox" id="ay-toggle-aktif" style="opacity:0;width:0;height:0;position:absolute">
+              <span id="ay-toggle-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:.3s;cursor:pointer">
+                <span id="ay-toggle-knob" style="position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s"></span>
+              </span>
+            </span>
+          </label>
         </div>
-        <div id="ay-url-listesi" style="display:flex;flex-direction:column;gap:7px;min-height:40px">
-          <div style="text-align:center;padding:20px;color:var(--mut);font-size:12px">Yükleniyor...</div>
-        </div>
-      </div>
 
-      <!-- Genel Ayarlar -->
-      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚙️ Genel Ayarlar</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
-            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Varsayılan sayfa aralığı</div>
-            <select id="ay-aralik" style="width:100%;padding:7px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
-              <option value="30000">30 sn</option>
-              <option value="60000">1 dk</option>
-              <option value="120000">2 dk</option>
-              <option value="180000">3 dk</option>
-              <option value="240000" selected>4 dk</option>
-              <option value="300000">5 dk</option>
-              <option value="480000">8 dk</option>
-              <option value="600000">10 dk</option>
+        <!-- SHB -->
+        <div style="background:rgba(255,102,0,0.07);border:1px solid rgba(255,102,0,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;background:#FF6600;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">SHB</span>
+            <input type="text" id="ot-url-sb" value="https://www.sahibinden.com/kategori/otomobil" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
+            <select id="ot-aralik-sb" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+              <option value="30">30 sn</option>
+              <option value="60">1 dk</option>
+              <option value="90">1.5 dk</option>
+              <option value="120">2 dk</option>
+              <option value="180">3 dk</option>
+              <option value="210" selected>3.5 dk</option>
+              <option value="240">4 dk</option>
+              <option value="300">5 dk</option>
             </select>
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
+            <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
+            <button id="btn-tara-sb" style="margin-left:auto;padding:6px 14px;background:#FF6600;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
+          </div>
+          <div id="tara-sb-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
+        </div>
+
+        <!-- ARB -->
+        <div style="background:rgba(227,24,55,0.07);border:1px solid rgba(227,24,55,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;background:#E31837;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">ARB</span>
+            <input type="text" id="ot-url-ar" value="https://www.arabam.com/ikinci-el/otomobil" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
+            <select id="ot-aralik-ar" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+              <option value="30">30 sn</option>
+              <option value="60">1 dk</option>
+              <option value="90" selected>1.5 dk</option>
+              <option value="120">2 dk</option>
+              <option value="180">3 dk</option>
+              <option value="210">3.5 dk</option>
+              <option value="240">4 dk</option>
+              <option value="300">5 dk</option>
+            </select>
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
+            <input type="number" id="ot-sayfa-ar" value="50" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
+            <button id="btn-tara-ar" style="margin-left:auto;padding:6px 14px;background:#E31837;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
+          </div>
+          <div id="tara-ar-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
+        </div>
+
+        <!-- LTG -->
+        <div style="background:rgba(107,63,160,0.07);border:1px solid rgba(107,63,160,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;background:#6B3FA0;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">LTG</span>
+            <input type="text" id="ot-url-lg" value="https://www.letgo.com/arabalar_c15706" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
+            <select id="ot-aralik-lg" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+              <option value="30">30 sn</option>
+              <option value="60">1 dk</option>
+              <option value="90" selected>1.5 dk</option>
+              <option value="120">2 dk</option>
+              <option value="180">3 dk</option>
+              <option value="210">3.5 dk</option>
+              <option value="240">4 dk</option>
+              <option value="300">5 dk</option>
+            </select>
+            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
+            <input type="number" id="ot-sayfa-lg" value="50" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
+            <button id="btn-tara-lg" style="margin-left:auto;padding:6px 14px;background:#6B3FA0;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
+          </div>
+          <div id="tara-lg-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--brd);margin:10px 0">
+
+        <!-- Etiket + Tarama sıklığı -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Etiket</div>
+            <input type="text" id="ot-etiket" placeholder='örn: "Otomobil"' style="width:100%;padding:7px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
           </div>
           <div>
-            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Tarama sıklığı (otomatik)</div>
+            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Tarama sıklığı</div>
             <select id="ay-periyot" style="width:100%;padding:7px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
               <option value="15">15 dakikada bir</option>
               <option value="30" selected>30 dakikada bir</option>
@@ -719,7 +786,20 @@ button.kirmizi:hover{background:var(--redl)}
             </select>
           </div>
         </div>
+
+        <!-- Toplu Tara + Kaydet + Durdur butonları -->
+        <div style="display:flex;gap:8px">
+          <button id="btn-toplu-tara" style="flex:1;padding:9px;background:#185FA5;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">🔄 Toplu Tara (3 Site)</button>
+          <button id="ay-kaydet" style="flex:1;padding:9px;background:#2a7a3b;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">💾 Ayarları Kaydet</button>
+          <button id="ay-ot-sil" style="padding:9px 14px;background:#A32D2D;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer" title="Otaramayı durdur">✕</button>
+        </div>
+        <div id="ay-kaydet-durum" style="font-size:11px;margin-top:6px;color:var(--mut)"></div>
       </div>
+
+      <!-- Gizli ay-aralik ve ay-url-listesi — eski JS kodu için geriye dönük uyum -->
+      <select id="ay-aralik" style="display:none"><option value="210000" selected>3.5 dk</option></select>
+      <div id="ay-url-listesi" style="display:none"></div>
+      <button id="ay-url-ekle" style="display:none"></button>
 
       <!-- GitHub Token -->
       <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
@@ -5897,6 +5977,111 @@ chrome.runtime.onMessage.addListener(function(msg){
     if(selA) selA.addEventListener('change', function(){ _aralik=parseInt(this.value)||240000; });
     var selP = document.getElementById('ay-periyot');
     if(selP) selP.addEventListener('change', function(){ _periyot=parseInt(this.value)||30; });
+
+    // ── Bireysel "Tara" ve "Toplu Tara" butonları ──
+    // Extension varsa sendMessage ile başlat; yoksa web şimdi kullanamaz, bilgi ver
+    function tekSiteTara(site) {
+      var urlId   = {sb:'ot-url-sb',   ar:'ot-url-ar',   lg:'ot-url-lg'}[site];
+      var sayfaId = {sb:'ot-sayfa-sb', ar:'ot-sayfa-ar', lg:'ot-sayfa-lg'}[site];
+      var aralId  = {sb:'ot-aralik-sb',ar:'ot-aralik-ar',lg:'ot-aralik-lg'}[site];
+      var durumId = {sb:'tara-sb-durum',ar:'tara-ar-durum',lg:'tara-lg-durum'}[site];
+      var url   = (document.getElementById(urlId)||{}).value||'';
+      var sayfa = parseInt((document.getElementById(sayfaId)||{value:'50'}).value)||50;
+      var aralik= parseInt((document.getElementById(aralId)||{value:'90'}).value)||90;
+      var etiket= (document.getElementById('ot-etiket')||{}).value||'';
+      var siteName = {sb:'sahibinden',ar:'arabam',lg:'letgo'}[site];
+      var durumEl = document.getElementById(durumId);
+      if(!url){if(durumEl)durumEl.textContent='⚠ URL boş'; return;}
+
+      // Extension varsa ona gönder
+      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
+      if(extGercek){
+        var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
+          etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
+        if(durumEl)durumEl.textContent='⏳ Tarama başlatılıyor...';
+        chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
+          if(durumEl)durumEl.textContent='✓ Tarama başlatıldı';
+        });
+      } else {
+        // Web modunda tarama başlat (panelOtaramayiBaslat benzeri)
+        var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
+          etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
+        if(durumEl)durumEl.textContent='⏳ Tarama başlatılıyor...';
+        if(typeof panelOtaramayiBaslat==='function'){
+          panelOtaramayiBaslat(ot);
+          if(durumEl)durumEl.textContent='✓ Tarama başlatıldı';
+        } else {
+          if(durumEl)durumEl.textContent='⚠ Extension gerekli';
+        }
+      }
+    }
+
+    function topluTara() {
+      var etiket= (document.getElementById('ot-etiket')||{}).value||'';
+      var urlSb = (document.getElementById('ot-url-sb')||{}).value||'';
+      var urlAr = (document.getElementById('ot-url-ar')||{}).value||'';
+      var urlLg = (document.getElementById('ot-url-lg')||{}).value||'';
+      var spSb  = parseInt((document.getElementById('ot-sayfa-sb')||{value:'100'}).value)||100;
+      var spAr  = parseInt((document.getElementById('ot-sayfa-ar')||{value:'50'}).value)||50;
+      var spLg  = parseInt((document.getElementById('ot-sayfa-lg')||{value:'50'}).value)||50;
+      var arSb  = parseInt((document.getElementById('ot-aralik-sb')||{value:'210'}).value)||210;
+      var arAr  = parseInt((document.getElementById('ot-aralik-ar')||{value:'90'}).value)||90;
+      var arLg  = parseInt((document.getElementById('ot-aralik-lg')||{value:'90'}).value)||90;
+      var urls = [];
+      if(urlSb) urls.push({url:urlSb,site:'sahibinden',sayfa:spSb,maxIlan:0,aralik:arSb*1000,etiket:etiket});
+      if(urlAr) urls.push({url:urlAr,site:'arabam',sayfa:spAr,maxIlan:0,aralik:arAr*1000,etiket:etiket});
+      if(urlLg) urls.push({url:urlLg,site:'letgo',sayfa:spLg,maxIlan:0,aralik:arLg*1000,etiket:etiket});
+      if(!urls.length){flash('⚠ En az bir URL gerekli'); return;}
+      var ot = {urls:urls,etiket:etiket,aralik:arSb*1000,periyot:_periyot,toplamSayfa:spSb,baseUrl:urlSb};
+      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
+      var durumEl = document.getElementById('ay-kaydet-durum');
+      if(extGercek){
+        if(durumEl)durumEl.textContent='⏳ Toplu tarama başlatılıyor...';
+        chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
+          if(durumEl)durumEl.textContent='✓ Toplu tarama başlatıldı (3 site)';
+        });
+      } else {
+        if(typeof panelOtaramayiBaslat==='function'){
+          panelOtaramayiBaslat(ot);
+          if(durumEl)durumEl.textContent='✓ Toplu tarama başlatıldı (3 site)';
+        } else {
+          if(durumEl)durumEl.textContent='⚠ Extension gerekli';
+        }
+      }
+    }
+
+    // Toggle görsel
+    var togInp = document.getElementById('ay-toggle-aktif');
+    var togSlider = document.getElementById('ay-toggle-slider');
+    var togKnob = document.getElementById('ay-toggle-knob');
+    function toggleGuncelle(){
+      if(!togSlider||!togKnob||!togInp) return;
+      togSlider.style.background = togInp.checked ? '#185FA5' : '#ccc';
+      togKnob.style.transform = togInp.checked ? 'translateX(18px)' : 'translateX(0)';
+    }
+    if(togInp){
+      togInp.checked = true; toggleGuncelle();
+      togInp.addEventListener('change', function(){
+        toggleGuncelle();
+        var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
+        if(extGercek) chrome.runtime.sendMessage({action:'ayarKaydet',ayarlar:{aktif:togInp.checked}});
+      });
+    }
+
+    var btnSb = document.getElementById('btn-tara-sb');
+    if(btnSb) btnSb.addEventListener('click', function(){ tekSiteTara('sb'); });
+    var btnAr = document.getElementById('btn-tara-ar');
+    if(btnAr) btnAr.addEventListener('click', function(){ tekSiteTara('ar'); });
+    var btnLg = document.getElementById('btn-tara-lg');
+    if(btnLg) btnLg.addEventListener('click', function(){ tekSiteTara('lg'); });
+    var btnToplu = document.getElementById('btn-toplu-tara');
+    if(btnToplu) btnToplu.addEventListener('click', topluTara);
+    var btnOtSil = document.getElementById('ay-ot-sil');
+    if(btnOtSil) btnOtSil.addEventListener('click', function(){
+      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
+      if(extGercek){ chrome.runtime.sendMessage({action:'otaramaDurdur'},function(){flash('■ Tarama durduruldu');}); }
+      else { flash('■ Tarama durduruldu'); }
+    });
   });
 })();
 // ═══════════════════════════════════════════════════════
