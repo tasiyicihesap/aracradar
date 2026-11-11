@@ -150,7 +150,26 @@ document.getElementById('btn-dur').addEventListener('click', function() {
 });
 
 document.getElementById('btn-panel').addEventListener('click', function() {
-  chrome.tabs.create({ url: 'https://tasiyicihesap.github.io/aracradar/' });
+  // Önce açık panel penceresi var mı kontrol et
+  chrome.windows.getAll({ populate: true }, function(windows) {
+    for (var i = 0; i < windows.length; i++) {
+      var tabs = windows[i].tabs || [];
+      for (var j = 0; j < tabs.length; j++) {
+        if (tabs[j].url && tabs[j].url.indexOf('panel.html') !== -1) {
+          // Zaten açık — öne getir
+          chrome.windows.update(windows[i].id, { focused: true });
+          return;
+        }
+      }
+    }
+    // Yoksa yeni büyük pencere aç
+    chrome.windows.create({
+      url: chrome.runtime.getURL('panel.html'),
+      type: 'popup',
+      width: 1400,
+      height: 900
+    });
+  });
 });
 
 // Son aralik değerini hatırla
