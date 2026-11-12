@@ -496,6 +496,11 @@ function alarmKur(){
     chrome.alarms.create('swPing',{periodInMinutes:1});
   });
 }
+// Bildirim ses ayarını başlangıçta yükle
+chrome.storage.local.get(['bildirim_ses'], function(r) {
+  self._bildirimSessiz = r.bildirim_ses === false;
+});
+
 chrome.runtime.onInstalled.addListener(function(){
   alarmKur();
   setTimeout(function(){chrome.notifications.create('hazir_'+Date.now(),{type:'basic',iconUrl:chrome.runtime.getURL('icon48.png'),title:'ARAÇRADAR Hazır',message:'Araç fiyat takibi aktif.',priority:0});},1000);
@@ -672,7 +677,7 @@ function bildirimGoster(dusanlar){
       title:title,
       message:msg,
       priority:2,
-      silent:false
+      silent: self._bildirimSessiz === true
     }, function(id){
       if(chrome.runtime.lastError) console.warn('[ARAÇRADAR] Bildirim hatası:', chrome.runtime.lastError.message);
       else console.log('[ARAÇRADAR] Bildirim gönderildi:', id, title);
@@ -1567,6 +1572,11 @@ if(msg.action==='veriAl'){
   }
   if(msg.action==='taramaDurdur'){tarama.aktif=false;taramaStorageKaydet();taramaDurumYaz('durduruldu');keepAliveDurdur();
   chrome.storage.local.remove(['tarama_aktif','tarama_ayarlar']);sendResponse({ok:true});return true;}
+  if(msg.action==='bildirimSesAyarla'){
+    self._bildirimSessiz = !msg.aktif;
+    chrome.storage.local.set({bildirim_ses: msg.aktif});
+    sendResponse({ok:true}); return true;
+  }
   if(msg.action==='taramaAralikGuncelle'){tarama.aralik=msg.aralik||tarama.aralik;sendResponse({ok:true});return true;}
   if(msg.action==='siteDurdur'){
     // Tek bir sitenin taramasını bitmiş say — döngüsü kendinilkinleştirir
