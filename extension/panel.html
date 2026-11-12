@@ -747,6 +747,24 @@ button.kirmizi:hover{background:var(--redl)}
         <div id="ay-kaydet-durum" style="font-size:11px;margin-top:6px;color:var(--mut)"></div>
       </div>
 
+      <!-- İlan Yönetimi -->
+      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span>🗑</span> İlan Yönetimi</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:12px">Yayından kalkmış veya eski ilanları silin. Tüm silme işlemleri yerel DB'ye yansır.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <button class="sil-btn" data-gun="30" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 30 Gün Eskisini Sil</button>
+          <button class="sil-btn" data-gun="45" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 45 Gün Eskisini Sil</button>
+          <button class="sil-btn" data-gun="60" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 60 Gün Eskisini Sil</button>
+          <button class="sil-btn" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">💰 Sıfır TL Olanları Sil</button>
+          <button class="sil-btn" data-gun="30" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 30 Gün + Sıfır TL</button>
+          <button class="sil-btn" data-gun="45" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 45 Gün + Sıfır TL</button>
+          <button class="sil-btn" data-gun="60" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 60 Gün + Sıfır TL</button>
+          <button id="btn-aktif-kontrol" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(251,146,60,0.4);background:rgba(251,146,60,0.1);color:#fb923c;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔗 Aktif Olmayan İlanları Sil (Tümü)</button>
+        </div>
+        <button id="btn-tumunu-sil-gh" style="padding:7px 14px;border-radius:8px;border:2px solid rgba(239,68,68,0.7);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:800">☢️ TÜM İLANLARI SİL + GitHub Sıfırla</button>
+        <div id="sil-durum" style="margin-top:10px;font-size:12px;color:var(--mut);min-height:18px"></div>
+      </div>
+
       <!-- Gizli ay-aralik ve ay-url-listesi — eski JS kodu için geriye dönük uyum -->
       <select id="ay-aralik" style="display:none"><option value="210000" selected>3.5 dk</option></select>
       <div id="ay-url-listesi" style="display:none"></div>

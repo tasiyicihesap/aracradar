@@ -5318,14 +5318,19 @@ window.urldenEtiketCikar = function(url) {
   if (!url) return '';
   var u = url.toLowerCase();
   var tip = '';
-  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi_c') !== -1) tip = 'Arazi SUV';
-  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('otomobil_c') !== -1) tip = 'Otomobil';
+  // Sahibinden path tabanlı
+  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi-suv-pick-up') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('kategori/otomobil') !== -1) tip = 'Otomobil';
   else if (u.indexOf('motosiklet') !== -1) tip = 'Motosiklet';
-  else if (u.indexOf('kamyonet') !== -1) tip = 'Kamyonet';
-  else if (u.indexOf('hafif-ticari') !== -1) tip = 'Hafif Ticari';
-  else if (u.indexOf('ikinci-el/arazi') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('kamyonet') !== -1 || u.indexOf('panelvan') !== -1) tip = 'Kamyonet';
+  else if (u.indexOf('ticari') !== -1) tip = 'Ticari';
+  else if (u.indexOf('minivan') !== -1 || u.indexOf('minibus') !== -1) tip = 'Minivan';
+  // Arabam path tabanlı
+  else if (u.indexOf('ikinci-el/arazi') !== -1 || u.indexOf('ikinci-el/suv') !== -1) tip = 'Arazi SUV';
   else if (u.indexOf('ikinci-el/otomobil') !== -1) tip = 'Otomobil';
-  else if (u.indexOf('/araba_c') !== -1) tip = 'Otomobil';
+  else if (u.indexOf('ikinci-el/hafif-ticari') !== -1 || u.indexOf('ikinci-el/kamyonet') !== -1) tip = 'Hafif Ticari';
+  // Letgo kategori
+  else if (u.indexOf('/araba_c') !== -1 || u.indexOf('/arabalar_c') !== -1) tip = 'Otomobil';
   var vites = '';
   if (/\/otomatik[\/\?]/.test(u) || u.indexOf('vites-tipi:otomatik') !== -1 || u.indexOf('vites_otomatik') !== -1) vites = 'Otomatik';
   else if (/\/manuel[\/\?]/.test(u) || u.indexOf('vites-tipi:manuel') !== -1 || u.indexOf('vites_manuel') !== -1) vites = 'Manuel';
@@ -5643,6 +5648,115 @@ function piyasaKarsilastir(btn) {
 }
 // ═══════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// İLAN YÖNETİMİ — Silme / Aktif Kontrol Fonksiyonları
+// ═══════════════════════════════════════════════════════
+
+function ilanSilBasildi(btn) {
+  var gun   = parseInt(btn.getAttribute('data-gun')) || 0;
+  var sifir = btn.getAttribute('data-sifir') === '1';
+  var durumEl = document.getElementById('sil-durum');
+
+  var mesaj = '';
+  if (gun > 0 && sifir) mesaj = gun + ' günden eski VE sıfır TL olanlar silinecek';
+  else if (gun > 0)     mesaj = gun + ' günden eski ilanlar silinecek';
+  else if (sifir)       mesaj = 'Fiyatı sıfır olan tüm ilanlar silinecek';
+
+  if (!confirm(mesaj + '.\nEmin misiniz? Bu işlem geri alınamaz.')) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Siliniyor...';
+  if (durumEl) { durumEl.style.color = 'var(--mut)'; durumEl.textContent = 'Silme işlemi başladı...'; }
+
+  chrome.runtime.sendMessage({ action:'ilanSil', gun:gun, sifirSil:sifir }, function(r) {
+    btn.disabled = false;
+    var btnMetinMap = {
+      '30-false': '📅 30 Gün Eskisini Sil',
+      '45-false': '📅 45 Gün Eskisini Sil',
+      '60-false': '📅 60 Gün Eskisini Sil',
+      '0-true':   '💰 Sıfır TL Olanları Sil',
+      '30-true':  '🔥 30 Gün + Sıfır TL',
+      '45-true':  '🔥 45 Gün + Sıfır TL',
+      '60-true':  '🔥 60 Gün + Sıfır TL'
+    };
+    btn.textContent = btnMetinMap[gun + '-' + sifir] || btn.textContent;
+    if (chrome.runtime.lastError || !r) {
+      if (durumEl) durumEl.textContent = '✗ Hata oluştu';
+      return;
+    }
+    if (!r.silinen || r.silinen === 0) {
+      if (durumEl) durumEl.textContent = '✓ Silinecek ilan bulunamadı';
+    } else {
+      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = r.silinen + ' ilan silindi, ' + (r.kalan||0) + ' kalan. Yükleniyor...'; }
+      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 1000);
+    }
+  });
+}
+
+function aktifKontrolBasildi() {
+  var btn = document.getElementById('btn-aktif-kontrol');
+  var durumEl = document.getElementById('sil-durum');
+  if (!confirm('Tüm ilanların linki kontrol edilecek (bu 10-20 dakika sürebilir).\n404 dönen ilanlar silinecek. Devam?')) return;
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Kontrol ediliyor...';
+  if (durumEl) { durumEl.style.color = 'var(--mut)'; durumEl.textContent = 'Linkler kontrol ediliyor... (lütfen paneli kapatmayın)'; }
+
+  var ilerlemeDinleyici = function(msg) {
+    if (msg.action === 'aktifKontrolIlerleme' && durumEl) {
+      var pct = msg.toplam ? Math.round(msg.tamamlanan / msg.toplam * 100) : 0;
+      durumEl.textContent = msg.tamamlanan + ' / ' + msg.toplam + ' kontrol edildi (%' + pct + ') — ' + msg.silinen + ' silinecek bulundu';
+    }
+  };
+  chrome.runtime.onMessage.addListener(ilerlemeDinleyici);
+
+  chrome.runtime.sendMessage({ action:'aktifKontrol' }, function(r) {
+    chrome.runtime.onMessage.removeListener(ilerlemeDinleyici);
+    if (!btn) return;
+    btn.disabled = false;
+    btn.textContent = '🔗 Aktif Olmayan İlanları Sil (Tümü)';
+    if (!r || r.silinen === 0) {
+      if (durumEl) durumEl.textContent = 'Silinecek ilan bulunamadı (tüm ilanlar aktif)';
+    } else {
+      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = r.silinen + ' ilan silindi, ' + (r.kalan||0) + ' kaldı'; }
+      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 1000);
+    }
+  });
+}
+
+function tumunuSilBasildi() {
+  if (!confirm('DİKKAT! TÜM ilanlar silinecek. Emin misiniz?')) return;
+  if (!confirm('Son onay: Tüm veri silinecek, geri alınamaz!')) return;
+
+  var btn = document.getElementById('btn-tumunu-sil-gh');
+  var durumEl = document.getElementById('sil-durum');
+  if (btn) { btn.disabled = true; btn.textContent = 'Siliniyor...'; }
+  if (durumEl) { durumEl.style.color = '#f87171'; durumEl.textContent = 'DB temizleniyor...'; }
+
+  chrome.runtime.sendMessage({ action:'tumunuSil' }, function(r) {
+    if (btn) { btn.disabled = false; btn.textContent = '☢️ TÜM İLANLARI SİL + GitHub Sıfırla'; }
+    if (!r || r.ok) {
+      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = 'Tüm ilanlar silindi.'; }
+      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 800);
+    } else {
+      if (durumEl) durumEl.textContent = '✗ Hata oluştu';
+    }
+  });
+}
+
+// Event delegation — İlan Yönetimi butonları
+document.addEventListener('click', function(e) {
+  var silBtn = e.target.closest('.sil-btn');
+  if (silBtn) { ilanSilBasildi(silBtn); return; }
+
+  var aktifBtn = e.target.closest('#btn-aktif-kontrol');
+  if (aktifBtn) { aktifKontrolBasildi(); return; }
+
+  var tumSilBtn = e.target.closest('#btn-tumunu-sil-gh');
+  if (tumSilBtn) { tumunuSilBasildi(); return; }
+});
+
+// ═══════════════════════════════════════════════════════
 // Web: sayfa açılınca GitHub'dan otomatik yükle
 window.addEventListener('load', function() {
   // Eklenti gerçekse web yükleme yapmaya gerek yok

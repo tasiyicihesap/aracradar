@@ -1,4 +1,38 @@
 
+// ── URL'den Araç Kategorisi Otomatik Algılama (Service Worker) ───────────────
+function urldenKategoriBg(url) {
+  if (!url) return '';
+  var u = url.toLowerCase();
+  var tip = '';
+  // Sahibinden path
+  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi-suv-pick-up') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('kategori/otomobil') !== -1) tip = 'Otomobil';
+  else if (u.indexOf('motosiklet') !== -1) tip = 'Motosiklet';
+  else if (u.indexOf('kamyonet') !== -1 || u.indexOf('panelvan') !== -1) tip = 'Kamyonet';
+  else if (u.indexOf('ticari') !== -1) tip = 'Ticari';
+  else if (u.indexOf('minivan') !== -1 || u.indexOf('minibus') !== -1) tip = 'Minivan';
+  // Arabam path
+  else if (u.indexOf('ikinci-el/arazi') !== -1 || u.indexOf('ikinci-el/suv') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('ikinci-el/otomobil') !== -1) tip = 'Otomobil';
+  else if (u.indexOf('ikinci-el/hafif-ticari') !== -1 || u.indexOf('ikinci-el/kamyonet') !== -1) tip = 'Hafif Ticari';
+  // Letgo
+  else if (u.indexOf('/araba_c') !== -1 || u.indexOf('/arabalar_c') !== -1) tip = 'Otomobil';
+
+  var vites = '';
+  if (/\/otomatik[\/\?]/.test(u) || u.indexOf('vites-tipi:otomatik') !== -1) vites = 'Otomatik';
+  else if (/\/manuel[\/\?]/.test(u) || u.indexOf('vites-tipi:manuel') !== -1) vites = 'Manuel';
+
+  var hasar = '';
+  if (u.indexOf('severaldamaged=false') !== -1 || u.indexOf('agir-hasar-kayitli:hayir') !== -1 || u.indexOf('a116446=1263360') !== -1) hasar = 'Hasarsız';
+  else if (u.indexOf('severaldamaged=true') !== -1 || u.indexOf('agir-hasar-kayitli:evet') !== -1) hasar = 'Hasarlı';
+
+  var parcalar = [];
+  if (tip) parcalar.push(tip);
+  if (vites) parcalar.push(vites);
+  if (hasar) parcalar.push(hasar);
+  return parcalar.join(' ');
+}
+
 // ── Anti-bot: Human-like random delays ──────────────────────────────────────
 function humanBekle(ms, cb) {
   // Random jitter: ±%30
@@ -435,9 +469,13 @@ function dbEkle(ilanlar,etiket,cb){
             guncellenen++;
           }
           if(etiket&&!m.etiket)m.etiket=etiket;
+          if(!m.sehir&&ilan.sehir)m.sehir=ilan.sehir;
           st.put(m);
         }else{
-          st.put({id:Date.now()+'_'+Math.random().toString(36).substr(2,6),url:ilan.url,ad:(ilan.ad||'').substring(0,120),marka:ilan.marka||'',seri:ilan.seri||'',model:ilan.model||'',yil:ilan.yil||0,km:String(ilan.km||'').substring(0,20),etiket:(etiket||ilan.etiket||'').substring(0,50),kaynak:ilan.kaynak||'sahibinden',gecmis:[{fiyat:ilan.fiyat,tarih:Date.now()}],ilkEkleme:Date.now()});
+          // Otomatik kategori (etiket) URL'den çıkar — kullanıcı gibi
+          var otoEtiket = etiket || ilan.etiket || '';
+          if(!otoEtiket && ilan.url) otoEtiket = urldenKategoriBg(ilan.url);
+          st.put({id:Date.now()+'_'+Math.random().toString(36).substr(2,6),url:ilan.url,ad:(ilan.ad||'').substring(0,120),marka:ilan.marka||'',seri:ilan.seri||'',model:ilan.model||'',yil:ilan.yil||0,km:String(ilan.km||'').substring(0,20),sehir:(ilan.sehir||'').substring(0,30),etiket:otoEtiket.substring(0,50),kaynak:ilan.kaynak||'sahibinden',gecmis:[{fiyat:ilan.fiyat,tarih:Date.now()}],ilkEkleme:Date.now()});
           yeni++;
         }
         kalan--;
@@ -1082,11 +1120,12 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             var ilanUrl=linkM[1].startsWith('http')?linkM[1]:'https://www.sahibinden.com'+linkM[1];
             ilanUrl=ilanUrl.split('?')[0];
             if(ilanlar.some(function(x){return x.url===ilanUrl;}))continue;
-            // Fiyat
+            // Fiyat — nokta veya virgül ayıraç
             var fM=row.match(/(\d{1,3}(?:[.]\d{3})+)\s*TL/);
             if(!fM)fM=row.match(/(\d{1,3}(?:[,]\d{3})+)\s*TL/);
+            if(!fM)fM=row.match(/(\d{5,8})\s*TL/); // ayıraçsız
             var fiyat=fM?parseInt(fM[1].replace(/[.,]/g,'')):0;
-            if(!fiyat||fiyat<50000)continue;
+            if(!fiyat||fiyat<5000)continue; // 5bin alt sınır (motosiklet dahil)
             // Başlık
             var titleM=row.match(/title="([^"]+)"/)||row.match(/<a[^>]+>([^<]{5,80})<\/a>/);
             var ad=titleM?titleM[1].trim().substring(0,200):'';
@@ -1096,9 +1135,9 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             tdler.forEach(function(td){
               var v=td.replace(/<[^>]+>/g,'').trim();
               if(/^(19|20)\d{2}$/.test(v))yil=parseInt(v);
-              else if(/\d+[.,]\d+ km/i.test(v)||/^\d{1,3}([.,]\d{3})+ km$/i.test(v))km=v;
-              // Şehir: 2-25 harf Türkçe kelime, rakam/TL/km içermeyen
-              else if(!sehir&&v.length>=3&&v.length<=30&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit)$/i.test(v.toLowerCase()))sehir=v;
+              else if(/\d+[.,]\d*\s*km/i.test(v)||/^\d{1,3}([.,]\d{3})+\s*km$/i.test(v))km=v;
+              // Şehir: Türkçe kelime(ler), rakam/TL/km/yakit içermeyen
+              else if(!sehir&&v.length>=3&&v.length<=35&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit|hatchback|sedan|pickup|coupe|suv|kasası|vitesi|rengi|marka|model)$/i.test(v.toLowerCase()))sehir=v;
             });
             ilanlar.push({url:ilanUrl,fiyat:fiyat,ad:ad,marka:'',seri:'',yil:yil,km:km,sehir:sehir,kaynak:'sahibinden'});
           }
@@ -1125,7 +1164,8 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             var u2='https://www.arabam.com'+lM2[1].split('?')[0];
             if(ilanlar.some(function(x){return x.url===u2;}))continue;
             var vals=[];var re2=/(\d{1,3}(?:[.,]\d{3})+)\s*TL/g,fM3;
-            while((fM3=re2.exec(row2))!==null){var v2=parseInt(fM3[1].replace(/[.,]/g,''));if(v2>=50000)vals.push(v2);}
+            while((fM3=re2.exec(row2))!==null){var v2=parseInt(fM3[1].replace(/[.,]/g,''));if(v2>=5000)vals.push(v2);}
+            if(!vals.length){var fM3b=row2.match(/(\d{5,8})\s*TL/);if(fM3b){var v3b=parseInt(fM3b[1]);if(v3b>=5000)vals.push(v3b);}}
             var f3=vals.length?Math.max.apply(null,vals):0;
             if(!f3)continue;
             // Yıl
