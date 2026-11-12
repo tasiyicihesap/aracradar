@@ -163,5 +163,17 @@ chrome.storage.local.get(['sb_aralik'], function(r) {
   }
 });
 
+// Bildirim sesi toggle
+var sesToggle = document.getElementById('toggle-bildirim-ses');
+if (sesToggle) {
+  chrome.storage.local.get(['bildirim_ses'], function(r) {
+    sesToggle.checked = r.bildirim_ses !== false; // varsayılan: açık
+  });
+  sesToggle.addEventListener('change', function() {
+    chrome.storage.local.set({ bildirim_ses: sesToggle.checked });
+    chrome.runtime.sendMessage({ action: 'bildirimSesAyarla', aktif: sesToggle.checked });
+  });
+}
+
 guncelle();
 setInterval(guncelle, 3000);

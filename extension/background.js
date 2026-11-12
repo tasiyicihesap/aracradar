@@ -673,7 +673,7 @@ function bildirimGoster(dusanlar){
       title:title,
       message:msg,
       priority:2,
-      silent:false
+      silent: self._bildirimSessiz === true
     }, function(id){
       if(chrome.runtime.lastError) console.warn('[ARAÇRADAR] Bildirim hatası:', chrome.runtime.lastError.message);
       else console.log('[ARAÇRADAR] Bildirim gönderildi:', id, title);
@@ -1550,6 +1550,11 @@ if(msg.action==='veriAl'){
       req.onerror=function(){sendResponse({sayi:0});};
     });
     return true;
+  }
+  if(msg.action==='bildirimSesAyarla'){
+    self._bildirimSessiz = !msg.aktif;
+    chrome.storage.local.set({bildirim_ses: msg.aktif});
+    sendResponse({ok:true}); return true;
   }
   if(msg.action==='taramaDurdur'){tarama.aktif=false;taramaStorageKaydet();taramaDurumYaz('durduruldu');keepAliveDurdur();
   chrome.storage.local.remove(['tarama_aktif','tarama_ayarlar']);sendResponse({ok:true});return true;}
