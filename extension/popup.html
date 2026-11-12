@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:sans-serif;width:340px;padding:14px;background:#f5f4f0;color:#1a1a1a}
+body{font-family:sans-serif;width:310px;padding:14px;background:#f5f4f0;color:#1a1a1a}
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .logo-row img{width:32px;height:32px;border-radius:6px;object-fit:contain}
 .logo-name{font-size:14px;font-weight:700;color:#FF6600;letter-spacing:.02em}
@@ -22,39 +22,27 @@ body{font-family:sans-serif;width:340px;padding:14px;background:#f5f4f0;color:#1
 input:checked+.slider{background:#185FA5}
 input:checked+.slider:before{transform:translateX(18px)}
 hr{border:none;border-top:1px solid rgba(0,0,0,0.1);margin:8px 0}
-.sec{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.sec{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
 .row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
-input[type=text],input[type=number],select{flex:1;padding:6px 8px;border:1px solid rgba(0,0,0,0.2);border-radius:6px;font-size:11px;font-family:sans-serif;background:#fff;color:#1a1a1a;outline:none}
+input[type=text],input[type=number],select{flex:1;padding:7px 9px;border:1px solid rgba(0,0,0,0.2);border-radius:6px;font-size:12px;font-family:sans-serif;background:#fff;color:#1a1a1a;outline:none}
 input:focus,select:focus{border-color:#185FA5}
 .row span{font-size:11px;color:#888;white-space:nowrap}
-button{flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-family:sans-serif;cursor:pointer;transition:background .15s}
+button{flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;font-family:sans-serif;cursor:pointer;transition:background .15s}
 .btn-mavi{background:#185FA5;color:#fff}
 .btn-mavi:hover{background:#0C447C}
 .btn-turuncu{background:#FF6600;color:#fff}
 .btn-turuncu:hover{background:#cc5200}
-.btn-yesil{background:#2a7a3b;color:#fff}
-.btn-yesil:hover{background:#1e5a2b}
-.btn-kirmizi{background:#E31837;color:#fff}
-.btn-kirmizi:hover{background:#b01228}
-.btn-mor{background:#6B3FA0;color:#fff}
-.btn-mor:hover{background:#4e2e78}
 .btn-dur{background:#A32D2D;color:#fff}
 .btn-dur:hover{background:#7a1f1f}
 .btn-panel{background:#fff;color:#185FA5;border:1px solid #185FA5;width:100%;padding:9px}
 .btn-panel:hover{background:#E6F1FB}
-/* İlerleme tüpü */
-.prog-wrap{background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:8px 10px;margin-bottom:4px}
-.prog-baslik{font-size:11px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between}
-.prog-txt{font-size:10px;color:#555;margin-bottom:3px;min-height:14px}
-.prog-bar-wrap{background:#e8e8e4;border-radius:4px;height:5px;overflow:hidden}
-.prog-bar{height:100%;border-radius:4px;transition:width .4s}
-.prog-bar.sb{background:#FF6600}
-.prog-bar.ar{background:#E31837}
-.prog-bar.lg{background:#6B3FA0}
-.prog-bar.manuel{background:#185FA5}
-.site-blok{background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:8px;padding:8px 10px;margin-bottom:6px}
-.site-etiket{font-size:10px;padding:2px 6px;border-radius:3px;color:#fff;font-weight:700;flex-shrink:0}
+.progress{background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:8px 11px;font-size:11px;color:#555;line-height:1.7;display:none}
+.prog-bar-wrap{background:#e8e8e4;border-radius:4px;height:5px;margin-top:5px;overflow:hidden}
+.prog-bar{background:#185FA5;height:100%;border-radius:4px;transition:width .5s}
 .otarama-durum{background:#EAF3DE;color:#3B6D11;border-radius:6px;padding:7px 10px;font-size:11px;margin-bottom:8px;display:none}
+.badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;margin-left:4px}
+.badge-on{background:#3B6D11;color:#fff}
+.badge-off{background:#ccc;color:#666}
 </style>
 </head>
 <body>
@@ -72,141 +60,82 @@ button{flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-fami
   <span class="toggle-label">Otomatik tarama</span>
   <label class="toggle"><input type="checkbox" id="toggle-aktif" checked><span class="slider"></span></label>
 </div>
-<div class="toggle-row" style="margin-bottom:4px">
-  <span class="toggle-label">🔔 Bildirim sesi</span>
-  <label class="toggle"><input type="checkbox" id="toggle-bildirim-ses" checked><span class="slider"></span></label>
-</div>
 
 <div class="otarama-durum" id="otarama-durum"></div>
 
 <hr>
 <div class="sec">⏰ Otomatik Tarama — 3 Site</div>
-
-<!-- SHB -->
-<div class="site-blok">
-  <div class="row" style="margin-bottom:5px">
-    <span class="site-etiket" style="background:#FF6600">SHB</span>
-    <input type="text" id="ot-url-sb" placeholder="https://www.sahibinden.com/kategori/otomobil" style="flex:1;font-size:10px">
-    <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:42px" title="Max sayfa (0=kapalı)">
-  </div>
-  <div class="row" style="margin-bottom:4px">
-    <span>Aralık:</span>
-    <select id="ot-aralik-sb">
-      <option value="30">30 sn</option>
-      <option value="60">1 dk</option>
-      <option value="90">1.5 dk</option>
-      <option value="120">2 dk</option>
-      <option value="180">3 dk</option>
-      <option value="210" selected>3.5 dk</option>
-      <option value="240">4 dk</option>
-      <option value="300">5 dk</option>
-    </select>
-    <button class="btn-turuncu" id="btn-tara-sb" style="flex:0 0 auto;padding:6px 10px;font-size:11px">▶ Tara</button>
-  </div>
-  <div class="prog-wrap" id="prog-sb-wrap" style="display:none">
-    <div class="prog-baslik"><span>Sahibinden</span><span id="prog-sb-pct">0%</span></div>
-    <div class="prog-txt" id="prog-sb-txt"></div>
-    <div class="prog-bar-wrap"><div class="prog-bar sb" id="prog-sb-bar" style="width:0%"></div></div>
-  </div>
+<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+  <span style="font-size:10px;background:#FF6600;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">SHB</span>
+  <input type="text" id="ot-url-sb" placeholder="https://www.sahibinden.com/otomobil" value="https://www.sahibinden.com/kategori/otomobil" style="flex:1;font-size:11px">
+  <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
 </div>
-
-<!-- ARB -->
-<div class="site-blok">
-  <div class="row" style="margin-bottom:5px">
-    <span class="site-etiket" style="background:#E31837">ARB</span>
-    <input type="text" id="ot-url-ar" placeholder="https://www.arabam.com/ikinci-el/otomobil" style="flex:1;font-size:10px">
-    <input type="number" id="ot-sayfa-ar" value="50" min="0" style="width:42px" title="Max sayfa (0=kapalı)">
-  </div>
-  <div class="row" style="margin-bottom:4px">
-    <span>Aralık:</span>
-    <select id="ot-aralik-ar">
-      <option value="30">30 sn</option>
-      <option value="60">1 dk</option>
-      <option value="90" selected>1.5 dk</option>
-      <option value="120">2 dk</option>
-      <option value="180">3 dk</option>
-      <option value="210">3.5 dk</option>
-      <option value="240">4 dk</option>
-      <option value="300">5 dk</option>
-    </select>
-    <button class="btn-kirmizi" id="btn-tara-ar" style="flex:0 0 auto;padding:6px 10px;font-size:11px">▶ Tara</button>
-  </div>
-  <div class="prog-wrap" id="prog-ar-wrap" style="display:none">
-    <div class="prog-baslik"><span>Arabam</span><span id="prog-ar-pct">0%</span></div>
-    <div class="prog-txt" id="prog-ar-txt"></div>
-    <div class="prog-bar-wrap"><div class="prog-bar ar" id="prog-ar-bar" style="width:0%"></div></div>
-  </div>
+<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+  <span style="font-size:10px;background:#E31837;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">ARB</span>
+  <input type="text" id="ot-url-ar" placeholder="https://www.arabam.com/ikinci-el/otomobil" value="https://www.arabam.com/ikinci-el/otomobil" style="flex:1;font-size:11px">
+  <input type="number" id="ot-url-ar-sayfa" value="50" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
 </div>
-
-<!-- LTG -->
-<div class="site-blok">
-  <div class="row" style="margin-bottom:5px">
-    <span class="site-etiket" style="background:#6B3FA0">LTG</span>
-    <input type="text" id="ot-url-lg" placeholder="https://www.letgo.com/arabalar_c15706" style="flex:1;font-size:10px">
-    <input type="number" id="ot-sayfa-lg" value="50" min="0" style="width:42px" title="Max sayfa (0=kapalı)">
-  </div>
-  <div class="row" style="margin-bottom:4px">
-    <span>Aralık:</span>
-    <select id="ot-aralik-lg">
-      <option value="30">30 sn</option>
-      <option value="60">1 dk</option>
-      <option value="90" selected>1.5 dk</option>
-      <option value="120">2 dk</option>
-      <option value="180">3 dk</option>
-      <option value="210">3.5 dk</option>
-      <option value="240">4 dk</option>
-      <option value="300">5 dk</option>
-    </select>
-    <button class="btn-mor" id="btn-tara-lg" style="flex:0 0 auto;padding:6px 10px;font-size:11px">▶ Tara</button>
-  </div>
-  <div class="prog-wrap" id="prog-lg-wrap" style="display:none">
-    <div class="prog-baslik"><span>Letgo</span><span id="prog-lg-pct">0%</span></div>
-    <div class="prog-txt" id="prog-lg-txt"></div>
-    <div class="prog-bar-wrap"><div class="prog-bar lg" id="prog-lg-bar" style="width:0%"></div></div>
-  </div>
+<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+  <span style="font-size:10px;background:#6B3FA0;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">LTG</span>
+  <input type="text" id="ot-url-lg" placeholder="https://www.letgo.com/arabalar_c15706" value="https://www.letgo.com/arabalar_c15706" style="flex:1;font-size:11px">
+  <input type="number" id="ot-url-lg-sayfa" value="50" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
 </div>
-
-<!-- Etiket + Sıklık + Toplu butonları -->
-<div class="row" style="margin-bottom:4px">
+<div class="row" style="font-size:10px;color:#888;gap:4px;margin-top:-2px">
   <span>Etiket:</span>
   <input type="text" id="ot-etiket" placeholder='örn: "Otomobil"' style="flex:1">
 </div>
-<div class="row" style="margin-bottom:6px">
-  <span>Sıklık:</span>
+<div class="row">
+  <span style="font-size:11px;color:#888">Sayfa arası:</span>
+  <select id="ot-aralik">
+    <option value="3">3 sn (hızlı)</option>
+    <option value="3">3 sn</option>
+    <option value="5" selected>5 sn</option>
+    <option value="10">10 sn</option>
+    <option value="15">15 sn</option>
+    <option value="20">20 sn</option>
+    <option value="25">25 sn</option>
+    <option value="30">30 sn</option>
+    <option value="45">45 sn</option>
+    <option value="60">1 dk</option>
+  </select>
+</div>
+<div class="row">
+  <span style="font-size:11px;color:#888">Tarama sıklığı:</span>
   <select id="ot-periyot">
-    <option value="15">15 dk'da bir</option>
-    <option value="30" selected>30 dk'da bir</option>
+    <option value="15">15 dakikada bir</option>
+    <option value="30" selected>30 dakikada bir</option>
     <option value="60">Saatte bir</option>
     <option value="120">2 saatte bir</option>
     <option value="360">6 saatte bir</option>
   </select>
 </div>
-<div class="row" style="margin-bottom:4px">
-  <button class="btn-mavi" id="btn-toplu-tara">🔄 Toplu Tara (3 Site)</button>
-  <button class="btn-yesil" id="btn-ot-kaydet">💾 Kaydet & Otarama</button>
-  <button class="btn-dur" id="btn-ot-sil" style="flex:0 0 auto;padding:7px 10px">✕</button>
+<div class="row" style="gap:6px;margin-bottom:8px">
+  <button class="btn-turuncu" id="btn-ot-kaydet">💾 Kaydet & Hemen Tara</button>
+  <button class="btn-dur" id="btn-ot-sil" style="flex:0 0 auto;padding:8px 10px">✕</button>
 </div>
 
 <hr>
 <div class="sec">Manuel Toplu Tarama</div>
 <div class="row">
-  <input type="text" id="inp-url" placeholder="URL (boş = aktif sekme)">
+  <input type="text" id="inp-url" placeholder="URL (boş bırakırsan aktif sekme kullanılır)">
 </div>
 <div class="row">
   <input type="text" id="inp-etiket" placeholder="Etiket">
-  <input type="number" id="inp-bas" value="1" min="1" style="max-width:50px">
+  <input type="number" id="inp-bas" value="1" min="1" style="max-width:55px">
   <span>–</span>
-  <input type="number" id="inp-bitis" value="10" min="1" style="max-width:50px">
+  <input type="number" id="inp-bitis" value="10" min="1" style="max-width:55px">
 </div>
 <div class="row">
-  <span>Aralık:</span>
+  <span style="font-size:11px;color:#888">Sayfa arası:</span>
   <select id="inp-aralik">
     <option value="3">3 sn</option>
     <option value="5">5 sn</option>
     <option value="10" selected>10 sn</option>
     <option value="15">15 sn</option>
     <option value="20">20 sn</option>
+    <option value="25">25 sn</option>
     <option value="30">30 sn</option>
+    <option value="45">45 sn</option>
     <option value="60">1 dk</option>
     <option value="120">2 dk</option>
   </select>
@@ -215,10 +144,10 @@ button{flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-fami
   <button class="btn-mavi" id="btn-tarama">▶ Toplu Tara</button>
   <button class="btn-dur" id="btn-dur" style="display:none">■ Durdur</button>
 </div>
-<div class="prog-wrap" id="prog-manuel-wrap" style="display:none;margin-top:4px">
-  <div class="prog-baslik"><span>Manuel Tarama</span><span id="prog-manuel-pct">0%</span></div>
-  <div class="prog-txt" id="prog-manuel-txt"></div>
-  <div class="prog-bar-wrap"><div class="prog-bar manuel" id="prog-manuel-bar" style="width:0%"></div></div>
+
+<div class="progress" id="progress">
+  <span id="prog-txt">Hazırlanıyor...</span>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
 </div>
 
 <hr>

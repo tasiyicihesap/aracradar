@@ -1,38 +1,4 @@
 
-// ── URL'den Araç Kategorisi Otomatik Algılama (Service Worker) ───────────────
-function urldenKategoriBg(url) {
-  if (!url) return '';
-  var u = url.toLowerCase();
-  var tip = '';
-  // Sahibinden path
-  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi-suv-pick-up') !== -1) tip = 'Arazi SUV';
-  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('kategori/otomobil') !== -1) tip = 'Otomobil';
-  else if (u.indexOf('motosiklet') !== -1) tip = 'Motosiklet';
-  else if (u.indexOf('kamyonet') !== -1 || u.indexOf('panelvan') !== -1) tip = 'Kamyonet';
-  else if (u.indexOf('ticari') !== -1) tip = 'Ticari';
-  else if (u.indexOf('minivan') !== -1 || u.indexOf('minibus') !== -1) tip = 'Minivan';
-  // Arabam path
-  else if (u.indexOf('ikinci-el/arazi') !== -1 || u.indexOf('ikinci-el/suv') !== -1) tip = 'Arazi SUV';
-  else if (u.indexOf('ikinci-el/otomobil') !== -1) tip = 'Otomobil';
-  else if (u.indexOf('ikinci-el/hafif-ticari') !== -1 || u.indexOf('ikinci-el/kamyonet') !== -1) tip = 'Hafif Ticari';
-  // Letgo
-  else if (u.indexOf('/araba_c') !== -1 || u.indexOf('/arabalar_c') !== -1) tip = 'Otomobil';
-
-  var vites = '';
-  if (/\/otomatik[\/\?]/.test(u) || u.indexOf('vites-tipi:otomatik') !== -1) vites = 'Otomatik';
-  else if (/\/manuel[\/\?]/.test(u) || u.indexOf('vites-tipi:manuel') !== -1) vites = 'Manuel';
-
-  var hasar = '';
-  if (u.indexOf('severaldamaged=false') !== -1 || u.indexOf('agir-hasar-kayitli:hayir') !== -1 || u.indexOf('a116446=1263360') !== -1) hasar = 'Hasarsız';
-  else if (u.indexOf('severaldamaged=true') !== -1 || u.indexOf('agir-hasar-kayitli:evet') !== -1) hasar = 'Hasarlı';
-
-  var parcalar = [];
-  if (tip) parcalar.push(tip);
-  if (vites) parcalar.push(vites);
-  if (hasar) parcalar.push(hasar);
-  return parcalar.join(' ');
-}
-
 // ── Anti-bot: Human-like random delays ──────────────────────────────────────
 function humanBekle(ms, cb) {
   // Random jitter: ±%30
@@ -125,8 +91,9 @@ var _sonSyncZamani = 0;
 
 // ── TAM SYNC — Tüm IndexedDB ilanlarını Supabase'e gönder ────────────────────
 var _tamSyncCalisiyor = false;
-// GitHub yazma için token
-var GH_TOKEN = ''; // Token chrome.storage'dan okunur
+// GitHub yazma için token — panel Ayarlar sekmesinden kaydedilir
+var GH_TOKEN = '';
+chrome.storage.local.get(['gh_token'], function(r){ if(r.gh_token) GH_TOKEN = r.gh_token; });
 var GH_REPO  = 'tasiyicihesap/aracradar';
 var GH_API   = 'https://api.github.com';
 
@@ -469,13 +436,9 @@ function dbEkle(ilanlar,etiket,cb){
             guncellenen++;
           }
           if(etiket&&!m.etiket)m.etiket=etiket;
-          if(!m.sehir&&ilan.sehir)m.sehir=ilan.sehir;
           st.put(m);
         }else{
-          // Otomatik kategori (etiket) URL'den çıkar — kullanıcı gibi
-          var otoEtiket = etiket || ilan.etiket || '';
-          if(!otoEtiket && ilan.url) otoEtiket = urldenKategoriBg(ilan.url);
-          st.put({id:Date.now()+'_'+Math.random().toString(36).substr(2,6),url:ilan.url,ad:(ilan.ad||'').substring(0,120),marka:ilan.marka||'',seri:ilan.seri||'',model:ilan.model||'',yil:ilan.yil||0,km:String(ilan.km||'').substring(0,20),sehir:(ilan.sehir||'').substring(0,30),etiket:otoEtiket.substring(0,50),kaynak:ilan.kaynak||'sahibinden',gecmis:[{fiyat:ilan.fiyat,tarih:Date.now()}],ilkEkleme:Date.now()});
+          st.put({id:Date.now()+'_'+Math.random().toString(36).substr(2,6),url:ilan.url,ad:(ilan.ad||'').substring(0,120),marka:ilan.marka||'',seri:ilan.seri||'',model:ilan.model||'',yil:ilan.yil||0,km:String(ilan.km||'').substring(0,20),etiket:(etiket||ilan.etiket||'').substring(0,50),kaynak:ilan.kaynak||'sahibinden',gecmis:[{fiyat:ilan.fiyat,tarih:Date.now()}],ilkEkleme:Date.now()});
           yeni++;
         }
         kalan--;
@@ -534,11 +497,6 @@ function alarmKur(){
     chrome.alarms.create('swPing',{periodInMinutes:1});
   });
 }
-// Bildirim ses ayarını başlangıçta yükle
-chrome.storage.local.get(['bildirim_ses'], function(r) {
-  self._bildirimSessiz = r.bildirim_ses === false;
-});
-
 chrome.runtime.onInstalled.addListener(function(){
   alarmKur();
   setTimeout(function(){chrome.notifications.create('hazir_'+Date.now(),{type:'basic',iconUrl:chrome.runtime.getURL('icon48.png'),title:'ARAÇRADAR Hazır',message:'Araç fiyat takibi aktif.',priority:0});},1000);
@@ -715,7 +673,7 @@ function bildirimGoster(dusanlar){
       title:title,
       message:msg,
       priority:2,
-      silent: self._bildirimSessiz === true
+      silent:false
     }, function(id){
       if(chrome.runtime.lastError) console.warn('[ARAÇRADAR] Bildirim hatası:', chrome.runtime.lastError.message);
       else console.log('[ARAÇRADAR] Bildirim gönderildi:', id, title);
@@ -1120,12 +1078,11 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             var ilanUrl=linkM[1].startsWith('http')?linkM[1]:'https://www.sahibinden.com'+linkM[1];
             ilanUrl=ilanUrl.split('?')[0];
             if(ilanlar.some(function(x){return x.url===ilanUrl;}))continue;
-            // Fiyat — nokta veya virgül ayıraç
+            // Fiyat
             var fM=row.match(/(\d{1,3}(?:[.]\d{3})+)\s*TL/);
             if(!fM)fM=row.match(/(\d{1,3}(?:[,]\d{3})+)\s*TL/);
-            if(!fM)fM=row.match(/(\d{5,8})\s*TL/); // ayıraçsız
             var fiyat=fM?parseInt(fM[1].replace(/[.,]/g,'')):0;
-            if(!fiyat||fiyat<5000)continue; // 5bin alt sınır (motosiklet dahil)
+            if(!fiyat||fiyat<50000)continue;
             // Başlık
             var titleM=row.match(/title="([^"]+)"/)||row.match(/<a[^>]+>([^<]{5,80})<\/a>/);
             var ad=titleM?titleM[1].trim().substring(0,200):'';
@@ -1135,9 +1092,9 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             tdler.forEach(function(td){
               var v=td.replace(/<[^>]+>/g,'').trim();
               if(/^(19|20)\d{2}$/.test(v))yil=parseInt(v);
-              else if(/\d+[.,]\d*\s*km/i.test(v)||/^\d{1,3}([.,]\d{3})+\s*km$/i.test(v))km=v;
-              // Şehir: Türkçe kelime(ler), rakam/TL/km/yakit içermeyen
-              else if(!sehir&&v.length>=3&&v.length<=35&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit|hatchback|sedan|pickup|coupe|suv|kasası|vitesi|rengi|marka|model)$/i.test(v.toLowerCase()))sehir=v;
+              else if(/\d+[.,]\d+ km/i.test(v)||/^\d{1,3}([.,]\d{3})+ km$/i.test(v))km=v;
+              // Şehir: 2-25 harf Türkçe kelime, rakam/TL/km içermeyen
+              else if(!sehir&&v.length>=3&&v.length<=30&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit)$/i.test(v.toLowerCase()))sehir=v;
             });
             ilanlar.push({url:ilanUrl,fiyat:fiyat,ad:ad,marka:'',seri:'',yil:yil,km:km,sehir:sehir,kaynak:'sahibinden'});
           }
@@ -1152,7 +1109,7 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
               var fM2=slice.match(/(\d{1,3}(?:[.,]\d{3})+)\s*TL/);
               var f2=fM2?parseInt(fM2[1].replace(/[.,]/g,'')):0;
               if(!f2||f2<50000)continue;
-              ilanlar.push({url:u,fiyat:f2,ad:'',marka:'',seri:'',yil:0,km:'',sehir:'',kaynak:'sahibinden'});
+              ilanlar.push({url:u,fiyat:f2,ad:'',marka:'',seri:'',yil:0,km:'',kaynak:'sahibinden'});
             }
           }
         } else { // arabam — regex
@@ -1164,29 +1121,13 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             var u2='https://www.arabam.com'+lM2[1].split('?')[0];
             if(ilanlar.some(function(x){return x.url===u2;}))continue;
             var vals=[];var re2=/(\d{1,3}(?:[.,]\d{3})+)\s*TL/g,fM3;
-            while((fM3=re2.exec(row2))!==null){var v2=parseInt(fM3[1].replace(/[.,]/g,''));if(v2>=5000)vals.push(v2);}
-            if(!vals.length){var fM3b=row2.match(/(\d{5,8})\s*TL/);if(fM3b){var v3b=parseInt(fM3b[1]);if(v3b>=5000)vals.push(v3b);}}
+            while((fM3=re2.exec(row2))!==null){var v2=parseInt(fM3[1].replace(/[.,]/g,''));if(v2>=50000)vals.push(v2);}
             var f3=vals.length?Math.max.apply(null,vals):0;
             if(!f3)continue;
             // Yıl
             var yM=row2.match(/>(19|20)(\d{2})</);
             var yil2=yM?parseInt(yM[1]+yM[2]):0;
-            // KM
-            var kmM=row2.match(/(\d{1,3}(?:[.,]\d{3})*)\s*km/i);
-            var km2=kmM?kmM[0].trim():'';
-            // Ad
-            var adM2=row2.match(/class="[^"]*title[^"]*"[^>]*>([^<]{3,100})</) || row2.match(/alt="([^"]{5,100})"/);
-            var ad2=adM2?adM2[1].trim():'';
-            // Şehir — arabam'da location span veya td içinde geliyor
-            var sehir2='';
-            var sehirM=row2.match(/class="[^"]*location[^"]*"[^>]*>([^<]{2,30})</) ||
-                        row2.match(/class="[^"]*sehir[^"]*"[^>]*>([^<]{2,30})</) ||
-                        row2.match(/<span[^>]*>([A-ZÇĞİÖŞÜa-zçğışöşü][a-zçğışöşü]{2,}(?:[\/ ][A-ZÇĞİÖŞÜa-zçğışöşü][a-zçğışöşü]{2,})?)<\/span>/);
-            if(sehirM){
-              var sv=sehirM[1].trim();
-              if(sv.length>=3&&sv.length<=35&&!/^(otomatik|manuel|benzin|dizel|lpg|hibrit|\d)$/i.test(sv))sehir2=sv;
-            }
-            ilanlar.push({url:u2,fiyat:f3,ad:ad2,marka:'',seri:'',yil:yil2,km:km2,sehir:sehir2,kaynak:'arabam'});
+            ilanlar.push({url:u2,fiyat:f3,ad:'',marka:'',seri:'',yil:yil2,km:'',kaynak:'arabam'});
           }
           // Fallback arabam
           if(!ilanlar.length){
@@ -1198,7 +1139,7 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
               var fM4=sl.match(/(\d{1,3}(?:[.,]\d{3})+)\s*TL/);
               var f4=fM4?parseInt(fM4[1].replace(/[.,]/g,'')):0;
               if(!f4||f4<50000)continue;
-              ilanlar.push({url:u3,fiyat:f4,ad:'',marka:'',seri:'',yil:0,km:'',sehir:'',kaynak:'arabam'});
+              ilanlar.push({url:u3,fiyat:f4,ad:'',marka:'',seri:'',yil:0,km:'',kaynak:'arabam'});
             }
           }
         }
@@ -1612,11 +1553,6 @@ if(msg.action==='veriAl'){
   }
   if(msg.action==='taramaDurdur'){tarama.aktif=false;taramaStorageKaydet();taramaDurumYaz('durduruldu');keepAliveDurdur();
   chrome.storage.local.remove(['tarama_aktif','tarama_ayarlar']);sendResponse({ok:true});return true;}
-  if(msg.action==='bildirimSesAyarla'){
-    self._bildirimSessiz = !msg.aktif;
-    chrome.storage.local.set({bildirim_ses: msg.aktif});
-    sendResponse({ok:true}); return true;
-  }
   if(msg.action==='taramaAralikGuncelle'){tarama.aralik=msg.aralik||tarama.aralik;sendResponse({ok:true});return true;}
   if(msg.action==='siteDurdur'){
     // Tek bir sitenin taramasını bitmiş say — döngüsü kendinilkinleştirir

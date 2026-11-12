@@ -1,207 +1,3 @@
-// Extension içinde açıldığında gerçek chrome API'si kullanılır
-window._arExtGercek = true;
-
-// chrome.storage.local → localStorage (SADECE web modunda; extension içinde gerçek chrome API kullanılır)
-if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
-// ═══════════════════════════════════════════════════════
-// WEB SHIM — chrome.* API'lerini web ortamı için taklit eder
-// GitHub'dan veri çeker, localStorage'ı kullanır
-// ═══════════════════════════════════════════════════════
-
-var GH_RAW = 'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main';
-var _webVeri = []; // bellekteki ilan verisi
-
-// ── IndexedDB cache: veriyi tarayıcıda sakla, gereksiz indirmeyi önle ──────
-var _idb = null;
-function idbAc(cb) {
-  if (_idb) { cb(_idb); return; }
-  var req = indexedDB.open('aracradar_cache', 1);
-  req.onupgradeneeded = function(e) {
-    var db = e.target.result;
-    if (!db.objectStoreNames.contains('veri')) db.createObjectStore('veri');
-  };
-  req.onsuccess = function(e) { _idb = e.target.result; cb(_idb); };
-  req.onerror = function() { cb(null); };
-}
-function idbYaz(key, val, cb) {
-  idbAc(function(db) {
-    if (!db) { if(cb)cb(); return; }
-    try {
-      var tx = db.transaction('veri','readwrite');
-      tx.objectStore('veri').put(val, key);
-      tx.oncomplete = function(){ if(cb)cb(); };
-      tx.onerror = function(){ if(cb)cb(); };
-    } catch(e){ if(cb)cb(); }
-  });
-}
-function idbOku(key, cb) {
-  idbAc(function(db) {
-    if (!db) { cb(null); return; }
-    try {
-      var tx = db.transaction('veri','readonly');
-      var req = tx.objectStore('veri').get(key);
-      req.onsuccess = function(){ cb(req.result || null); };
-      req.onerror = function(){ cb(null); };
-    } catch(e){ cb(null); }
-  });
-}
-
-// chrome.storage.local → localStorage (SADECE web modunda; extension içinde gerçek chrome API kullanılır)
-if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
-window.chrome = {
-  storage: {
-    local: {
-      get: function(keys, cb) {
-        var result = {};
-        (Array.isArray(keys) ? keys : [keys]).forEach(function(k) {
-          try { result[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { result[k] = null; }
-        });
-        setTimeout(function(){ cb(result); }, 0);
-      },
-      set: function(obj, cb) {
-        Object.keys(obj).forEach(function(k) {
-          try { localStorage.setItem(k, JSON.stringify(obj[k])); } catch(e) {}
-        });
-        if (cb) setTimeout(cb, 0);
-      }
-    }
-  },
-  runtime: {
-    lastError: null,
-    getURL: function(path) {
-      // kasa_db.json ve model_slugs.json için repo raw URL
-      return GH_RAW + '/' + path;
-    },
-    sendMessage: function(msg, cb) {
-      if (!cb) return;
-      chrome.runtime.lastError = null;
-      
-      if (msg.action === 'veriAl' || msg.action === 'listeyiGetir') {
-        cb({ veri: _webVeri, ok: true });
-        return;
-      }
-      if (msg.action === 'taramaDurumu') {
-        cb({ tarama: { aktif: false } });
-        return;
-      }
-      if (msg.action === 'dbSayisiAl') {
-        cb({ toplam: _webVeri.length });
-        return;
-      }
-      if (msg.action === 'veriKaydet') {
-        // Web'de takip listesi localStorage'da zaten saklanıyor
-        cb({ ok: true });
-        return;
-      }
-      if (msg.action === 'firebaseCek') {
-        webGitHubdanAl(function(r) { cb(r); }, true); // zorlaIndir=true: Yenile butonuna basıldı
-        return;
-      }
-      if (msg.action === 'tamSync') {
-        cb({ ok: false }); // Web'den GitHub'a yazma desteklenmiyor
-        return;
-      }
-      if (msg.action === 'veriIndir') {
-        // Yedek indir
-        var blob = new Blob([JSON.stringify(_webVeri)], {type:'application/json'});
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'aracradar-yedek-' + new Date().toISOString().slice(0,10) + '.json';
-        a.click();
-        cb({ ok: true });
-        return;
-      }
-      if (msg.action === 'veriyukle') {
-        _webVeri = msg.veri || [];
-        cb({ ok: true });
-        return;
-      }
-      // extension-only komutlar (tarama vb) — sessizce yoksay
-      cb({ ok: false, yeni: 0 });
-    },
-    onMessage: {
-      addListener: function() {} // web'de mesaj yok
-    }
-  }
-};
-} // end: web modu chrome shim
-
-// GitHub'dan tüm ilanları çek
-function webGitHubdanAl(cb, zorlaIndir) {
-  var yuklemeEl = document.getElementById('web-yukleme');
-  var progEl = document.getElementById('web-yukleme-prog');
-
-  (async function() {
-    try {
-      // Önce meta.json'dan son commit/tarih al
-      var meta = await fetch(GH_RAW + '/data/meta.json?t=' + Date.now()).then(function(r){ return r.json(); });
-      var parcalar = meta.parcalar || [];
-      if (!parcalar.length) {
-        if (yuklemeEl) yuklemeEl.style.display = 'none';
-        if (cb) cb({ok:false, yeni:0});
-        return;
-      }
-      var metaKey = 'meta_v_' + (meta.tarih || '') + '_' + parcalar.length;
-
-      // Cache'te aynı versiyon varsa direkt kullan
-      if (!zorlaIndir) {
-        var cachedKey = await new Promise(function(res){ idbOku('meta_key', res); });
-        if (cachedKey === metaKey) {
-          var cachedVeri = await new Promise(function(res){ idbOku('ilanlar', res); });
-          if (cachedVeri && cachedVeri.length > 0) {
-            _webVeri = cachedVeri;
-            if (yuklemeEl) yuklemeEl.style.display = 'none';
-            if (cb) cb({ ok: true, yeni: cachedVeri.length, toplam: cachedVeri.length, cache: true });
-            return;
-          }
-        }
-      }
-
-      // Cache yok veya versiyon değişmiş — GitHub'dan indir
-      if (yuklemeEl) yuklemeEl.style.display = 'flex';
-      var tumIlanlar = [];
-      for (var i = 0; i < parcalar.length; i++) {
-        var dosya = parcalar[i].replace('data/', '');
-        if (progEl) progEl.textContent = (i+1) + ' / ' + parcalar.length + ' parça (' + tumIlanlar.length.toLocaleString('tr-TR') + ' ilan)';
-        try {
-          var parca = await fetch(GH_RAW + '/data/' + dosya + '?t=' + Date.now()).then(function(r){ return r.json(); });
-          tumIlanlar = tumIlanlar.concat(parca);
-        } catch(e) {}
-      }
-      _webVeri = tumIlanlar;
-      // İndirilen veriyi cache'e yaz
-      idbYaz('meta_key', metaKey);
-      idbYaz('ilanlar', tumIlanlar);
-      if (yuklemeEl) yuklemeEl.style.display = 'none';
-      if (cb) cb({ ok: true, yeni: tumIlanlar.length, toplam: tumIlanlar.length });
-    } catch(e) {
-      if (yuklemeEl) yuklemeEl.style.display = 'none';
-      if (cb) cb({ ok: false, yeni: 0 });
-    }
-  })();
-}
-
-// Takip listesi localStorage'dan oku/yaz (chrome.storage yerine)
-// panel.js'in takipYukle/takipKaydet fonksiyonları bu shim üzerinden çalışır
-
-} // end web chrome shim
-
-
-// ── GitHub buton fonksiyonları (global — onclick ile çağrılır) ───────────
-function ghYukleBasildi(btn) {
-  if (!confirm("GitHub'a TÜM ilanlar yüklenecek. Birkaç dakika sürebilir. Devam?")) return;
-  btn.disabled = true;
-  btn.textContent = '⏳ Yükleniyor...';
-  chrome.runtime.sendMessage({ action: 'tamSync' }, function(r) {
-    btn.disabled = false;
-    btn.textContent = "🐙 GitHub'a Yükle";
-    if (chrome.runtime.lastError || !r || !r.ok) {
-      flash('✗ Yükleme hatası: ' + (chrome.runtime.lastError ? chrome.runtime.lastError.message : 'bilinmiyor'));
-    } else {
-      flash('✓ GitHub\'a başarıyla yüklendi!');
-    }
-  });
-}
 
 function ghdenAlBasildi(btn) {
   if (!confirm("GitHub'dan TÜM ilanlar çekilecek. Mevcut veriler güncellenecek. Devam?")) return;
@@ -354,7 +150,7 @@ function geriSayimlariDongule(site, saniye) {
   window._geriSayimSaniye[site] = saniye;
 
   var prefix = 'sayac-' + (site === 'sahibinden' ? 'sb' : site === 'arabam' ? 'ar' : 'lg');
-  var barEl = document.getElementById(prefix + '-geri');
+  var barEl = document.getElementById(prefix + '-bar');
   var snEl  = document.getElementById(prefix + '-sn');
   if (!barEl || !snEl) { window._geriSayimAktif[site] = false; return; }
 
@@ -405,7 +201,7 @@ function geriSayimDurdur(site) {
   // Aktif flag'i temizle ki bir sonraki taramada yeniden başlayabilsin (DÜZELTME v17.2)
   if (window._geriSayimAktif) window._geriSayimAktif[site] = false;
   var prefix = 'sayac-' + (site === 'sahibinden' ? 'sb' : site === 'arabam' ? 'ar' : 'lg');
-  var barEl = document.getElementById(prefix + '-geri');
+  var barEl = document.getElementById(prefix + '-bar');
   var snEl  = document.getElementById(prefix + '-sn');
   if (barEl) { barEl.style.transition = 'none'; barEl.style.width = '0%'; }
   if (snEl)  snEl.textContent = '✓';
@@ -896,70 +692,104 @@ function taramaSayacGuncelle() {
       // Geri sayım — aralik güncelle + ilk kez başlat
       var _aralikSn = td.aralik ? Math.round(td.aralik/1000) : 45;
       if (!window._geriSayimSaniye) window._geriSayimSaniye = {};
-      ['sahibinden','arabam','letgo'].forEach(function(s) {
-        var sd2 = (td.siteSayac||{})[s] || {};
+      // siteSayac key'lerini iterate et (sahibinden, arabam, letgo, sahibinden_2 vs.)
+      var _scKeys = Object.keys(td.siteSayac || {});
+      // Geriye dönük uyum: eğer key yoksa 3 siteyi de dene
+      if (!_scKeys.length) _scKeys = ['sahibinden','arabam','letgo'];
+      _scKeys.forEach(function(key) {
+        var sd2 = (td.siteSayac||{})[key] || {};
+        // Geri sayım bar: site adına göre temel key bul (sahibinden_2 → sahibinden)
+        var sBase = sd2.site || key.replace(/_\d+$/,'');
         if (sd2.bitti) {
-          geriSayimDurdur(s);
-          if (window._geriSayimAktif) window._geriSayimAktif[s] = false;
+          geriSayimDurdur(sBase);
+          if (window._geriSayimAktif) window._geriSayimAktif[sBase] = false;
           return;
         }
         if (!td.aktif) return;
         // Site bazlı aralik varsa onu kullan, yoksa global
         var siteAralikSn = sd2.aralik ? Math.round(sd2.aralik/1000) : _aralikSn;
-        window._geriSayimSaniye[s] = siteAralikSn;
-        geriSayimlariDongule(s, siteAralikSn);
+        window._geriSayimSaniye[sBase] = siteAralikSn;
+        geriSayimlariDongule(sBase, siteAralikSn);
       });
 
       function guncelleKutu(prefix, renkSite, siteData) {
-        if (!siteData) siteData = {eklenen:0, sayfa:0, toplamSayfa:0};
-        function sv(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; }
-        function sbar(id, pct){ var el=document.getElementById(id); if(el) el.style.width=Math.min(100,pct)+'%'; }
-        var eklenen   = siteData.eklenen    || 0;
-        var guncellenen = siteData.guncellenen || 0;
-        // Yeni eklenen sayısını göster
-        sv(prefix+'-yeni', eklenen);
-        // Güncellenen varsa alt satırda göster
-        var guncEl = document.getElementById(prefix+'-gunc');
-        if (guncEl) guncEl.textContent = guncellenen > 0 ? '+'+guncellenen.toLocaleString('tr-TR')+' fiyat güncellendi' : '';
+  if (!siteData) siteData = {};
+  var prefixKisa = prefix.replace('sayac-',''); // sb, ar, lg
+  
+  function sv(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+  function swidth(id,pct){ var el=document.getElementById(id); if(el) el.style.width=Math.min(100,Math.max(0,pct))+'%'; }
 
-        var pct = 0;
-        if (siteData.maxIlanMod && siteData.toplamIlan > 0) {
-          // İlan sayısı modu: "İlan: 501 / 18650"
-          sv(prefix+'-sayfa',  siteData.eklenen||0);
-          sv(prefix+'-toplam', siteData.toplamIlan);
-          pct = Math.round((siteData.eklenen||0) / siteData.toplamIlan * 100);
-          // "Sayfa:" etiketini "İlan:" yap
-          var sayfaLbl = document.getElementById(prefix+'-sayfa-lbl');
-          if (sayfaLbl) sayfaLbl.textContent = 'İlan:';
-        } else {
-          // Sayfa modu: "Sayfa: 10 / 100"
-          sv(prefix+'-sayfa',  siteData.sayfa||0);
-          sv(prefix+'-toplam', siteData.toplamSayfa||'?');
-          pct = siteData.toplamSayfa ? Math.round((siteData.sayfa||0)/siteData.toplamSayfa*100) : 0;
-          var sayfaLbl2 = document.getElementById(prefix+'-sayfa-lbl');
-          if (sayfaLbl2) sayfaLbl2.textContent = 'Sayfa:';
-        }
-        sbar(prefix+'-bar', pct);
+  var eklenen    = siteData.eklenen    || 0;
+  var guncellenen = siteData.guncellenen || 0;
 
-        var durumEl = document.getElementById(prefix+'-durum');
-        if (durumEl) {
-          if (siteData.bitti) {
-            durumEl.textContent = '✓ Tamamlandı';
-            durumEl.style.color = 'var(--grn)';
-          } else if (siteData.sayfa > 0 || siteData.eklenen > 0) {
-            durumEl.textContent = 'Taranıyor...';
-            durumEl.style.color = 'var(--blu)';
-          } else {
-            durumEl.textContent = 'Başlıyor...';
-            durumEl.style.color = 'var(--mut)';
-          }
-        }
+  // Sayılar
+  sv(prefix+'-yeni', eklenen.toLocaleString('tr-TR'));
+  sv(prefix+'-gunc', guncellenen > 0 ? '+'+guncellenen : '0');
+
+  // Sayfa
+  var pct = 0;
+  if (siteData.toplamSayfa) {
+    sv(prefix+'-sayfa', (siteData.sayfa||0)+'/'+(siteData.toplamSayfa||'?'));
+    pct = siteData.toplamSayfa ? Math.round((siteData.sayfa||0)/siteData.toplamSayfa*100) : 0;
+  } else {
+    sv(prefix+'-sayfa', (siteData.sayfa||0)+'/? ');
+  }
+
+  // Progress bar
+  swidth('tup-'+prefixKisa+'-prog', pct);
+
+  // URL kısa göster
+  if (siteData.url) {
+    try {
+      var u = new URL(siteData.url);
+      sv(prefix+'-url-kisa', u.hostname.replace('www.',''));
+    } catch(e) {}
+  }
+
+  // Tüp class ve durum badge
+  var tupEl   = document.getElementById('tup-'+prefixKisa);
+  var durumEl = document.getElementById('tup-'+prefixKisa+'-durum');
+  var durumTxt = document.getElementById(prefix+'-durum-txt');
+
+  if (siteData.bitti) {
+    if (tupEl) tupEl.classList.remove('aktif');
+    if (durumEl) { durumEl.className='tup-durum-badge bitti'; durumEl.textContent='✓ Bitti'; }
+    if (durumTxt) durumTxt.textContent = eklenen+' yeni eklendi';
+  } else if (siteData.sayfa > 0 || siteData.eklenen > 0) {
+    if (tupEl) tupEl.classList.add('aktif');
+    if (durumEl) { durumEl.className='tup-durum-badge aktif'; durumEl.textContent='⚡ Aktif'; }
+    if (durumTxt) durumTxt.textContent = 'Taranıyor...';
+  } else {
+    if (tupEl) tupEl.classList.remove('aktif');
+    if (durumEl) { durumEl.className='tup-durum-badge'; durumEl.textContent='Bekliyor'; }
+    if (durumTxt) durumTxt.textContent = 'Başlıyor...';
+  }
+}
+
+      // Aynı siteden birden fazla URL olabilir (arabam, arabam_2, arabam_3 gibi)
+      // Hepsini toplayarak tek bir siteData nesnesi oluştur
+      function _toplamaYap(sitAdi) {
+        var birlesik = {eklenen:0, guncellenen:0, sayfa:0, toplamSayfa:0, bitti:true, aralik:0, site:sitAdi, url:''};
+        var bulundu = false;
+        Object.keys(sc).forEach(function(k) {
+          var sd = sc[k];
+          if ((sd.site || k.replace(/_\d+$/,'')) !== sitAdi) return;
+          bulundu = true;
+          birlesik.eklenen    += (sd.eklenen    || 0);
+          birlesik.guncellenen += (sd.guncellenen || 0);
+          birlesik.sayfa      = Math.max(birlesik.sayfa, sd.sayfa || 0);
+          birlesik.toplamSayfa = Math.max(birlesik.toplamSayfa, sd.toplamSayfa || 0);
+          if (!sd.bitti) birlesik.bitti = false; // herhangi biri aktifse aktif say
+          birlesik.aralik  = birlesik.aralik  || sd.aralik  || 0;
+          birlesik.url     = birlesik.url     || sd.url     || '';
+        });
+        return bulundu ? birlesik : null;
       }
-
-      guncelleKutu('sayac-sb', '#FF6600', sc.sahibinden);
-      guncelleKutu('sayac-ar', '#E31837', sc.arabam);
-      guncelleKutu('sayac-lg', '#6B3FA0', sc.letgo);
+      guncelleKutu('sayac-sb', '#FF6600', _toplamaYap('sahibinden') || sc.sahibinden);
+      guncelleKutu('sayac-ar', '#E31837', _toplamaYap('arabam')     || sc.arabam);
+      guncelleKutu('sayac-lg', '#6B3FA0', _toplamaYap('letgo')      || sc.letgo);
       siteDurumlariniGuncelle(sc);
+      _headerDurGuncelle(true, sc);
 
       // DB sayısını gerçek zamanlı al — tüm sayaçları güncelle
       chrome.runtime.sendMessage({action:'dbSayisiAl'}, function(r){
@@ -1093,8 +923,8 @@ function olusturKasaSec() {
   });
 }
 
-var _aktifSekme = 'degisim';
-var _minDegisim = 30000;
+var _aktifSekme = 'liste';
+var _minDegisim = 0;
 var _degFltVal = '';
 var _secilenIller = {}; // seçili iller seti (boşsa = tümü)
 var _ILLER = ['Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Aksaray', 'Amasya', 'Ankara', 'Antalya', 'Ardahan', 'Artvin', 'Aydın', 'Balıkesir', 'Bartın', 'Batman', 'Bayburt', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Düzce', 'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkari', 'Hatay', 'Iğdır', 'Isparta', 'İstanbul', 'İzmir', 'Kahramanmaraş', 'Karabük', 'Karaman', 'Kars', 'Kastamonu', 'Kayseri', 'Kilis', 'Kırıkkale', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Mardin', 'Mersin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Osmaniye', 'Rize', 'Sakarya', 'Samsun', 'Şanlıurfa', 'Siirt', 'Sinop', 'Şırnak', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova', 'Yozgat', 'Zonguldak'];
@@ -1747,7 +1577,7 @@ document.getElementById('liste').addEventListener('click', function(e) {
 
 document.getElementById('btn-yedekle').addEventListener('click', driveYedekle);
 var btnKlasor = document.getElementById('btn-klasor-sec');
-// btnKlasor web'de yok
+if (btnKlasor) btnKlasor.addEventListener('click', yedekKlasorSec);
 document.getElementById('btn-yukle-ac').addEventListener('click', function(){ document.getElementById('drive-yukle-inp').click(); });
 document.getElementById('drive-yukle-inp').addEventListener('change', function(){ driveYukle(this); });
 document.getElementById('btn-yenile').addEventListener('click', yukle);
@@ -1789,7 +1619,6 @@ document.getElementById('btn-yenile').addEventListener('click', yukle);
   });
 
 // GitHub'dan Al butonu — TÜM Supabase ilanlarını çek
-// btn-fb-cek DOMContentLoaded'a taşındı
 
 // Tam Sync butonu — TÜM yerel ilanları Supabase'e gönder
 (function(){
@@ -1810,7 +1639,6 @@ document.getElementById('btn-yenile').addEventListener('click', yukle);
   });
 })();
 // Tümünü Yükle — IndexedDB'deki tüm ilanları Supabase'e gönder
-// btn-gh-yukle DOMContentLoaded'a taşındı
 
 document.getElementById('btn-hepsisil').addEventListener('click', hepsiniSil);
 document.getElementById('f-etiket').addEventListener('change', function(){ _sayfaOffset=0; olusturMarkaSec(); olusturKasaSec(); goster(); });
@@ -1826,15 +1654,7 @@ document.getElementById('btn-kose-temizle').addEventListener('click', kosePanelT
 document.getElementById('btn-kose-test').addEventListener('click', koseTestBildirimi);
 document.getElementById('kose-btn-ac').addEventListener('click', kosePanelAc);
 
-// Web modunda (eklenti yok) ilk yukle() webGitHubdanAl tamamlanınca çağrılır
-// Eklenti varsa hemen çağır
-var _extGercek = (function(){
-  try { return !!(window._arExtGercek || (chrome && chrome.runtime && chrome.runtime.id && chrome.runtime.id.length > 10)); } catch(e){ return false; }
-})();
-if (_extGercek) {
-  yukle();
-}
-// Web modunda window.load → webGitHubdanAl → yukle(true) zinciri çalışır (aşağıda)
+yukle();
 
 // Sayfa açılınca tarama devam ediyorsa interval'ı başlat
 chrome.runtime.sendMessage({action:'taramaDurumu'}, function(res) {
@@ -2789,6 +2609,590 @@ document.addEventListener('click', function(e) {
 });
 
 // ─── ANA SEKME & KM BUTON LISTENER'LARI ────────────────────────────────────
+
+function linkExportEt() {
+  var links = [];
+  var sabitler = [
+    {url:'p-ot-url-sb',site:'sahibinden'},{url:'p-ot-url-ar',site:'arabam'},{url:'p-ot-url-lg',site:'letgo'}
+  ];
+  sabitler.forEach(function(a){
+    var u=(document.getElementById(a.url)||{value:''}).value.trim();
+    if(u) links.push({tip:'otomatik',site:a.site,url:u});
+  });
+  var extra=document.getElementById('p-ot-extra-listesi');
+  if(extra) extra.querySelectorAll('.ot-extra-url').forEach(function(el){
+    var u=el.value.trim(); if(!u) return;
+    var site=u.indexOf('arabam')!==-1?'arabam':u.indexOf('letgo')!==-1?'letgo':'sahibinden';
+    links.push({tip:'otomatik',site:site,url:u});
+  });
+  var manuel=document.getElementById('p-manuel-url-listesi');
+  if(manuel) manuel.querySelectorAll('.manuel-url-inp').forEach(function(el){
+    var u=el.value.trim(); if(!u) return;
+    var site=u.indexOf('arabam')!==-1?'arabam':u.indexOf('letgo')!==-1?'letgo':'sahibinden';
+    links.push({tip:'manuel',site:site,url:u});
+  });
+  if(!links.length){flash('Aktarılacak link yok');return;}
+  var blob=new Blob([JSON.stringify({tarih:new Date().toLocaleString('tr-TR'),links:links},null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='aracradar_linkler_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  flash('✓ '+links.length+' link indirildi');
+}
+
+function linkImportEt(metin) {
+  var links;
+  try {
+    var v=JSON.parse(metin); links=v.links||v;
+  } catch(e) {
+    links=metin.split('\n').map(function(s){return s.trim();}).filter(function(s){return s.startsWith('http');})
+      .map(function(u){return {tip:'otomatik',url:u,site:u.indexOf('arabam')!==-1?'arabam':u.indexOf('letgo')!==-1?'letgo':'sahibinden'};});
+  }
+  if(!links||!links.length){flash('Dosyada link bulunamadı');return;}
+  var sabitMap={sahibinden:'p-ot-url-sb',arabam:'p-ot-url-ar',letgo:'p-ot-url-lg'};
+  var dolu={sahibinden:false,arabam:false,letgo:false};
+  links.forEach(function(l){
+    if(l.tip==='manuel') return;
+    var site=l.site||(l.url.indexOf('arabam')!==-1?'arabam':l.url.indexOf('letgo')!==-1?'letgo':'sahibinden');
+    var id=sabitMap[site];
+    if(id&&!dolu[site]){var el=document.getElementById(id);if(el){el.value=l.url;dolu[site]=true;}}
+  });
+  flash('✓ '+links.length+' link yüklendi');
+}
+
+
+// ── Hazır tarama linkleri ────────────────────────────────────────────────────
+var HAZIR_LINKLER = [
+  // Otomobil grubu
+  { site:'sahibinden', url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', aralik:240, etiket:'Otomobil', prefix:'sb' },
+  { site:'arabam',     url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50', aralik:240, etiket:'Otomobil', prefix:'ar' },
+  { site:'letgo',      url:'https://www.letgo.com/arabalar_c15706?filter=yil:[2005-];km:[-350000];yakit-tipi:benzin,dizel;vites-tipi:otomatik;agir-hasar-kayitli:hayir;lpg:var,yok;takas-durumu:evet,hayir', aralik:240, etiket:'Otomobil', prefix:'lg' },
+  // Arazi grubu
+  { site:'sahibinden', url:'https://www.sahibinden.com/arazi-suv-pickup/dizel,benzin-lpg/otomatik/sahibinden?a277_min=2005&a116446=1263360&a276_min=100000', aralik:480, etiket:'Arazi', prefix:'sb2' },
+  { site:'arabam',     url:'https://www.arabam.com/ikinci-el/arazi-suv-pick-up-sahibinden?minkm=100000&fuel=Benzin&fuel=Dizel&fuel=LPG&gear=Otomatik&gear=Yar%C4%B1+Otomatik&status=%C4%B0kinci+El&severaldamaged=false', aralik:480, etiket:'Arazi', prefix:'ar2' },
+  // Tarihe göre
+  { site:'sahibinden', url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&sorting=date_desc&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', aralik:720, etiket:'Tarih', prefix:'sb3' },
+  { site:'arabam',     url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50&sort=startedAt.desc', aralik:720, etiket:'Tarih', prefix:'ar3' },
+];
+
+function hizliKurulumYukle() {
+  var btn = document.getElementById('btn-hizli-kur');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Yükleniyor...'; }
+
+  // Tüm ayarları oluştur — baslatTarama()'nın beklediği format
+  var ayarlar = {
+    urls: [
+      // Otomobil grubu — 4 dk
+      { url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', site:'sahibinden', sayfa:9999, maxIlan:0, aralik:240000, etiket:'Otomobil' },
+      { url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50', site:'arabam', sayfa:9999, maxIlan:0, aralik:240000, etiket:'Otomobil' },
+      { url:'https://www.letgo.com/arabalar_c15706?filter=yil:[2005-];km:[-350000];yakit-tipi:benzin,dizel;vites-tipi:otomatik;agir-hasar-kayitli:hayir;lpg:var,yok;takas-durumu:evet,hayir', site:'letgo', sayfa:9999, maxIlan:0, aralik:240000, etiket:'Otomobil' },
+      // Arazi grubu — 8 dk
+      { url:'https://www.sahibinden.com/arazi-suv-pickup/dizel,benzin-lpg/otomatik/sahibinden?a277_min=2005&a116446=1263360&a276_min=100000', site:'sahibinden', sayfa:9999, maxIlan:0, aralik:480000, etiket:'Arazi' },
+      { url:'https://www.arabam.com/ikinci-el/arazi-suv-pick-up-sahibinden?minkm=100000&fuel=Benzin&fuel=Dizel&fuel=LPG&gear=Otomatik&gear=Yar%C4%B1+Otomatik&status=%C4%B0kinci+El&severaldamaged=false', site:'arabam', sayfa:9999, maxIlan:0, aralik:480000, etiket:'Arazi' },
+      // Tarihe göre — 12 dk
+      { url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&sorting=date_desc&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', site:'sahibinden', sayfa:9999, maxIlan:0, aralik:720000, etiket:'Tarih' },
+      { url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50&sort=startedAt.desc', site:'arabam', sayfa:9999, maxIlan:0, aralik:720000, etiket:'Tarih' }
+    ],
+    etiket: 'Otomobil',
+    aralik: 240000,
+    toplamSayfa: 9999,
+    baseUrl: 'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000'
+  };
+
+  // Önce kaydet
+  chrome.runtime.sendMessage({ action: 'otaramaKaydet', ayarlar: ayarlar }, function() {
+    // Taramayı başlat
+    chrome.runtime.sendMessage({ action: 'otaramaBaslat', ayarlar: ayarlar }, function(r) {
+      if (btn) { btn.disabled=false; btn.textContent='⬇ Linkleri Yükle'; }
+      if (r && r.ok) {
+        flash('▶ 7 link yüklendi, tarama başladı!');
+        // Ayarlar sekmesinden İlan Takip'e geç
+        var btnTakip = document.getElementById('btn-sekme-takip');
+        if (btnTakip) btnTakip.click();
+      } else {
+        flash('⚠ Tarama zaten çalışıyor veya başlatılamadı');
+      }
+    });
+  });
+}
+
+// Otomatik tarama — sayfa açılınca yüklü ayarlar varsa otomatik başlat
+function otomatikBaslat() {
+  chrome.storage.local.get(['ot_ayarlar', 'ot_oto_baslat'], function(items) {
+    if (!items.ot_oto_baslat) return; // Otomatik başlatma aktif değil
+    var ayarlar = items.ot_ayarlar;
+    if (!ayarlar) return;
+    // Zaten çalışıyorsa başlatma
+    chrome.runtime.sendMessage({action:'durumAl'}, function(r) {
+      if (r && r.aktif) return; // Zaten taranıyor
+      // 2sn bekle sonra başlat
+      setTimeout(function() {
+        var btnBaslat = document.getElementById('btn-tarama-baslat') || document.querySelector('[id*="baslat"]');
+        if (btnBaslat) { btnBaslat.click(); }
+      }, 2000);
+    });
+  });
+}
+
+
+function bildirimPanelToggle(btn) {
+  if (!('Notification' in window)) { return; }
+  if (Notification.permission === 'granted') {
+    var sesiz = localStorage.getItem('ar_sesiz') === '1';
+    localStorage.setItem('ar_sesiz', sesiz ? '0' : '1');
+    btn.textContent = sesiz ? '🔔 Açık' : '🔕 Sessiz';
+    btn.style.color  = sesiz ? '#3fb950' : 'var(--mut)';
+    // Korna sesi test
+    if (sesiz && typeof vroomSesiCal === 'function') vroomSesiCal();
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    flash('Tarayıcı ayarlarından bildirimlere izin verin');
+    return;
+  }
+  Notification.requestPermission().then(function(p) {
+    if (p === 'granted') {
+      btn.textContent = '🔔 Açık';
+      btn.style.color = '#3fb950';
+      if (typeof vroomSesiCal === 'function') vroomSesiCal();
+      chrome.runtime.sendMessage({action: 'bildirimIzinVerildi'});
+    }
+  });
+}
+
+
+// ── İlan silme butonları ────────────────────────────────────────────────────
+function ilanSilBasildi(btn) {
+  var gun    = parseInt(btn.getAttribute('data-gun'))  || 0;
+  var sifir  = btn.getAttribute('data-sifir') === '1';
+  var durumEl = document.getElementById('sil-durum');
+  
+  var mesaj = '';
+  if (gun > 0 && sifir) mesaj = gun + ' günden eski VE sıfır TL olanlar silinecek';
+  else if (gun > 0)     mesaj = gun + ' günden eski ilanlar silinecek';
+  else if (sifir)       mesaj = 'Fiyatı sıfır olan tüm ilanlar silinecek';
+
+  if (!confirm(mesaj + '.\nEmin misiniz? Bu işlem geri alınamaz.')) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Siliniyor...';
+  if (durumEl) durumEl.textContent = 'Silme işlemi başladı...';
+
+  chrome.runtime.sendMessage({
+    action: 'ilanSil',
+    gun: gun,
+    sifirSil: sifir
+  }, function(r) {
+    btn.disabled = false;
+    // Butonu eski haline getir
+    var btnMetinMap = {
+      '30-false':  '📅 30 Gün Eskisini Sil',
+      '45-false':  '📅 45 Gün Eskisini Sil',
+      '60-false':  '📅 60 Gün Eskisini Sil',
+      '0-true':    '💰 Sıfır TL Olanları Sil',
+      '30-true':   '🔥 30 Gün + Sıfır TL',
+      '45-true':   '🔥 45 Gün + Sıfır TL',
+      '60-true':   '🔥 60 Gün + Sıfır TL',
+    };
+    var key = gun + '-' + sifir;
+    btn.textContent = btnMetinMap[key] || btn.textContent;
+
+    if (chrome.runtime.lastError || !r) {
+      if (durumEl) durumEl.textContent = '✗ Hata oluştu';
+      return;
+    }
+    if (r.silinen === 0) {
+      if (durumEl) durumEl.textContent = '✓ Silinecek ilan bulunamadı';
+    } else {
+      if (durumEl) durumEl.style.color = '#3fb950';
+      if (durumEl) { durumEl.style.color="#3fb950"; durumEl.textContent = String(r.silinen) + " ilan silindi, " + String(r.kalan||0) + " kalan. Yukleniyor..."; }
+      // Listeyi yenile
+      setTimeout(function(){ if(typeof yukle==='function') yukle(true); }, 1000);
+    }
+  });
+}
+
+
+function aktifKontrolBasildi() {
+  var btn = document.getElementById('btn-aktif-kontrol');
+  var durumEl = document.getElementById('sil-durum');
+  if (!confirm('Tüm ilanların linki kontrol edilecek (bu 10-20 dakika sürebilir).\n404 dönen ilanlar silinecek. Devam?')) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Kontrol ediliyor...';
+  if (durumEl) { durumEl.style.color='var(--mut2)'; durumEl.textContent = 'Linkler kontrol ediliyor... (lütfen paneli kapatmayın)'; }
+
+  // İlerleme mesajlarını dinle
+  var ilerlemeDinleyici = function(msg) {
+    if (msg.action === 'aktifKontrolIlerleme' && durumEl) {
+      var pct = msg.toplam ? Math.round(msg.tamamlanan/msg.toplam*100) : 0;
+      durumEl.textContent = msg.tamamlanan.toLocaleString('tr-TR') + ' / ' + msg.toplam.toLocaleString('tr-TR') + ' kontrol edildi (%' + pct + ') — ' + msg.silinen + ' silinecek bulundu';
+    }
+  };
+  chrome.runtime.onMessage.addListener(ilerlemeDinleyici);
+
+  chrome.runtime.sendMessage({action:'aktifKontrol'}, function(r) {
+    chrome.runtime.onMessage.removeListener(ilerlemeDinleyici);
+    btn.disabled = false;
+    btn.textContent = '🔗 Aktif Olmayan İlanları Sil (Tümü)';
+    if (!r || r.silinen === 0) {
+      if (durumEl) durumEl.textContent = 'Silinecek ilan bulunamadi (tum ilanlar aktif)';
+    } else {
+      if (durumEl) { durumEl.style.color='#3fb950'; durumEl.textContent = r.silinen.toLocaleString('tr-TR') + ' ilan silindi, ' + (r.kalan||0).toLocaleString('tr-TR') + ' kaldi'; }
+      setTimeout(function(){ if(typeof yukle==='function') yukle(true); }, 1000);
+    }
+  });
+}
+
+
+function tumunuSilBasildi() {
+  if (!confirm('DİKKAT! TÜM ilanlar silinecek. Emin misiniz?')) return;
+  if (!confirm('Son onay: Tüm veri silinecek, geri alınamaz!')) return;
+
+  var btn = document.getElementById('btn-tumunu-sil-gh');
+  var durumEl = document.getElementById('sil-durum');
+  btn.disabled = true;
+  btn.textContent = 'Siliniyor...';
+  if (durumEl) { durumEl.style.color='#f87171'; durumEl.textContent = 'DB temizleniyor...'; }
+
+  // 1. DB'yi temizle
+  chrome.runtime.sendMessage({action:'tumunuSil'}, function() {});
+
+  // 2. GitHub'ı direkt sıfırla — Token storage'dan okunur
+  var GH_TOKEN = (typeof localStorage !== 'undefined' && localStorage.getItem('gh_token')) || '';
+  var GH_REPO  = 'tasiyicihesap/aracradar';
+  var GH_API   = 'https://api.github.com';
+
+  function ghSha(path, cb) {
+    fetch(GH_API+'/repos/'+GH_REPO+'/contents/'+path, {
+      headers: {'Authorization': 'token '+GH_TOKEN}
+    }).then(function(r){ return r.json(); })
+    .then(function(d){ cb(d.sha||null); })
+    .catch(function(){ cb(null); });
+  }
+
+  function ghSifirla(path, sha, cb) {
+    fetch(GH_API+'/repos/'+GH_REPO+'/contents/'+path, {
+      method: 'PUT',
+      headers: {'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({message:'Sifirlandı', content: btoa('[]'), sha: sha, branch:'main'})
+    }).then(function(r){ cb(r.ok||r.status===201); })
+    .catch(function(){ cb(false); });
+  }
+
+  if (durumEl) durumEl.textContent = 'GitHub sifirlanıyor...';
+
+  // Tüm parçaları sıfırla
+  var parcaların = [];
+  for (var i=0; i<20; i++) parcaların.push('data/ilanlar_'+i+'.json');
+  var idx = 0;
+  var hata = 0;
+
+  function siraSifirla() {
+    if (idx >= parcaların.length) {
+      // meta.json sıfırla
+      var meta = JSON.stringify({toplam:0,guncelleme:Date.now(),versiyon:3,parca_sayisi:1,parcalar:['data/ilanlar_0.json']});
+      ghSha('data/meta.json', function(sha) {
+        fetch(GH_API+'/repos/'+GH_REPO+'/contents/data/meta.json', {
+          method:'PUT',
+          headers:{'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'},
+          body: JSON.stringify({message:'Meta sifirlandı', content: btoa(meta), sha: sha, branch:'main'})
+        }).then(function() {
+          btn.disabled = false;
+          btn.textContent = 'Tum ilanları Sil + GitHub Sifirla';
+          if (durumEl) { durumEl.style.color='#3fb950'; durumEl.textContent = 'GitHub sifirlandı! Taramayı baslatin.'; }
+        });
+      });
+      return;
+    }
+    ghSha(parcaların[idx], function(sha) {
+      if (!sha) { idx++; siraSifirla(); return; } // Dosya yok, atla
+      ghSifirla(parcaların[idx], sha, function(ok) {
+        if (!ok) hata++;
+        idx++;
+        if (durumEl) durumEl.textContent = 'GitHub: '+idx+'/17 silindi...';
+        setTimeout(siraSifirla, 300);
+      });
+    });
+  }
+
+  siraSifirla();
+}
+
+
+// ── Tema Sistemi ─────────────────────────────────────────────────────────────
+var TEMALAR = [
+  {
+    ad: 'Gece', ikon: '🌑',
+    bg:'#0d1117', yuz:'#161b22', brd:'rgba(255,255,255,0.08)', brd2:'rgba(255,255,255,0.15)',
+    txt:'#e8e8e8', mut:'#8a8f9a', blu:'#1f6feb', blud:'#58a6ff',
+    grn:'#3fb950', red:'#f85149', ora:'#f0883e', pur:'#bc8cff'
+  },
+  {
+    ad: 'Lacivert', ikon: '🌊',
+    bg:'#050d1a', yuz:'#0a1628', brd:'rgba(88,166,255,0.12)', brd2:'rgba(88,166,255,0.25)',
+    txt:'#cdd9e5', mut:'#768390', blu:'#2188ff', blud:'#79c0ff',
+    grn:'#56d364', red:'#ff7b72', ora:'#ffa657', pur:'#d2a8ff'
+  },
+  {
+    ad: 'Mor', ikon: '🔮',
+    bg:'#0d0d1a', yuz:'#13132b', brd:'rgba(188,140,255,0.12)', brd2:'rgba(188,140,255,0.25)',
+    txt:'#e2d9f3', mut:'#8b7fad', blu:'#8957e5', blud:'#bc8cff',
+    grn:'#3fb950', red:'#f85149', ora:'#d29922', pur:'#d2a8ff'
+  },
+  {
+    ad: 'Zümrüt', ikon: '🌿',
+    bg:'#0a1512', yuz:'#0f2018', brd:'rgba(63,185,80,0.12)', brd2:'rgba(63,185,80,0.25)',
+    txt:'#d4e8d4', mut:'#6a9a72', blu:'#2ea043', blud:'#56d364',
+    grn:'#56d364', red:'#f85149', ora:'#e3b341', pur:'#bc8cff'
+  },
+  {
+    ad: 'Kızıl', ikon: '🔥',
+    bg:'#130a0a', yuz:'#1e1010', brd:'rgba(248,81,73,0.12)', brd2:'rgba(248,81,73,0.25)',
+    txt:'#f0d0d0', mut:'#9a7070', blu:'#da3633', blud:'#ff7b72',
+    grn:'#3fb950', red:'#ff7b72', ora:'#f0883e', pur:'#bc8cff'
+  },
+  {
+    ad: 'Altın', ikon: '✨',
+    bg:'#12100a', yuz:'#1c1a0f', brd:'rgba(210,153,34,0.15)', brd2:'rgba(210,153,34,0.3)',
+    txt:'#f0e4b0', mut:'#9a8a5a', blu:'#d29922', blud:'#e3b341',
+    grn:'#3fb950', red:'#f85149', ora:'#f0883e', pur:'#bc8cff'
+  },
+  {
+    ad: 'Gündüz', ikon: '☀️',
+    bg:'#f0f2f5', yuz:'#ffffff', brd:'rgba(0,0,0,0.1)', brd2:'rgba(0,0,0,0.2)',
+    txt:'#1a1a2e', mut:'#666680', blu:'#1f6feb', blud:'#0969da',
+    grn:'#1a7f37', red:'#cf222e', ora:'#bc4c00', pur:'#6e40c9'
+  },
+];
+
+var _aktifTema = 0;
+
+function temaUygula(idx) {
+  var t = TEMALAR[idx % TEMALAR.length];
+  var root = document.documentElement;
+  root.style.setProperty('--bg',   t.bg);
+  root.style.setProperty('--yuz',  t.yuz);
+  root.style.setProperty('--brd',  t.brd);
+  root.style.setProperty('--brd2', t.brd2);
+  root.style.setProperty('--txt',  t.txt);
+  root.style.setProperty('--mut',  t.mut);
+  root.style.setProperty('--blu',  t.blu);
+  root.style.setProperty('--blud', t.blud);
+  root.style.setProperty('--grn',  t.grn);
+  root.style.setProperty('--red',  t.red);
+  root.style.setProperty('--ora',  t.ora || '#f0883e');
+  root.style.setProperty('--pur',  t.pur || '#bc8cff');
+  _aktifTema = idx % TEMALAR.length;
+  // Butonu güncelle
+  var btn = document.getElementById('btn-tema');
+  if (btn) btn.textContent = t.ikon + ' ' + t.ad;
+  // Kaydet
+  try { localStorage.setItem('ar_tema', String(_aktifTema)); } catch(e) {}
+}
+
+function temaSonraki() {
+  temaUygula(_aktifTema + 1);
+}
+
+
+// ── Hızlı Kurulum Link Yönetimi ──────────────────────────────────────────────
+var HIZLI_LINK_KEY = 'ar_hizli_linkler';
+
+var HIZLI_LINKLER_VARSAYILAN = [
+  { url:'https://www.sahibinden.com/otomobil/sahibinden?a116445=1263354', aralik:240, etiket:'Otomobil', aktif:true },
+  { url:'https://www.arabam.com/ikinci-el/otomobil', aralik:240, etiket:'Otomobil', aktif:true },
+  { url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&sorting=date_desc&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', aralik:240, etiket:'Tarih', aktif:true },
+  { url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50&sort=startedAt.desc', aralik:240, etiket:'Tarih', aktif:true },
+  { url:'https://www.letgo.com/arabalar_c15706?filter=yil:[2005-];km:[-350000];yakit-tipi:benzin,dizel;vites-tipi:otomatik;agir-hasar-kayitli:hayir;lpg:var,yok;takas-durumu:evet,hayir&sorting=desc-creation', aralik:240, etiket:'Tarih', aktif:true },
+  { url:'https://www.sahibinden.com/otomobil/dizel,benzin-lpg/otomatik/sahibinden?pagingSize=50&a116445=1263354&a4_max=350000&favoriteSearchTitle=arama1&a5_min=2005&price_min=50000&price_max=750000', aralik:480, etiket:'Otomobil', aktif:true },
+  { url:'https://www.arabam.com/ikinci-el/otomobil-sahibinden?minYear=2005&gear=Otomatik&gear=Yar%C4%B1+Otomatik&fuel=Benzin&fuel=Dizel&fuel=LPG&maxkm=350000&severaldamaged=false&take=50', aralik:480, etiket:'Otomobil', aktif:true },
+  { url:'https://www.letgo.com/arabalar_c15706?filter=yil:[2005-];km:[-350000];yakit-tipi:benzin,dizel;vites-tipi:otomatik;agir-hasar-kayitli:hayir;lpg:var,yok;takas-durumu:evet,hayir', aralik:480, etiket:'Otomobil', aktif:true },
+  { url:'https://www.sahibinden.com/arazi-suv-pickup/dizel,benzin-lpg/otomatik/sahibinden?a277_min=2005&a116446=1263360&a276_min=100000', aralik:480, etiket:'Arazi', aktif:true },
+];
+
+// chrome.storage.local'dan async yükle — callback(linkler) ile döner
+function hizliLinkleriYukleAsync(callback) {
+  try {
+    chrome.storage.local.get(HIZLI_LINK_KEY, function(res) {
+      if (chrome.runtime.lastError) {
+        var ls = null;
+        try { ls = JSON.parse(localStorage.getItem(HIZLI_LINK_KEY)); } catch(e) {}
+        return callback(ls && ls.length ? ls : HIZLI_LINKLER_VARSAYILAN.slice());
+      }
+      var val = res[HIZLI_LINK_KEY];
+      if (val && val.length) {
+        try { localStorage.setItem(HIZLI_LINK_KEY, JSON.stringify(val)); } catch(e) {}
+        callback(val);
+      } else {
+        var ls = null;
+        try { ls = JSON.parse(localStorage.getItem(HIZLI_LINK_KEY)); } catch(e) {}
+        callback(ls && ls.length ? ls : HIZLI_LINKLER_VARSAYILAN.slice());
+      }
+    });
+  } catch(e) {
+    var ls = null;
+    try { ls = JSON.parse(localStorage.getItem(HIZLI_LINK_KEY)); } catch(e2) {}
+    callback(ls && ls.length ? ls : HIZLI_LINKLER_VARSAYILAN.slice());
+  }
+}
+
+// Sync okuma (localStorage cache'den)
+function hizliLinkleriYukle() {
+  var kaydedilen = null;
+  try { kaydedilen = JSON.parse(localStorage.getItem(HIZLI_LINK_KEY)); } catch(e) {}
+  return kaydedilen && kaydedilen.length ? kaydedilen : HIZLI_LINKLER_VARSAYILAN.slice();
+}
+
+function hizliLinkleriKaydet(linkler) {
+  try { localStorage.setItem(HIZLI_LINK_KEY, JSON.stringify(linkler)); } catch(e) {}
+  try {
+    var obj = {};
+    obj[HIZLI_LINK_KEY] = linkler;
+    chrome.storage.local.set(obj);
+  } catch(e) {}
+}
+
+function siteTespit(url) {
+  if (url.includes('sahibinden.com')) return { ad:'SHB', renk:'#f0883e' };
+  if (url.includes('arabam.com'))    return { ad:'ARB', renk:'#f85149' };
+  if (url.includes('letgo.com'))     return { ad:'LTG', renk:'#bc8cff' };
+  return { ad:'URL', renk:'#94a3b8' };
+}
+
+function hizliListeRenderWith(linkler) {
+  var el = document.getElementById('hizli-link-listesi');
+  if (!el) return;
+  el.innerHTML = '';
+  linkler.forEach(function(link, idx) {
+    _hizliSatirEkle(el, link, idx);
+  });
+}
+
+function hizliListeRender() {
+  var el = document.getElementById('hizli-link-listesi');
+  if (!el) return;
+  // Önce async yükle (chrome.storage), sonra render et
+  hizliLinkleriYukleAsync(function(linkler) {
+    // localStorage cache'i güncelle
+    try { localStorage.setItem(HIZLI_LINK_KEY, JSON.stringify(linkler)); } catch(e) {}
+    el.innerHTML = '';
+    linkler.forEach(function(link, idx) {
+      _hizliSatirEkle(el, link, idx);
+    });
+  }); // async callback sonu
+}
+
+// Tek satır HTML'i oluştur ve el'e ekle
+function _hizliSatirEkle(el, link, idx) {
+    var site = siteTespit(link.url);
+    var aralikDk = Math.round((link.aralik||240) / 60);
+    var satir = document.createElement('div');
+    satir.style.cssText = 'display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,0.03);border:1px solid var(--brd);border-radius:8px;padding:10px';
+    satir.innerHTML =
+      '<div style="display:flex;gap:6px;align-items:center">'
+      + '<span style="font-size:10px;font-weight:800;color:#fff;background:'+site.renk+';padding:2px 8px;border-radius:4px;flex-shrink:0">'+site.ad+'</span>'
+      + '<input type="text" class="hl-url" data-idx="'+idx+'" value="'+link.url.replace(/"/g,'&quot;')+'" style="flex:1;font-size:11px;padding:5px 10px;background:var(--bg);border:1px solid var(--brd2);border-radius:6px;color:var(--txt);font-family:monospace;min-width:0" placeholder="https://www.sahibinden.com/...">'
+      + '<button class="hl-sil" data-idx="'+idx+'" style="padding:4px 9px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:5px;color:#f87171;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;align-items:center">'
+      + '<input type="text" class="hl-etiket" data-idx="'+idx+'" value="'+(link.etiket||'')+'" style="width:90px;font-size:11px;padding:4px 8px;background:var(--bg);border:1px solid var(--brd2);border-radius:5px;color:var(--txt);font-family:inherit" placeholder="Etiket">'
+      + '<select class="hl-aralik" data-idx="'+idx+'" style="font-size:11px;padding:4px 8px;background:var(--bg);border:1px solid var(--brd2);border-radius:5px;color:var(--txt);font-family:inherit;cursor:pointer">'
+      + [2,3,4,5,6,8,10,12,15,20,30].map(function(dk){
+          return '<option value="'+dk*60+'"'+(aralikDk==dk?' selected':'')+'>'+(dk)+' dk</option>';
+        }).join('')
+      + '</select>'
+      + '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mut2);cursor:pointer;flex-shrink:0;margin-left:4px">'
+      + '<input type="checkbox" class="hl-aktif" data-idx="'+idx+'"'+(link.aktif!==false?' checked':'')+' style="cursor:pointer"> Aktif'
+      + '</label>'
+      + '</div>';
+    el.appendChild(satir);
+}
+
+function hizliKaydetBasildi() {
+  var el = document.getElementById('hizli-link-listesi');
+  if (!el) return;
+  var linkler = hizliLinkleriYukle();
+  // URL güncelle
+  el.querySelectorAll('.hl-url').forEach(function(inp) {
+    var i = parseInt(inp.getAttribute('data-idx'));
+    if (linkler[i]) linkler[i].url = inp.value.trim();
+  });
+  el.querySelectorAll('.hl-etiket').forEach(function(inp) {
+    var i = parseInt(inp.getAttribute('data-idx'));
+    if (linkler[i]) linkler[i].etiket = inp.value.trim();
+  });
+  el.querySelectorAll('.hl-aralik').forEach(function(sel) {
+    var i = parseInt(sel.getAttribute('data-idx'));
+    if (linkler[i]) linkler[i].aralik = parseInt(sel.value);
+  });
+  el.querySelectorAll('.hl-aktif').forEach(function(chk) {
+    var i = parseInt(chk.getAttribute('data-idx'));
+    if (linkler[i]) linkler[i].aktif = chk.checked;
+  });
+  hizliLinkleriKaydet(linkler);
+  flash('✓ Linkler kaydedildi');
+  hizliListeRender();
+}
+
+// Silme ve ekleme event delegation
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('hl-sil')) {
+    var idx = parseInt(e.target.getAttribute('data-idx'));
+    var linkler = hizliLinkleriYukle();
+    linkler.splice(idx, 1);
+    hizliLinkleriKaydet(linkler);
+    hizliListeRender();
+  }
+});
+
+function hizliEkleBasildi() {
+  var linkler = hizliLinkleriYukle();
+  linkler.push({ url:'', aralik:240, etiket:'', aktif:true });
+  hizliLinkleriKaydet(linkler);
+  hizliListeRender();
+  // Son satırın URL alanına focus
+  var el = document.getElementById('hizli-link-listesi');
+  if (el) {
+    var inputs = el.querySelectorAll('.hl-url');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }
+}
+
+function hizliKurulumYukle() {
+  // Önce kaydet
+  hizliKaydetBasildi();
+  var linkler = hizliLinkleriYukle().filter(function(l){ return l.aktif !== false && l.url; });
+  if (!linkler.length) { flash('Aktif link yok!'); return; }
+
+  var btn = document.getElementById('btn-hizli-kur');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Yükleniyor...'; }
+
+  var urls = linkler.map(function(l) {
+    var site = l.url.includes('arabam') ? 'arabam' : l.url.includes('letgo') ? 'letgo' : 'sahibinden';
+    return { url:l.url, site:site, sayfa:9999, maxIlan:0, aralik:(l.aralik||240)*1000, etiket:l.etiket||'' };
+  });
+
+  var ayarlar = {
+    urls: urls,
+    etiket: urls[0] ? urls[0].etiket : '',
+    aralik: (linkler[0].aralik||240)*1000,
+    toplamSayfa: 9999,
+    baseUrl: urls[0] ? urls[0].url : ''
+  };
+
+  chrome.runtime.sendMessage({action:'otaramaKaydet', ayarlar:ayarlar}, function() {
+    chrome.runtime.sendMessage({action:'otaramaBaslat', ayarlar:ayarlar}, function(r) {
+      if (btn) { btn.disabled=false; btn.textContent='⬇ Yükle ve Tara'; }
+      if (r && r.ok) {
+        flash('▶ Tarama başladı — '+urls.length+' link');
+        var btnTakip = document.getElementById('btn-sekme-takip');
+        if (btnTakip) btnTakip.click();
+      } else {
+        flash('⚠ Tarama zaten çalışıyor');
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Ana sekmeler
   var btnTakip  = document.getElementById('btn-sekme-takip');
@@ -2930,23 +3334,25 @@ function otExtraSatirOlustur(url, sayfa, maxIlan, aralik, etiket, renk, numara) 
     selEtiket.appendChild(o);
   }
 
-  // URL değişince renk + etiket auto-detect
+  // URL değişince otomatik etiket çıkar
   var urlInp = div.querySelector('.ot-extra-url');
-  if (urlInp) urlInp.addEventListener('input', function() {
-    var u = this.value;
-    var renk2 = u.indexOf('arabam') !== -1 ? '#E31837' : u.indexOf('letgo') !== -1 ? '#6B3FA0' : '#FF6600';
-    div.querySelector('span').style.background = renk2;
-    if (window.urldenEtiketCikar) {
-      var otoEtiket = window.urldenEtiketCikar(u);
-      if (otoEtiket) {
-        var etSel2 = div.querySelector('.ot-extra-etiket');
-        if (etSel2 && !etSel2.value) {
-          if (window._etiketEkle) window._etiketEkle(otoEtiket);
-          setTimeout(function(){ if(window._etSelectDoldur) window._etSelectDoldur(); setTimeout(function(){ etSel2.value = otoEtiket; }, 20); }, 30);
-        }
+  if (urlInp) {
+    urlInp.addEventListener('input', function() {
+      var selEt = div.querySelector('.ot-extra-etiket');
+      if (!selEt || selEt.value) return; // zaten seçiliyse dokunma
+      var oto = window.urldenEtiketCikar && window.urldenEtiketCikar(urlInp.value.trim());
+      if (!oto) return;
+      // Etiket listede yoksa ekle
+      if (window._etiketEkle) window._etiketEkle(oto);
+      // Bu select'te seç
+      for (var i=0;i<selEt.options.length;i++) {
+        if (selEt.options[i].value === oto) { selEt.value = oto; return; }
       }
-    }
-  });
+      var o2 = document.createElement('option'); o2.value=oto; o2.textContent=oto; o2.selected=true;
+      selEt.insertBefore(o2, selEt.lastChild); // "Yeni Etiket"'ten önce
+      selEt.value = oto;
+    });
+  }
 
   // Sil butonu
   div.querySelector('.ot-extra-sil').addEventListener('click', function(){ div.remove(); _otNumaraGuncelle(); });
@@ -4091,23 +4497,29 @@ function manuelUrlEkle(url, sayfa, maxIlan, etiket) {
   // Etiket listesini doldur
   if (window._etSelectDoldur) window._etSelectDoldur();
 
-  // URL değişince renk güncelle + etiket auto-detect
+  // URL yapıştırılınca otomatik etiket çıkar
+  var mUrlInp = div.querySelector('.manuel-url-inp');
+  if (mUrlInp) {
+    mUrlInp.addEventListener('input', function() {
+      var selEt = div.querySelector('.manuel-etiket-inp');
+      if (!selEt || selEt.value) return; // zaten seçiliyse dokunma
+      var oto = window.urldenEtiketCikar && window.urldenEtiketCikar(mUrlInp.value.trim());
+      if (!oto) return;
+      if (window._etiketEkle) window._etiketEkle(oto);
+      for (var i=0;i<selEt.options.length;i++) {
+        if (selEt.options[i].value === oto) { selEt.value = oto; return; }
+      }
+      var o2=document.createElement('option');o2.value=oto;o2.textContent=oto;o2.selected=true;
+      selEt.appendChild(o2); selEt.value=oto;
+    });
+  }
+
+  // URL değişince renk güncelle
   div.querySelector('.manuel-url-inp').addEventListener('input', function() {
     var u = this.value;
     var s = u.indexOf('arabam') !== -1 ? 'arabam' : u.indexOf('letgo') !== -1 ? 'letgo' : 'sahibinden';
     div.querySelector('span').style.background = renkMap[s] || '#888';
     guncelleGlobalAralikDurum();
-    // Etiket auto-detect
-    if (window.urldenEtiketCikar) {
-      var otoEtiket = window.urldenEtiketCikar(u);
-      if (otoEtiket) {
-        var etSel = div.querySelector('.manuel-etiket-inp');
-        if (etSel && !etSel.value) {
-          if (window._etiketEkle) window._etiketEkle(otoEtiket);
-          setTimeout(function(){ if(etSel) etSel.value = otoEtiket; }, 50);
-        }
-      }
-    }
   });
 
   // Site aralik değişince global alanı güncelle + canlı taramaya uygula
@@ -4881,328 +5293,415 @@ document.addEventListener('DOMContentLoaded', function() {
   var bzYilIleriEl=document.getElementById('bz-yil-ileri');
   if(bzYilGeriEl)  bzYilGeriEl.addEventListener('input',  function(){ benzerYilPreviewGuncelle(); });
   if(bzYilIleriEl) bzYilIleriEl.addEventListener('input', function(){ benzerYilPreviewGuncelle(); });
+
+  // ── GitHub buton event listener'ları ─────────────────────────────────
+  var _btnGhYukle = document.getElementById('btn-gh-yukle');
+  if (_btnGhYukle) {
+    _btnGhYukle.addEventListener('click', function() {
+      if (!confirm("GitHub'a TÜM ilanlar yüklenecek. Birkaç dakika sürebilir. Devam?")) return;
+      _btnGhYukle.disabled = true;
+      _btnGhYukle.textContent = '⏳ Yükleniyor...';
+      chrome.runtime.sendMessage({ action: 'tamSync' }, function(r) {
+        _btnGhYukle.disabled = false;
+        _btnGhYukle.textContent = "🐙 GitHub'a Yükle";
+        if (chrome.runtime.lastError || !r || !r.ok) {
+          flash('✗ GitHub yükleme hatası!');
+        } else {
+          flash('✓ GitHub\'a başarıyla yüklendi!');
+        }
+      });
+    });
+    console.log('[ARAÇRADAR] btn-gh-yukle bağlandı');
+  } else {
+    console.warn('[ARAÇRADAR] btn-gh-yukle BULUNAMADI');
+  }
+
+  var _btnFbCek = document.getElementById('btn-fb-cek');
+  if (_btnFbCek) {
+    _btnFbCek.addEventListener('click', function() {
+      if (!confirm("GitHub'dan TÜM ilanlar çekilecek. Devam?")) return;
+      _btnFbCek.disabled = true;
+      _btnFbCek.textContent = '⏳ Çekiliyor...';
+      chrome.runtime.sendMessage({ action: 'firebaseCek' }, function(r) {
+        _btnFbCek.disabled = false;
+        _btnFbCek.textContent = "🐙 GitHub'dan Al";
+        if (chrome.runtime.lastError) {
+          flash('✗ Bağlantı hatası');
+        } else {
+          var yeni = r && r.yeni ? r.yeni : 0;
+          flash('✓ ' + yeni + ' ilan alındı');
+          if (yeni > 0) setTimeout(yukle, 500);
+        }
+      });
+    });
+    console.log('[ARAÇRADAR] btn-fb-cek bağlandı');
+  } else {
+    console.warn('[ARAÇRADAR] btn-fb-cek BULUNAMADI');
+  }
+
+  // GitHub butonları
+  var _bGhY = document.getElementById('btn-gh-yukle');
+  if (_bGhY) _bGhY.addEventListener('click', function() {
+    if (!confirm("GitHub'a TÜM ilanlar yüklenecek. Devam?")) return;
+    _bGhY.disabled=true; _bGhY.textContent='⏳...';
+    chrome.runtime.sendMessage({action:'tamSync'}, function(r) {
+      _bGhY.disabled=false; _bGhY.textContent="🐙 GitHub'a Yükle";
+      flash((!r||!r.ok) ? '✗ Yükleme hatası' : '✓ GitHub\'a yüklendi!');
+    });
+  });
+
+  var _bFbC = document.getElementById('btn-fb-cek');
+  if (_bFbC) _bFbC.addEventListener('click', function() {
+    if (!confirm("GitHub'dan TÜM ilanlar çekilecek. Devam?")) return;
+    _bFbC.disabled=true; _bFbC.textContent='⏳...';
+    chrome.runtime.sendMessage({action:'firebaseCek'}, function(r) {
+      _bFbC.disabled=false; _bFbC.textContent="🐙 GitHub'dan Al";
+      var yeni=r&&r.yeni?r.yeni:0;
+      flash('✓ GitHub\'dan ' + yeni + ' ilan alındı');
+      if(yeni>0) setTimeout(yukle,500);
+    });
+  });
+
+  // Link export/import butonları
+  var _bLE = document.getElementById('btn-link-export');
+  if (_bLE) _bLE.addEventListener('click', linkExportEt);
+  var _bLIF = document.getElementById('btn-link-import-file');
+  var _bLIB = document.getElementById('btn-link-import-btn');
+  if (_bLIB && _bLIF) {
+    _bLIB.addEventListener('click', function(){ _bLIF.click(); });
+    _bLIF.addEventListener('change', function(e) {
+      var f=e.target.files&&e.target.files[0]; if(!f) return;
+      var r=new FileReader();
+      r.onload=function(ev){ linkImportEt(ev.target.result); };
+      r.readAsText(f,'UTF-8'); e.target.value='';
+    });
+  }
+
+  // Hızlı kurulum butonu
+  var btnHK = document.getElementById('btn-hizli-kur');
+  if (btnHK) btnHK.addEventListener('click', hizliKurulumYukle);
+
+  // Otomatik başlat
+  setTimeout(otomatikBaslat, 1500);
+
+  // ── Tarama durumu polling ────────────────────────────────────────────────────
+  // onMessage yerine 2sn'de bir background'dan durum sorgula
+  function taramaDurumuSorgula() {
+    chrome.runtime.sendMessage({ action: 'durumAl' }, function(r) {
+      if (chrome.runtime.lastError || !r) return;
+      
+      var aktif = r.aktif;
+      var sayacDiv = document.getElementById('tarama-sayac');
+      if (sayacDiv) sayacDiv.style.display = aktif ? 'block' : 'none';
+
+      // Header durdur butonunu ve site butonlarını güncelle
+      _headerDurGuncelle(aktif, r.siteSayac);
+
+      if (!aktif) return;
+
+      // Toplam sayaçlar
+      var yeniEl = document.getElementById('sayac-toplam-yeni');
+      var guncEl = document.getElementById('sayac-toplam-gunc');
+      var dbEl   = document.getElementById('sayac-db-toplam');
+      if (yeniEl) yeniEl.textContent = (r.eklenen||0).toLocaleString('tr-TR');
+      if (guncEl) guncEl.textContent = (r.guncellenen||0) + ' güncellendi';
+
+      // Stat kutucukları
+      var stEl = document.getElementById('stat-toplam') || document.getElementById('st-toplam');
+      if (stEl && r.dbToplam) stEl.textContent = r.dbToplam.toLocaleString('tr-TR');
+
+      // Site sayaçları — siteKey 'url_0','url_1'... her birinde .site alanı var
+      var siteSayac = r.siteSayac || {};
+      var prefixMap = { sahibinden:'sayac-sb', arabam:'sayac-ar', letgo:'sayac-lg' };
+
+      // Her url_N key'ini site adına göre grupla (en güncel olanı al)
+      var siteVerisi = {}; // {sahibinden: sd, arabam: sd, letgo: sd}
+      Object.keys(siteSayac).forEach(function(key) {
+        var sd = siteSayac[key];
+        if (!sd) return;
+        var siteName = sd.site || key; // 'sahibinden'|'arabam'|'letgo'
+        var mevcut = siteVerisi[siteName];
+        if (!mevcut) {
+          siteVerisi[siteName] = sd;
+        } else {
+          // Birden fazla URL aynı site için — sayıları topla
+          siteVerisi[siteName] = {
+            site: siteName,
+            sayfa: (mevcut.sayfa||0) + (sd.sayfa||0),
+            toplamSayfa: Math.max(mevcut.toplamSayfa||0, sd.toplamSayfa||0),
+            eklenen: (mevcut.eklenen||0) + (sd.eklenen||0),
+            guncellenen: (mevcut.guncellenen||0) + (sd.guncellenen||0),
+            bitti: mevcut.bitti && sd.bitti,
+            aralik: mevcut.aralik || sd.aralik,
+            url: mevcut.url || sd.url
+          };
+        }
+      });
+
+      function sv(id, v) { var el=document.getElementById(id); if(el) el.textContent=v; }
+
+      Object.keys(prefixMap).forEach(function(site) {
+        var prefix = prefixMap[site];
+        var sd = siteVerisi[site] || {};
+        var prefixKisa = prefix.replace('sayac-','');
+
+        sv(prefix+'-yeni',  (sd.eklenen||0).toLocaleString('tr-TR'));
+        sv(prefix+'-gunc',  (sd.guncellenen||0) > 0 ? '+'+(sd.guncellenen||0) : '0');
+        sv(prefix+'-sayfa', (sd.sayfa||0)+'/'+(sd.toplamSayfa||'?'));
+
+        if (sd.url) {
+          try { sv(prefix+'-url-kisa', new URL(sd.url).hostname.replace('www.','')); } catch(e){}
+        }
+
+        var pct = sd.toplamSayfa ? Math.round((sd.sayfa||0)/sd.toplamSayfa*100) : 0;
+        var progEl = document.getElementById('tup-'+prefixKisa+'-prog');
+        if (progEl) progEl.style.width = pct+'%';
+
+        var tupEl    = document.getElementById('tup-'+prefixKisa);
+        var durumEl  = document.getElementById('tup-'+prefixKisa+'-durum');
+        var durumTxt = document.getElementById(prefix+'-durum-txt');
+
+        if (sd.bitti) {
+          if (tupEl) tupEl.classList.remove('aktif');
+          if (durumEl) { durumEl.className='tup-durum-badge bitti'; durumEl.textContent='✓ Bitti'; }
+          if (durumTxt) durumTxt.textContent = (sd.eklenen||0)+' yeni eklendi';
+        } else if ((sd.eklenen||0) > 0 || (sd.sayfa||0) > 0) {
+          if (tupEl) tupEl.classList.add('aktif');
+          if (durumEl) { durumEl.className='tup-durum-badge aktif'; durumEl.textContent='⚡ Aktif'; }
+          if (durumTxt) durumTxt.textContent = 'Taranıyor... sayfa '+(sd.sayfa||0);
+        } else {
+          if (tupEl) tupEl.classList.remove('aktif');
+          if (durumEl) { durumEl.className='tup-durum-badge'; durumEl.textContent='Bekliyor'; }
+          if (durumTxt) durumTxt.textContent = 'Başlıyor...';
+        }
+
+        if (sd.aralik && !sd.bitti) {
+          geriSayimlariDongule(site, Math.round(sd.aralik/1000));
+        }
+      });
+    });
+  }
+
+  // 2sn'de bir sorgula
+  setInterval(taramaDurumuSorgula, 2000);
+  taramaDurumuSorgula(); // İlk çağrı
+
+  // Silme butonları
+  document.querySelectorAll('.sil-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { ilanSilBasildi(this); });
+  });
+
+  var btnAK = document.getElementById('btn-aktif-kontrol');
+  if (btnAK) btnAK.addEventListener('click', aktifKontrolBasildi);
+
+  var btnTS = document.getElementById('btn-tumunu-sil-gh');
+  if (btnTS) btnTS.addEventListener('click', tumunuSilBasildi);
+
+  // Tema yükle
+  var _kayitliTema = 0;
+  try { _kayitliTema = parseInt(localStorage.getItem('ar_tema')) || 0; } catch(e) {}
+  temaUygula(_kayitliTema);
+  var btnTema = document.getElementById('btn-tema');
+  if (btnTema) btnTema.addEventListener('click', temaSonraki);
+
+  // Hızlı link yönetimi
+  hizliListeRender();
+  var btnHK = document.getElementById('btn-hizli-kur');
+  if (btnHK) btnHK.addEventListener('click', hizliKurulumYukle);
+  var btnHKay = document.getElementById('btn-hizli-kaydet');
+  if (btnHKay) btnHKay.addEventListener('click', hizliKaydetBasildi);
+  var btnHEkle = document.getElementById('btn-hizli-ekle');
+  if (btnHEkle) btnHEkle.addEventListener('click', hizliEkleBasildi);
+
+  // Header Durdur butonu — tümünü durdur
+  var btnHdrDur = document.getElementById('btn-header-dur');
+  if (btnHdrDur) {
+    btnHdrDur.addEventListener('click', function() {
+      chrome.runtime.sendMessage({ action: 'taramaDurdur' }, function() {
+        if (chrome.runtime.lastError) {}
+      });
+      if (window._taramaIntervallar) {
+        window._taramaIntervallar.forEach(function(id){ clearInterval(id); clearTimeout(id); });
+        window._taramaIntervallar = [];
+      }
+      flash('⏹ Tarama durduruldu');
+      _headerDurGuncelle(false);
+      // Site butonlarını gizle
+      document.querySelectorAll('.site-dur-btn').forEach(function(b){ b.style.display='none'; });
+    });
+  }
+
+  // "Hepsini Durdur" butonu
+  var btnDurHepsi = document.getElementById('btn-dur-hepsi');
+  if (btnDurHepsi) {
+    btnDurHepsi.addEventListener('click', function() {
+      chrome.runtime.sendMessage({ action: 'taramaDurdur' }, function() {
+        if (chrome.runtime.lastError) {}
+      });
+      flash('⏹ Tüm tarama durduruldu');
+      _headerDurGuncelle(false);
+      var durSatiri = document.getElementById('dur-satiri');
+      if (durSatiri) durSatiri.style.display = 'none';
+    });
+  }
+
+  // Site bazlı ⏹ butonları — event delegation
+  document.addEventListener('click', function(e) {
+    if (!e.target.classList.contains('site-dur-btn')) return;
+    var site = e.target.getAttribute('data-site');
+    if (!site) return;
+    chrome.runtime.sendMessage({ action: 'siteDurdur', site: site }, function() {
+      if (chrome.runtime.lastError) {}
+    });
+    e.target.style.display = 'none';
+    // Site badge'ini "Durdu" yap
+    var prefix = site === 'sahibinden' ? 'sb' : site === 'arabam' ? 'ar' : 'lg';
+    var badge = document.getElementById('tup-' + prefix + '-durum');
+    if (badge) { badge.className = 'tup-durum-badge bitti'; badge.textContent = '⏹ Durdu'; }
+    flash('⏹ ' + site + ' durduruldu');
+  });
 });
+
+// Header durdur butonunu tarama durumuna göre güncelle
+function _headerDurGuncelle(aktif, siteSayac) {
+  // Header'daki küçük durdur butonu (hep görünür, aktifken parlak)
+  var btn = document.getElementById('btn-header-dur');
+  if (btn) {
+    btn.style.opacity = aktif ? '1' : '0.55';
+    btn.style.boxShadow = aktif ? '0 0 8px rgba(239,68,68,0.4)' : '';
+  }
+  // Tüplerin altındaki durdur satırını göster/gizle
+  var durSatiri = document.getElementById('dur-satiri');
+  if (durSatiri) {
+    durSatiri.style.display = aktif ? 'grid' : 'none';
+  }
+  // Her site butonunu bitti durumuna göre gizle
+  if (aktif) {
+    var sc = siteSayac || {};
+    document.querySelectorAll('.site-dur-btn').forEach(function(sitBtn) {
+      var site = sitBtn.getAttribute('data-site');
+      var siteBitti = false;
+      Object.keys(sc).forEach(function(k) {
+        if ((sc[k].site || k) === site && sc[k].bitti) siteBitti = true;
+      });
+      sitBtn.style.display = siteBitti ? 'none' : '';
+    });
+  }
+}
 
 // Bildirimden gelen mesaj
 chrome.runtime.onMessage.addListener(function(msg){
   if (msg.action==='benzerSekmeAc') benzerSekmeAc(msg.url, msg.fiyat);
+
+  // Tarama durum güncellemesi — tüpleri güncelle
+  if (msg.action === 'taramaDurumu' && msg.veri) {
+    var v = msg.veri;
+    var aktif = v.aktif;
+    var sayacDiv = document.getElementById('tarama-sayac');
+    if (sayacDiv) sayacDiv.style.display = aktif ? 'block' : 'none';
+
+    // Toplam sayaçlar
+    var tEl = document.getElementById('sayac-toplam-yeni');
+    if (tEl) tEl.textContent = (v.toplam_eklenen||0).toLocaleString('tr-TR');
+    var gEl = document.getElementById('sayac-toplam-gunc');
+    if (gEl) gEl.textContent = (v.toplam_guncellenen||0)+' güncellendi';
+
+    // Site sayaçları
+    var siteler = [];
+    try { siteler = typeof v.siteler === 'string' ? JSON.parse(v.siteler) : (v.siteler||[]); } catch(e){}
+    var siteMap = {};
+    siteler.forEach(function(s){ siteMap[s.site] = s; });
+
+    var prefixMap = {sahibinden:'sayac-sb', arabam:'sayac-ar', letgo:'sayac-lg'};
+    Object.keys(prefixMap).forEach(function(site) {
+      var prefix = prefixMap[site];
+      var sd = siteMap[site] || {};
+      guncelleKutu(prefix, null, sd);
+    });
+
+    // extra URL'ler için (url_1, url_2 gibi keyler)
+    Object.keys(siteMap).forEach(function(key) {
+      if (key.indexOf('url_') === 0) {
+        var sd = siteMap[key];
+        var site = sd.site || 'sahibinden';
+        var prefix = prefixMap[site] || 'sayac-sb';
+        guncelleKutu(prefix, null, sd);
+      }
+    });
+
+    // DB toplam
+    var dbEl = document.getElementById('sayac-db-toplam');
+    if (dbEl && v.db_toplam) dbEl.textContent = parseInt(v.db_toplam).toLocaleString('tr-TR');
+  }
 });
 
 // ═══════════════════════════════════════════════════════
+// URL → OTOMATİK ETİKET ÇIKARICI
+// ═══════════════════════════════════════════════════════
+window.urldenEtiketCikar = function(url) {
+  if (!url) return '';
+  var u = url.toLowerCase();
+
+  // ── Araç TİPİ ───────────────────────────────────────
+  var tip = '';
+  // Sahibinden path tabanlı
+  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi-suv-pick-up') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('kategori/otomobil') !== -1) tip = 'Otomobil';
+  else if (u.indexOf('motosiklet') !== -1) tip = 'Motosiklet';
+  else if (u.indexOf('kamyonet') !== -1 || u.indexOf('panelvan') !== -1) tip = 'Kamyonet';
+  else if (u.indexOf('ticari') !== -1) tip = 'Ticari';
+  else if (u.indexOf('minivan') !== -1 || u.indexOf('minibus') !== -1) tip = 'Minivan';
+  // Arabam path tabanlı
+  else if (u.indexOf('ikinci-el/arazi') !== -1 || u.indexOf('ikinci-el/suv') !== -1) tip = 'Arazi SUV';
+  else if (u.indexOf('ikinci-el/otomobil') !== -1) tip = 'Otomobil';
+  else if (u.indexOf('ikinci-el/hafif-ticari') !== -1 || u.indexOf('ikinci-el/kamyonet') !== -1) tip = 'Hafif Ticari';
+  // Letgo kategori
+  else if (u.indexOf('/araba_c') !== -1 || u.indexOf('/arabalar_c') !== -1) tip = 'Otomobil';
+
+  // ── VİTES ────────────────────────────────────────────
+  var vites = '';
+  // Sahibinden path'te vites sıralaması: /dizel,benzin-lpg/otomatik/
+  if (/\/otomatik[\/\?]/.test(u) || u.indexOf('gear=otomatik') !== -1 || u.indexOf('vites-tipi:otomatik') !== -1) vites = 'Otomatik';
+  else if (/\/manuel[\/\?]/.test(u) || u.indexOf('gear=manuel') !== -1 || u.indexOf('vites-tipi:manuel') !== -1) vites = 'Manuel';
+  // Yarı otomatik — dahil et ama sadece otomatik seçilmemişse
+  else if (u.indexOf('yar%c4%b1+otomatik') !== -1 || u.indexOf('yarı+otomatik') !== -1) vites = 'Otomatik';
+
+  // ── HASAR DURUMU ─────────────────────────────────────
+  var hasar = '';
+  if (u.indexOf('severaldamaged=false') !== -1 || u.indexOf('agir-hasar-kayitli:hayir') !== -1) hasar = 'Hasarsız';
+  else if (u.indexOf('severaldamaged=true') !== -1 || u.indexOf('agir-hasar-kayitli:evet') !== -1) hasar = 'Hasarlı';
+  // Sahibinden: a116445=1263354 → hasarsız, a116445=1263352 → hasarlı
+  else if (u.indexOf('a116445=1263354') !== -1 || u.indexOf('a116446=1263360') !== -1) hasar = 'Hasarsız';
+  else if (u.indexOf('a116445=1263352') !== -1) hasar = 'Hasarlı';
+
+  // ── YAKIT ────────────────────────────────────────────
+  var yakit = '';
+  var yakit_arr = [];
+  if (u.indexOf('benzin') !== -1) yakit_arr.push('Benz');
+  if (u.indexOf('dizel') !== -1 || u.indexOf('diesel') !== -1) yakit_arr.push('Diz');
+  if (u.indexOf('lpg') !== -1) yakit_arr.push('LPG');
+  if (u.indexOf('hibrit') !== -1 || u.indexOf('hybrid') !== -1) yakit_arr.push('Hib');
+  if (u.indexOf('elektrik') !== -1 || u.indexOf('electric') !== -1) yakit_arr.push('Elk');
+  if (yakit_arr.length && yakit_arr.length < 4) yakit = yakit_arr.join('+');
+
+  // ── SONUÇ ETİKET ────────────────────────────────────
+  var parcalar = [];
+  if (tip) parcalar.push(tip);
+  if (vites) parcalar.push(vites);
+  if (hasar) parcalar.push(hasar);
+  // Yakıtı sadece tek veya özel seçilmişse ekle
+  if (yakit && yakit_arr.length === 1) parcalar.push(yakit_arr[0]);
+
+  return parcalar.join(' ');
+};
 
 // ═══════════════════════════════════════════════════════
-// AYARLAR & TARAMA SEKMESİ
-// ═══════════════════════════════════════════════════════
-(function(){
-  var GH_REPO = 'tasiyicihesap/aracradar';
-  var GH_API  = 'https://api.github.com';
-  var _urls = [];
-  var _aralik = 240000;
-  var _periyot = 30;
-
-  function ghToken() {
-    try { return localStorage.getItem('ar_gh_token') || ''; } catch(e) { return ''; }
-  }
-
-  function renkUrl(url) {
-    var u = (url||'').toLowerCase();
-    return u.indexOf('arabam')!==-1?'#E31837':u.indexOf('letgo')!==-1?'#6B3FA0':'#FF6600';
-  }
-  function siteEtiketi(url) {
-    var u = (url||'').toLowerCase();
-    return u.indexOf('arabam')!==-1?'ARB':u.indexOf('letgo')!==-1?'LTG':'SHB';
-  }
-
-  function urlSatirOlustur(obj, idx) {
-    var renk = renkUrl(obj.url);
-    var div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--brd2);border-radius:7px;padding:7px 9px';
-    div.innerHTML =
-      '<span style="font-size:10px;background:'+renk+';color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0;font-weight:700">'+siteEtiketi(obj.url)+'</span>'+
-      '<input type="text" class="ay-url-inp" value="'+((obj.url||'').replace(/"/g,'&quot;'))+'" placeholder="https://..." style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px">'+
-      '<select class="ay-etiket-sel ot-satir-etiket" style="width:110px;padding:5px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px"><option value="">--</option></select>'+
-      '<input type="number" class="ay-sayfa-inp" value="'+(obj.sayfa||9999)+'" min="1" title="Max sayfa" style="width:55px;padding:5px;border:1px solid var(--brd);border-radius:5px;background:var(--yuz);color:var(--txt);font-size:11px;text-align:center">'+
-      '<button class="ay-sil-btn" data-idx="'+idx+'" style="padding:3px 7px;background:transparent;color:var(--red);border:1px solid var(--brd2);border-radius:5px;cursor:pointer;font-size:14px">✕</button>';
-    // Renk güncelle + auto-etiket
-    var urlInp = div.querySelector('.ay-url-inp');
-    urlInp.addEventListener('input', function(){
-      var u = this.value;
-      div.querySelector('span').style.background = renkUrl(u);
-      if(window.urldenEtiketCikar){
-        var e2=window.urldenEtiketCikar(u);
-        var sel=div.querySelector('.ay-etiket-sel');
-        if(e2&&sel&&!sel.value){if(window._etiketEkle)window._etiketEkle(e2);setTimeout(function(){if(window._etSelectDoldur)window._etSelectDoldur();setTimeout(function(){sel.value=e2;},20);},30);}
-      }
-    });
-    // Etiket select doldur
-    var selEt = div.querySelector('.ay-etiket-sel');
-    if(window._etiketListesi){
-      window._etiketListesi().forEach(function(e){
-        var o=document.createElement('option');o.value=e;o.textContent=e;
-        if(e===(obj.etiket||''))o.selected=true;
-        selEt.appendChild(o);
-      });
-    } else if(obj.etiket){
-      var o=document.createElement('option');o.value=obj.etiket;o.textContent=obj.etiket;o.selected=true;selEt.appendChild(o);
-    }
-    if(obj.etiket) selEt.value = obj.etiket;
-    return div;
-  }
-
-  function listeyiGoster() {
-    var el = document.getElementById('ay-url-listesi');
-    if(!el) return;
-    el.innerHTML = '';
-    if(!_urls.length){
-      el.innerHTML='<div style="text-align:center;padding:20px;color:var(--mut);font-size:12px">Henüz URL yok. "+ URL Ekle" ile başla.</div>';
-      return;
-    }
-    _urls.forEach(function(obj,i){ el.appendChild(urlSatirOlustur(obj,i)); });
-    if(window._etSelectDoldur) window._etSelectDoldur();
-  }
-
-  function listeyiOku() {
-    var el = document.getElementById('ay-url-listesi');
-    if(!el) return [];
-    var satirlar = el.querySelectorAll('div[style*="display:flex"]');
-    var liste = [];
-    satirlar.forEach(function(div){
-      var urlInp = div.querySelector('.ay-url-inp');
-      var etSel  = div.querySelector('.ay-etiket-sel');
-      var sayfaI = div.querySelector('.ay-sayfa-inp');
-      if(!urlInp||!urlInp.value.trim()) return;
-      var u = urlInp.value.trim();
-      var site = u.indexOf('arabam')!==-1?'arabam':u.indexOf('letgo')!==-1?'letgo':'sahibinden';
-      liste.push({url:u, site:site, sayfa:parseInt(sayfaI&&sayfaI.value||'9999')||9999,
-        maxIlan:0, aralik:_aralik, etiket:etSel?etSel.value:''});
-    });
-    return liste;
-  }
-
-  function ayarlariYukle() {
-    // Önce ayarlar.json'dan oku (GitHub raw)
-    fetch('https://raw.githubusercontent.com/'+GH_REPO+'/main/data/ayarlar.json?t='+Date.now())
-      .then(function(r){return r.json();})
-      .then(function(d){
-        try {
-          var ot = typeof d.ot_ayarlar==='string' ? JSON.parse(d.ot_ayarlar) : d.ot_ayarlar;
-          if(ot && ot.urls && ot.urls.length) { _urls = ot.urls; }
-          if(ot && ot.aralik) _aralik = ot.aralik;
-          if(ot && ot.periyot) _periyot = ot.periyot;
-        } catch(e){}
-        // Genel ayarları set et
-        var selA = document.getElementById('ay-aralik');
-        if(selA) selA.value = String(_aralik);
-        var selP = document.getElementById('ay-periyot');
-        if(selP) selP.value = String(_periyot);
-        listeyiGoster();
-      })
-      .catch(function(){ listeyiGoster(); });
-  }
-
-  function ghKaydet() {
-    var token = ghToken();
-    if(!token){ flash('⚠ GitHub token girilmedi — aşağıdan kaydet'); return; }
-    var liste = listeyiOku();
-    _aralik = parseInt((document.getElementById('ay-aralik')||{value:'240000'}).value)||240000;
-    _periyot = parseInt((document.getElementById('ay-periyot')||{value:'30'}).value)||30;
-    var ot = {urls:liste, etiket:liste[0]?liste[0].etiket:'', aralik:_aralik, periyot:_periyot,
-              toplamSayfa:9999, baseUrl:liste[0]?liste[0].url:''};
-    var yeniIcerik = JSON.stringify({versiyon:1, tarih:Date.now(),
-      sb_ayarlar:null, ot_ayarlar:JSON.stringify(ot)});
-    // GitHub API ile dosyayı güncelle
-    fetch(GH_API+'/repos/'+GH_REPO+'/contents/data/ayarlar.json',
-      {headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}})
-      .then(function(r){return r.json();})
-      .then(function(mevcut){
-        var sha = mevcut.sha;
-        return fetch(GH_API+'/repos/'+GH_REPO+'/contents/data/ayarlar.json',{
-          method:'PUT',
-          headers:{'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
-          body:JSON.stringify({message:'AraçRadar ayarlar güncellendi',
-            content:btoa(unescape(encodeURIComponent(yeniIcerik))),sha:sha})
-        });
-      })
-      .then(function(r){
-        if(r.ok){ flash("✓ GitHub'a kaydedildi"); _urls = liste; }
-        else{ r.text().then(function(t){flash('✗ Hata: '+t.substring(0,80));});}
-      })
-      .catch(function(e){ flash('✗ '+e.message); });
-  }
-
-  function extDurumGoster() {
-    var el = document.getElementById('ay-ext-durum');
-    var ikon = document.getElementById('ay-ext-ikon');
-    var baslik = document.getElementById('ay-ext-baslik');
-    var acik = document.getElementById('ay-ext-aciklama');
-    var indir = document.getElementById('ay-ext-indir');
-    if(!el) return;
-    // chrome.runtime.id var mı?
-    var extVar = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
-    // Web shim'i mi gerçek mi? — shim'de sendMessage her zaman cevap verir ama id yok
-    var gercekExt = extVar && chrome.runtime.id !== 'web-shim';
-    if(gercekExt){
-      el.style.background='rgba(42,122,59,0.15)';el.style.border='1px solid rgba(42,122,59,0.3)';
-      if(ikon) ikon.textContent='✅';
-      if(baslik) baslik.textContent='Extension bağlı ve aktif';
-      if(acik) acik.textContent="Tarama popup'tan başlatılabilir. Bu sayfada URL listesini düzenleyebilirsin.";
-    } else {
-      el.style.background='rgba(255,152,0,0.1)';el.style.border='1px solid rgba(255,152,0,0.3)';
-      if(ikon) ikon.textContent='🌐';
-      if(baslik) baslik.textContent='Web görünümü — Tarama extension ile yapılır';
-      if(acik) acik.textContent="URL listesini buradan düzenle ve GitHub'a kaydet. Extension'ı aynı hesapla açtığında ayarları okur.";
-      if(indir) indir.style.display='block';
-    }
-  }
-
-  window.addEventListener('DOMContentLoaded', function(){
-    ayarlariYukle();
-    extDurumGoster();
-
-    // Token kaydet
-    var tokenInp = document.getElementById('ay-gh-token');
-    var tokenKaydet = document.getElementById('ay-token-kaydet');
-    var tokenDurum = document.getElementById('ay-token-durum');
-    // Kayıtlı token'ı göster (kısaltılmış)
-    if(tokenInp){
-      var kt = ghToken();
-      if(kt) tokenInp.value = kt;
-    }
-    if(tokenKaydet) tokenKaydet.addEventListener('click', function(){
-      var v = (tokenInp&&tokenInp.value.trim())||'';
-      if(!v){flash('⚠ Token boş'); return;}
-      try { localStorage.setItem('ar_gh_token', v); } catch(e){}
-      if(tokenDurum) tokenDurum.innerHTML = '<span style="color:#2a7a3b">✓ Token kaydedildi</span>';
-      flash('✓ Token kaydedildi');
-    });
-
-    // URL ekle
-    var btnEkle = document.getElementById('ay-url-ekle');
-    if(btnEkle) btnEkle.addEventListener('click', function(){
-      _urls.push({url:'',site:'sahibinden',sayfa:9999,maxIlan:0,aralik:_aralik,etiket:''});
-      listeyiGoster();
-      // Son satıra scroll
-      var el=document.getElementById('ay-url-listesi');
-      if(el){var son=el.lastElementChild;if(son)son.scrollIntoView({behavior:'smooth'});
-        var inp=son&&son.querySelector('.ay-url-inp');if(inp)inp.focus();}
-    });
-
-    // Sil (event delegation)
-    var listeEl = document.getElementById('ay-url-listesi');
-    if(listeEl) listeEl.addEventListener('click', function(e){
-      var btn = e.target.closest('.ay-sil-btn');
-      if(!btn) return;
-      var idx = parseInt(btn.getAttribute('data-idx'));
-      _urls.splice(idx,1);
-      listeyiGoster();
-    });
-
-    // GitHub'a kaydet
-    var btnKaydet = document.getElementById('ay-kaydet');
-    if(btnKaydet) btnKaydet.addEventListener('click', ghKaydet);
-
-    // Aralik/periyot değişince _aralik güncelle
-    var selA = document.getElementById('ay-aralik');
-    if(selA) selA.addEventListener('change', function(){ _aralik=parseInt(this.value)||240000; });
-    var selP = document.getElementById('ay-periyot');
-    if(selP) selP.addEventListener('change', function(){ _periyot=parseInt(this.value)||30; });
-
-    // ── Bireysel "Tara" ve "Toplu Tara" butonları ──
-    // Extension varsa sendMessage ile başlat; yoksa web şimdi kullanamaz, bilgi ver
-    function tekSiteTara(site) {
-      var urlId   = {sb:'ot-url-sb',   ar:'ot-url-ar',   lg:'ot-url-lg'}[site];
-      var sayfaId = {sb:'ot-sayfa-sb', ar:'ot-sayfa-ar', lg:'ot-sayfa-lg'}[site];
-      var aralId  = {sb:'ot-aralik-sb',ar:'ot-aralik-ar',lg:'ot-aralik-lg'}[site];
-      var durumId = {sb:'tara-sb-durum',ar:'tara-ar-durum',lg:'tara-lg-durum'}[site];
-      var url   = (document.getElementById(urlId)||{}).value||'';
-      var sayfa = parseInt((document.getElementById(sayfaId)||{value:'50'}).value)||50;
-      var aralik= parseInt((document.getElementById(aralId)||{value:'90'}).value)||90;
-      var etiket= (document.getElementById('ot-etiket')||{}).value||'';
-      var siteName = {sb:'sahibinden',ar:'arabam',lg:'letgo'}[site];
-      var durumEl = document.getElementById(durumId);
-      if(!url){if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ URL boş</span>'; return;}
-
-      if(!_extGercek){
-        if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ Tarama için AraçRadar extension\'ı gerekli — popup\'tan başlat</span>';
-        return;
-      }
-      var ot = {urls:[{url:url,site:siteName,sayfa:sayfa,maxIlan:0,aralik:aralik*1000,etiket:etiket}],
-        etiket:etiket,aralik:aralik*1000,periyot:_periyot,toplamSayfa:sayfa,baseUrl:url};
-      if(durumEl)durumEl.innerHTML='<span style="color:#8b949e">⏳ Başlatılıyor...</span>';
-      chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
-        if(durumEl)durumEl.innerHTML='<span style="color:#3fb950">✓ Tarama başlatıldı</span>';
-      });
-    }
-
-    function topluTara() {
-      var durumEl = document.getElementById('ay-kaydet-durum');
-      if(!_extGercek){
-        if(durumEl)durumEl.innerHTML='<span style="color:#f85149">⚠ Tarama için AraçRadar extension\'ı gerekli — popup\'tan başlat</span>';
-        return;
-      }
-      var etiket= (document.getElementById('ot-etiket')||{}).value||'';
-      var urlSb = (document.getElementById('ot-url-sb')||{}).value||'';
-      var urlAr = (document.getElementById('ot-url-ar')||{}).value||'';
-      var urlLg = (document.getElementById('ot-url-lg')||{}).value||'';
-      var spSb  = parseInt((document.getElementById('ot-sayfa-sb')||{value:'100'}).value)||100;
-      var spAr  = parseInt((document.getElementById('ot-sayfa-ar')||{value:'50'}).value)||50;
-      var spLg  = parseInt((document.getElementById('ot-sayfa-lg')||{value:'50'}).value)||50;
-      var arSb  = parseInt((document.getElementById('ot-aralik-sb')||{value:'210'}).value)||210;
-      var arAr  = parseInt((document.getElementById('ot-aralik-ar')||{value:'90'}).value)||90;
-      var arLg  = parseInt((document.getElementById('ot-aralik-lg')||{value:'90'}).value)||90;
-      var urls = [];
-      if(urlSb) urls.push({url:urlSb,site:'sahibinden',sayfa:spSb,maxIlan:0,aralik:arSb*1000,etiket:etiket});
-      if(urlAr) urls.push({url:urlAr,site:'arabam',sayfa:spAr,maxIlan:0,aralik:arAr*1000,etiket:etiket});
-      if(urlLg) urls.push({url:urlLg,site:'letgo',sayfa:spLg,maxIlan:0,aralik:arLg*1000,etiket:etiket});
-      if(!urls.length){flash('⚠ En az bir URL gerekli'); return;}
-      var ot = {urls:urls,etiket:etiket,aralik:arSb*1000,periyot:_periyot,toplamSayfa:spSb,baseUrl:urlSb};
-      if(durumEl)durumEl.innerHTML='<span style="color:#8b949e">⏳ Başlatılıyor...</span>';
-      chrome.runtime.sendMessage({action:'otaramaBaslat',ayarlar:ot},function(){
-        if(durumEl)durumEl.innerHTML='<span style="color:#3fb950">✓ Toplu tarama başlatıldı (3 site)</span>';
-      });
-    }
-
-    // Toggle görsel
-    var togInp = document.getElementById('ay-toggle-aktif');
-    var togSlider = document.getElementById('ay-toggle-slider');
-    var togKnob = document.getElementById('ay-toggle-knob');
-    function toggleGuncelle(){
-      if(!togSlider||!togKnob||!togInp) return;
-      togSlider.style.background = togInp.checked ? '#185FA5' : '#ccc';
-      togKnob.style.transform = togInp.checked ? 'translateX(18px)' : 'translateX(0)';
-    }
-    if(togInp){
-      togInp.checked = true; toggleGuncelle();
-      togInp.addEventListener('change', function(){
-        toggleGuncelle();
-        var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
-        if(extGercek) chrome.runtime.sendMessage({action:'ayarKaydet',ayarlar:{aktif:togInp.checked}});
-      });
-    }
-
-    var btnSb = document.getElementById('btn-tara-sb');
-    if(btnSb) btnSb.addEventListener('click', function(){ tekSiteTara('sb'); });
-    var btnAr = document.getElementById('btn-tara-ar');
-    if(btnAr) btnAr.addEventListener('click', function(){ tekSiteTara('ar'); });
-    var btnLg = document.getElementById('btn-tara-lg');
-    if(btnLg) btnLg.addEventListener('click', function(){ tekSiteTara('lg'); });
-    var btnToplu = document.getElementById('btn-toplu-tara');
-    if(btnToplu) btnToplu.addEventListener('click', topluTara);
-    var btnOtSil = document.getElementById('ay-ot-sil');
-    if(btnOtSil) btnOtSil.addEventListener('click', function(){
-      var extGercek = typeof chrome!=='undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.id !== 'web-shim';
-      if(extGercek){ chrome.runtime.sendMessage({action:'otaramaDurdur'},function(){flash('■ Tarama durduruldu');}); }
-      else { flash('■ Tarama durduruldu'); }
-    });
-  });
-})();
-// ═══════════════════════════════════════════════════════
-
 // ETİKET SİSTEMİ
 // ═══════════════════════════════════════════════════════
 (function(){
   var LS_KEY = 'ar_etiketler';
-  var VARSAYILAN = ['Otomobil Otomatik','Otomobil Manuel','Arazi SUV Otomatik','Arazi SUV Manuel','Otomobil Otomatik Hasarsız','Arazi SUV Otomatik Hasarsız','Hasarlı','Motosiklet','Hafif Ticari'];
+  var VARSAYILAN = ['Otomobil Otomatik','Otomobil Manuel','Arazi SUV Otomatik','Arazi SUV Manuel',
+    'Otomobil Otomatik Hasarsız','Arazi SUV Otomatik Hasarsız','Hasarlı','Motosiklet','Hafif Ticari'];
 
   function listele() {
     try { var v = JSON.parse(localStorage.getItem(LS_KEY)); if(Array.isArray(v)&&v.length) return v; } catch(e) {}
@@ -5210,8 +5709,19 @@ chrome.runtime.onMessage.addListener(function(msg){
   }
   function kaydet(l) { try { localStorage.setItem(LS_KEY, JSON.stringify(l)); } catch(e) {} }
 
+  // Dışarıdan erişilebilir etiket ekleme (URL otomatik etiketleme için)
+  function etiketEkleVeKaydet(v) {
+    if (!v) return;
+    var l = listele();
+    if (l.indexOf(v) === -1) { l.push(v); kaydet(l); }
+    selectleriDoldur();
+    return v;
+  }
+  window._etiketEkle = etiketEkleVeKaydet;
+
   function selectleriDoldur() {
     var liste = listele();
+    window._etiketListesi = liste; // otExtraSatirOlustur için
     var seçler = Array.from(document.querySelectorAll(
       '#p-ot-etiket, #p-inp-etiket, #p-ot-etiket-sb, #p-ot-etiket-ar, #p-ot-etiket-lg, .ot-satir-etiket, .manuel-etiket-inp'
     ));
@@ -5223,18 +5733,10 @@ chrome.runtime.onMessage.addListener(function(msg){
         var o = document.createElement('option');
         o.value = e; o.textContent = e; s.appendChild(o);
       });
-      var yeniOpt = document.createElement('option');
-      yeniOpt.value = '__yeni__'; yeniOpt.textContent = '➕ Yeni Etiket...'; s.appendChild(yeniOpt);
+      // "➕ Yeni Etiket..." seçeneği her zaman en sonda
+      var oYeni = document.createElement('option');
+      oYeni.value = '__yeni__'; oYeni.textContent = '➕ Yeni Etiket...'; s.appendChild(oYeni);
       if (cur && cur !== '__yeni__') s.value = cur;
-      s.addEventListener('change', function() {
-        if (s.value !== '__yeni__') return;
-        var v = (prompt('Yeni etiket adı:') || '').trim();
-        s.value = cur || '';
-        if (!v) return;
-        var l = listele();
-        if (l.indexOf(v) === -1) { l.push(v); kaydet(l); selectleriDoldur(); }
-        setTimeout(function(){ s.value = v; }, 10);
-      });
     });
   }
 
@@ -5266,8 +5768,41 @@ chrome.runtime.onMessage.addListener(function(msg){
     modalGoster();
   }
 
+  // "➕ Yeni Etiket..." seçilince prompt aç — tüm etiket selectleri için delegation
+  document.addEventListener('change', function(e) {
+    var s = e.target;
+    if (!s || s.tagName !== 'SELECT') return;
+    if (s.value !== '__yeni__') return;
+    var v = (prompt('Yeni etiket adı girin:') || '').trim();
+    if (!v) { s.value = ''; return; }
+    etiketEkleVeKaydet(v);
+    // Yeni eklenen etiketi bu select'te seç
+    s.value = v;
+  });
+
   window.addEventListener('DOMContentLoaded', function() {
     setTimeout(selectleriDoldur, 150);
+
+    // Sabit URL input'larına otomatik etiket çıkarma listener'ı
+    setTimeout(function() {
+      var sabitMap2 = [
+        {idUrl:'p-ot-url-sb', idEtiket:'p-ot-etiket-sb'},
+        {idUrl:'p-ot-url-ar', idEtiket:'p-ot-etiket-ar'},
+        {idUrl:'p-ot-url-lg', idEtiket:'p-ot-etiket-lg'},
+      ];
+      sabitMap2.forEach(function(a) {
+        var urlEl = document.getElementById(a.idUrl);
+        var etEl  = document.getElementById(a.idEtiket);
+        if (!urlEl || !etEl) return;
+        urlEl.addEventListener('input', function() {
+          if (etEl.value && etEl.value !== '__yeni__') return; // zaten seçiliyse dokunma
+          var oto = window.urldenEtiketCikar && window.urldenEtiketCikar(urlEl.value.trim());
+          if (!oto) return;
+          if (window._etiketEkle) window._etiketEkle(oto);
+          etEl.value = oto;
+        });
+      });
+    }, 300);
 
     // Yönet butonları
     ['p-ot-etiket-yonet','p-inp-etiket-yonet'].forEach(function(id) {
@@ -5303,53 +5838,8 @@ chrome.runtime.onMessage.addListener(function(msg){
   // sv() uyumu — kayıtlı ayarları geri yüklerken etiket select'e de yazar
   var _origSv = window._etOrig_sv;
   window._etSelectDoldur = selectleriDoldur;
-  window._etiketEkle = function(v) {
-    v = (v||'').trim();
-    if (!v) return;
-    var l = listele();
-    if (l.indexOf(v) === -1) { l.push(v); kaydet(l); selectleriDoldur(); }
-  };
-  window._etiketListesi = listele;
 })();
 // ═══════════════════════════════════════════════════════
-
-// URL'DEN ETİKET OTOMATIK ALGILAMA
-window.urldenEtiketCikar = function(url) {
-  if (!url) return '';
-  var u = url.toLowerCase();
-  var tip = '';
-  // Sahibinden path tabanlı
-  if (u.indexOf('arazi-suv-pickup') !== -1 || u.indexOf('arazi-suv-pick-up') !== -1) tip = 'Arazi SUV';
-  else if (u.indexOf('/otomobil') !== -1 || u.indexOf('kategori/otomobil') !== -1) tip = 'Otomobil';
-  else if (u.indexOf('motosiklet') !== -1) tip = 'Motosiklet';
-  else if (u.indexOf('kamyonet') !== -1 || u.indexOf('panelvan') !== -1) tip = 'Kamyonet';
-  else if (u.indexOf('ticari') !== -1) tip = 'Ticari';
-  else if (u.indexOf('minivan') !== -1 || u.indexOf('minibus') !== -1) tip = 'Minivan';
-  // Arabam path tabanlı
-  else if (u.indexOf('ikinci-el/arazi') !== -1 || u.indexOf('ikinci-el/suv') !== -1) tip = 'Arazi SUV';
-  else if (u.indexOf('ikinci-el/otomobil') !== -1) tip = 'Otomobil';
-  else if (u.indexOf('ikinci-el/hafif-ticari') !== -1 || u.indexOf('ikinci-el/kamyonet') !== -1) tip = 'Hafif Ticari';
-  // Letgo kategori
-  else if (u.indexOf('/araba_c') !== -1 || u.indexOf('/arabalar_c') !== -1) tip = 'Otomobil';
-  var vites = '';
-  if (/\/otomatik[\/\?]/.test(u) || u.indexOf('vites-tipi:otomatik') !== -1 || u.indexOf('vites_otomatik') !== -1) vites = 'Otomatik';
-  else if (/\/manuel[\/\?]/.test(u) || u.indexOf('vites-tipi:manuel') !== -1 || u.indexOf('vites_manuel') !== -1) vites = 'Manuel';
-  var hasar = '';
-  if (u.indexOf('severaldamaged=false') !== -1 || u.indexOf('agir-hasar-kayitli:hayir') !== -1 || u.indexOf('a116446=1263360') !== -1) hasar = 'Hasarsız';
-  else if (u.indexOf('severaldamaged=true') !== -1 || u.indexOf('agir-hasar-kayitli:evet') !== -1) hasar = 'Hasarlı';
-  var yakit_arr = [];
-  if (u.indexOf('benzin') !== -1) yakit_arr.push('Benz');
-  if (u.indexOf('dizel') !== -1) yakit_arr.push('Diz');
-  if (u.indexOf('lpg') !== -1) yakit_arr.push('LPG');
-  if (u.indexOf('hibrit') !== -1) yakit_arr.push('Hib');
-  if (u.indexOf('elektrik') !== -1) yakit_arr.push('Elk');
-  var parcalar = [];
-  if (tip) parcalar.push(tip);
-  if (vites) parcalar.push(vites);
-  if (hasar) parcalar.push(hasar);
-  if (yakit_arr.length === 1) parcalar.push(yakit_arr[0]);
-  return parcalar.join(' ');
-};
 
 // ═══════════════════════════════════════════════════════
 // WIDGET — URL BAZLI TARAMA KUTULARI
@@ -5647,132 +6137,3 @@ function piyasaKarsilastir(btn) {
   }
 }
 // ═══════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════
-// İLAN YÖNETİMİ — Silme / Aktif Kontrol Fonksiyonları
-// ═══════════════════════════════════════════════════════
-
-function ilanSilBasildi(btn) {
-  var gun   = parseInt(btn.getAttribute('data-gun')) || 0;
-  var sifir = btn.getAttribute('data-sifir') === '1';
-  var durumEl = document.getElementById('sil-durum');
-
-  var mesaj = '';
-  if (gun > 0 && sifir) mesaj = gun + ' günden eski VE sıfır TL olanlar silinecek';
-  else if (gun > 0)     mesaj = gun + ' günden eski ilanlar silinecek';
-  else if (sifir)       mesaj = 'Fiyatı sıfır olan tüm ilanlar silinecek';
-
-  if (!confirm(mesaj + '.\nEmin misiniz? Bu işlem geri alınamaz.')) return;
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Siliniyor...';
-  if (durumEl) { durumEl.style.color = 'var(--mut)'; durumEl.textContent = 'Silme işlemi başladı...'; }
-
-  chrome.runtime.sendMessage({ action:'ilanSil', gun:gun, sifirSil:sifir }, function(r) {
-    btn.disabled = false;
-    var btnMetinMap = {
-      '30-false': '📅 30 Gün Eskisini Sil',
-      '45-false': '📅 45 Gün Eskisini Sil',
-      '60-false': '📅 60 Gün Eskisini Sil',
-      '0-true':   '💰 Sıfır TL Olanları Sil',
-      '30-true':  '🔥 30 Gün + Sıfır TL',
-      '45-true':  '🔥 45 Gün + Sıfır TL',
-      '60-true':  '🔥 60 Gün + Sıfır TL'
-    };
-    btn.textContent = btnMetinMap[gun + '-' + sifir] || btn.textContent;
-    if (chrome.runtime.lastError || !r) {
-      if (durumEl) durumEl.textContent = '✗ Hata oluştu';
-      return;
-    }
-    if (!r.silinen || r.silinen === 0) {
-      if (durumEl) durumEl.textContent = '✓ Silinecek ilan bulunamadı';
-    } else {
-      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = r.silinen + ' ilan silindi, ' + (r.kalan||0) + ' kalan. Yükleniyor...'; }
-      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 1000);
-    }
-  });
-}
-
-function aktifKontrolBasildi() {
-  var btn = document.getElementById('btn-aktif-kontrol');
-  var durumEl = document.getElementById('sil-durum');
-  if (!confirm('Tüm ilanların linki kontrol edilecek (bu 10-20 dakika sürebilir).\n404 dönen ilanlar silinecek. Devam?')) return;
-  if (!btn) return;
-  btn.disabled = true;
-  btn.textContent = '⏳ Kontrol ediliyor...';
-  if (durumEl) { durumEl.style.color = 'var(--mut)'; durumEl.textContent = 'Linkler kontrol ediliyor... (lütfen paneli kapatmayın)'; }
-
-  var ilerlemeDinleyici = function(msg) {
-    if (msg.action === 'aktifKontrolIlerleme' && durumEl) {
-      var pct = msg.toplam ? Math.round(msg.tamamlanan / msg.toplam * 100) : 0;
-      durumEl.textContent = msg.tamamlanan + ' / ' + msg.toplam + ' kontrol edildi (%' + pct + ') — ' + msg.silinen + ' silinecek bulundu';
-    }
-  };
-  chrome.runtime.onMessage.addListener(ilerlemeDinleyici);
-
-  chrome.runtime.sendMessage({ action:'aktifKontrol' }, function(r) {
-    chrome.runtime.onMessage.removeListener(ilerlemeDinleyici);
-    if (!btn) return;
-    btn.disabled = false;
-    btn.textContent = '🔗 Aktif Olmayan İlanları Sil (Tümü)';
-    if (!r || r.silinen === 0) {
-      if (durumEl) durumEl.textContent = 'Silinecek ilan bulunamadı (tüm ilanlar aktif)';
-    } else {
-      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = r.silinen + ' ilan silindi, ' + (r.kalan||0) + ' kaldı'; }
-      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 1000);
-    }
-  });
-}
-
-function tumunuSilBasildi() {
-  if (!confirm('DİKKAT! TÜM ilanlar silinecek. Emin misiniz?')) return;
-  if (!confirm('Son onay: Tüm veri silinecek, geri alınamaz!')) return;
-
-  var btn = document.getElementById('btn-tumunu-sil-gh');
-  var durumEl = document.getElementById('sil-durum');
-  if (btn) { btn.disabled = true; btn.textContent = 'Siliniyor...'; }
-  if (durumEl) { durumEl.style.color = '#f87171'; durumEl.textContent = 'DB temizleniyor...'; }
-
-  chrome.runtime.sendMessage({ action:'tumunuSil' }, function(r) {
-    if (btn) { btn.disabled = false; btn.textContent = '☢️ TÜM İLANLARI SİL + GitHub Sıfırla'; }
-    if (!r || r.ok) {
-      if (durumEl) { durumEl.style.color = '#3fb950'; durumEl.textContent = 'Tüm ilanlar silindi.'; }
-      setTimeout(function() { if (typeof yukle === 'function') yukle(true); }, 800);
-    } else {
-      if (durumEl) durumEl.textContent = '✗ Hata oluştu';
-    }
-  });
-}
-
-// Event delegation — İlan Yönetimi butonları
-document.addEventListener('click', function(e) {
-  var silBtn = e.target.closest('.sil-btn');
-  if (silBtn) { ilanSilBasildi(silBtn); return; }
-
-  var aktifBtn = e.target.closest('#btn-aktif-kontrol');
-  if (aktifBtn) { aktifKontrolBasildi(); return; }
-
-  var tumSilBtn = e.target.closest('#btn-tumunu-sil-gh');
-  if (tumSilBtn) { tumunuSilBasildi(); return; }
-});
-
-// ═══════════════════════════════════════════════════════
-// Web: sayfa açılınca GitHub'dan otomatik yükle
-window.addEventListener('load', function() {
-  // Eklenti gerçekse web yükleme yapmaya gerek yok
-  if (_extGercek) return;
-  setTimeout(function() {
-    webGitHubdanAl(function(r) {
-      if (r && r.ok && r.toplam > 0) {
-        if (r.cache) {
-          flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan (önbellek)');
-        } else {
-          flash('✓ ' + r.toplam.toLocaleString('tr-TR') + ' ilan yüklendi');
-        }
-        yukle(true); // veri hazır, şimdi göster
-      } else {
-        flash('⚠ Veri yüklenemedi — "Verileri Yükle" butonuna bas');
-      }
-    }); // zorlaIndir=false → cache varsa kullan
-  }, 300);
-});

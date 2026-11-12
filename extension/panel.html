@@ -21,62 +21,31 @@
 .pr-kutu{background:var(--yuz);border:1px solid var(--brd2);border-radius:8px;padding:12px 14px;margin:6px 0 4px;font-size:12px}
 </style>
 <title>ARAÇRADAR — Araç Fiyat Takip</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#18191c">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{
-  --bg:#0d1117;
-  --yuz:#161b22;
-  --bg2:#0d1117;
-  --brd:rgba(48,54,61,0.9);
-  --brd2:rgba(99,110,123,0.5);
-  --txt:#c9d1d9;
-  --mut:#8b949e;
-  --hin:#484f58;
-  --blu:#58a6ff;
-  --blul:rgba(88,166,255,0.15);
-  --blud:#79c0ff;
-  --grn:#3fb950;
-  --grnl:rgba(63,185,80,0.15);
-  --red:#f85149;
-  --redl:rgba(248,81,73,0.15);
-  --yuz2:#21262d;
-  --acc:#f78166;
-}
+:root{--bg:#0d1117;--yuz:#161b22;--brd:rgba(255,255,255,0.08);--brd2:rgba(255,255,255,0.15);--txt:#e8e8e8;--mut:#8a8f9a;--hin:#555;--blu:#1f6feb;--blul:rgba(24,95,165,0.25);--blud:#58a6ff;--grn:#3B6D11;--grnl:rgba(59,109,17,0.25);--red:#A32D2D;--redl:rgba(163,45,45,0.25);}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;background-image:radial-gradient(ellipse 60% 40% at 50% -20%,rgba(88,166,255,0.06),transparent)}
-header{
-  background:rgba(13,17,23,0.95);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--brd);
-  padding:12px 24px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:10;
-}
-.logo{font-size:17px;font-family:'Segoe UI',sans-serif;font-weight:700;letter-spacing:-.02em;color:#fff}
-.logo em{color:#f78166;font-style:normal;font-weight:800}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+header{background:var(--yuz);border-bottom:1px solid var(--brd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.logo{font-size:17px;font-family:Georgia,serif;font-weight:normal;letter-spacing:-.02em}
+.logo em{color:var(--blu);font-style:italic}
 .hbtns{display:flex;gap:8px;align-items:center}
 #durum-txt{font-size:12px;color:var(--mut)}
 .wrap{max-width:960px;margin:0 auto;padding:18px 16px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
-.stat{background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:11px 14px;position:relative;overflow:hidden}
-.stat::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(88,166,255,0.03),transparent);pointer-events:none}
+.stat{background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:11px 14px}
 .stat-l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
-.stat-v{font-size:22px;font-weight:600;letter-spacing:-.02em;font-family:'Segoe UI',sans-serif}
+.stat-v{font-size:22px;font-weight:300;letter-spacing:-.02em}
 
 /* ANA SEKMELER */
-.ana-sekmeler{display:flex;gap:4px;margin-bottom:18px;padding:4px;background:var(--yuz);border-radius:10px;border:1px solid var(--brd)}
-.ana-sekme{padding:7px 16px;background:transparent;border:none;outline:none;font-size:12px;font-weight:500;color:var(--mut);cursor:pointer;border-radius:7px;transition:all .15s;font-family:inherit}
-.ana-sekme:hover{color:var(--txt);background:rgba(255,255,255,0.05)}
-.ana-sekme.aktif{color:#fff;background:var(--blu);font-weight:600}
+.ana-sekmeler{display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--brd)}
+.ana-sekme{padding:10px 20px;background:transparent;border:none;outline:none;font-size:13px;font-weight:500;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit}
+.ana-sekme:hover{color:var(--txt)}
+.ana-sekme.aktif{color:var(--blu);border-bottom-color:var(--blu)}
 .ana-icerik{display:none}
 .ana-icerik.aktif{display:block}
 
 /* FİLTRE PANELİ */
-.filtre-panel{background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:14px;position:relative}
-.filtre-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blu),transparent);border-radius:12px 12px 0 0}
+.filtre-panel{background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:14px}
 .filtre-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .filtre-satir{display:flex;gap:8px;align-items:center}
 .filtre-label{font-size:11px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
@@ -96,8 +65,8 @@ button.yesil:hover{background:#1f591f}
 button.kirmizi{color:var(--red);border-color:rgba(163,45,45,0.3)}
 button.kirmizi:hover{background:var(--redl)}
 
-.kart{background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:14px 17px;margin-bottom:9px;transition:all .15s}
-.kart:hover{border-color:var(--blu);box-shadow:0 0 0 1px rgba(88,166,255,0.1),0 4px 16px rgba(0,0,0,0.3)}
+.kart{background:var(--yuz);border:1px solid var(--brd);border-radius:11px;padding:14px 17px;margin-bottom:9px;transition:border-color .15s}
+.kart:hover{border-color:var(--brd2)}
 .kart.indi{border-left:3px solid var(--grn)}
 .kart.yukseldi{border-left:3px solid var(--red)}
 .kart-ust{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px}
@@ -172,25 +141,54 @@ button.kirmizi:hover{background:var(--redl)}
 </style>
 </head>
 <body>
-<header>
-  <div style="display:flex;align-items:center;gap:14px">
-    <img src="logo.png" style="height:36px;width:36px;object-fit:contain;border-radius:6px">
+<header style="background:linear-gradient(180deg,#161b22 0%,#0d1117 100%);border-bottom:1px solid var(--brd);padding:0 16px;height:52px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100">
+  <!-- Logo -->
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <img src="logo.png" style="height:32px;width:32px;object-fit:contain;border-radius:8px">
     <div>
-      <div style="font-size:15px;font-weight:800;letter-spacing:.02em;font-family:sans-serif">ARAÇ<span style="color:#f78166">RADAR</span> <span style="font-size:10px;background:var(--blu);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;vertical-align:middle">WEB</span></div>
-      <div style="font-size:11px;color:var(--mut);font-family:sans-serif;margin-top:-1px">tasiyicihesap.github.io/aracradar</div>
+      <div style="font-size:14px;font-weight:800;letter-spacing:.06em;color:#f0883e;font-family:sans-serif;line-height:1">ARAÇRADAR</div>
+      <div style="font-size:9px;color:var(--mut);font-family:sans-serif;letter-spacing:.08em;text-transform:uppercase">Araç Fiyat Takip</div>
     </div>
   </div>
-  <div class="hbtns">
-    <span id="durum-txt"></span>
-    <button class="yesil" id="btn-yedekle" title="Tüm verileri JSON olarak indir">⬇ Yedekle</button>
-    
-    <button class="yesil" id="btn-yukle-ac" title="Daha önce yedeklenen JSON'ı yükle">⬆ Yükle</button>
+  <!-- DURDUR butonu — sabit görünür, tarama aktifken parlak kırmızı -->
+  <button id="btn-header-dur" title="Taramayı Durdur" style="flex-shrink:0;padding:6px 14px;font-size:12px;font-weight:800;border-radius:8px;border:2px solid #f87171;background:rgba(239,68,68,0.22);color:#f87171;cursor:pointer;font-family:sans-serif;letter-spacing:.04em;transition:all .2s;opacity:0.6">⏹ DURDUR</button>
+  <!-- İstatistikler -->
+  <div style="display:flex;gap:1px;background:var(--brd);border-radius:8px;overflow:hidden;flex-shrink:0">
+    <div style="padding:4px 12px;background:var(--yuz);text-align:center">
+      <div style="font-size:14px;font-weight:700;line-height:1" id="stat-toplam">—</div>
+      <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">İlan</div>
+    </div>
+    <div style="padding:4px 12px;background:var(--yuz);text-align:center">
+      <div style="font-size:14px;font-weight:700;color:#3fb950;line-height:1" id="stat-dustu">—</div>
+      <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">Düştü</div>
+    </div>
+    <div style="padding:4px 12px;background:var(--yuz);text-align:center">
+      <div style="font-size:14px;font-weight:700;color:#f85149;line-height:1" id="stat-artti">—</div>
+      <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">Arttı</div>
+    </div>
+    <div style="padding:4px 12px;background:var(--yuz);text-align:center">
+      <div style="font-size:14px;font-weight:700;color:var(--blud);line-height:1" id="stat-degismedi">—</div>
+      <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-top:1px">Aynı</div>
+    </div>
+  </div>
+  <!-- Butonlar -->
+  <div class="hbtns" style="margin-left:auto;display:flex;align-items:center;gap:6px">
+    <span id="durum-txt" style="font-size:10px;color:var(--mut)"></span>
+    <button class="yesil" id="btn-yedekle" title="Veriyi yedekle" style="padding:5px 10px;font-size:11px;border-radius:7px">⬇ Yedekle</button>
+    <button style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid var(--brd2);background:var(--yuz);color:var(--txt);cursor:pointer;font-family:inherit" id="btn-yukle-ac" title="Yedek yükle">⬆ Yükle</button>
     <input type="file" id="drive-yukle-inp" accept=".json" style="display:none">
-    <button class="mavi" id="btn-yenile">↻ Yenile</button>
-    <button id="btn-fb-cek" style="padding:6px 14px;background:#2ecc8a;color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📡 Verileri Yükle</button>
-    <!-- GitHub'a Yükle: sadece extension'dan -->
-    <button class="kirmizi" id="btn-hepsisil">Temizle</button>
-    
+    <button style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid var(--brd2);background:var(--yuz);color:var(--txt);cursor:pointer;font-family:inherit" id="btn-link-export" title="Linkleri indir">📋 Linkler</button>
+    <input type="file" id="btn-link-import-file" accept=".json,.txt" style="display:none">
+    <button style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid var(--brd2);background:var(--yuz);color:var(--txt);cursor:pointer;font-family:inherit" id="btn-link-import-btn" title="Link yükle">📂</button>
+    <button class="mavi" id="btn-yenile" style="padding:5px 10px;font-size:11px;border-radius:7px">↻ Yenile</button>
+    <div style="width:1px;height:24px;background:var(--brd2)"></div>
+    <button id="btn-fb-cek" style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.08);color:#bc8cff;cursor:pointer;font-family:inherit">🐙 Al</button>
+    <button id="btn-gh-yukle" style="padding:5px 10px;font-size:11px;border-radius:7px;background:#6e40c9;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:600">⬆ Yükle</button>
+    <div style="width:1px;height:24px;background:var(--brd2)"></div>
+    <button class="kirmizi" id="btn-hepsisil" style="padding:5px 10px;font-size:11px;border-radius:7px">🗑</button>
+    <button id="btn-bildirim-panel" onclick="bildirimPanelToggle(this)" style="padding:5px 10px;font-size:11px;border-radius:7px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:var(--mut2);cursor:pointer;font-family:inherit">🔔 Bildirim</button>
+    <button id="btn-kapat" style="padding:5px 10px;border:1px solid var(--brd2);border-radius:7px;background:transparent;color:var(--mut);font-size:13px;cursor:pointer;line-height:1">✕</button>
+    <button id="btn-tema" style="padding:5px 12px;border:1px solid var(--brd2);border-radius:7px;background:var(--yuz);color:var(--txt);font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .2s" title="Tema değiştir">🌑 Gece</button>
   </div>
 </header>
 <div class="wrap">
@@ -202,104 +200,138 @@ button.kirmizi:hover{background:var(--redl)}
   </div>
 
   <!-- Tarama sayacı - tarama varken görünür -->
-  <div id="tarama-sayac" style="display:none;background:var(--yuz);border:1px solid var(--blu);border-radius:10px;padding:12px 16px;margin-bottom:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:500;color:var(--blu)">⚡ Tarama devam ediyor</div>
-      <div style="font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-        <div>Bu turda: <span style="font-weight:600;color:var(--grn)" id="sayac-toplam">0</span> yeni · <span id="sayac-toplam-gunc" style="color:var(--mut)">0 güncellendi</span></div>
-        <div style="font-size:11px;opacity:.8">Veritabanı: <span id="sayac-db-toplam" style="font-weight:600;color:var(--blu)">—</span> ilan</div>
-      </div>
+  <div id="tarama-sayac" style="display:none;margin-bottom:14px">
+  <!-- Tarama başlık barı -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,rgba(31,111,235,0.12),rgba(31,111,235,0.04));border:1px solid rgba(31,111,235,0.2);border-radius:12px 12px 0 0;border-bottom:none">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#3fb950;box-shadow:0 0 8px #3fb950;animation:tup-pulse 1.5s ease-in-out infinite"></div>
+      <span style="font-size:12px;font-weight:700;color:#58a6ff;letter-spacing:.04em">⚡ TARAMA DEVAM EDİYOR</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-
-      <!-- SHB tüp -->
-      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <span style="font-size:10px;background:#FF6600;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">SHB</span>
-          <span style="font-size:11px;color:var(--mut)" id="sayac-sb-durum">Bekliyor</span>
-          <button id="btn-site-sb" data-site="sb" data-site-btn="sb"
-            style="margin-left:auto;padding:2px 8px;font-size:10px;border-radius:10px;border:1px solid #FF6600;
-            background:transparent;color:#FF6600;cursor:pointer;font-weight:600;display:none;transition:all .2s;font-family:inherit">
-          ⏸ Beklet</button>
-        </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px">
-          <span style="font-size:26px;font-weight:300;color:var(--grn);line-height:1" id="sayac-sb-yeni">0</span>
-          <span style="font-size:11px;color:var(--mut)">yeni eklendi</span>
-        </div>
-        <div id="sayac-sb-gunc" style="font-size:10px;color:#FF6600;opacity:0.8;min-height:14px;margin-bottom:2px"></div>
-        <div style="font-size:11px;color:var(--mut);margin-bottom:6px"><span id="sayac-sb-sayfa-lbl">Sayfa:</span> <span id="sayac-sb-sayfa">—</span> / <span id="sayac-sb-toplam">—</span></div>
-        <!-- Tüp progress bar -->
-        <div style="background:rgba(0,0,0,0.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:5px">
-          <div id="sayac-sb-bar" style="background:#FF6600;height:100%;border-radius:4px;width:0%;transition:width 0.8s ease"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <span style="font-size:10px;color:var(--mut)">Sonraki:</span>
-          <div style="flex:1;background:rgba(0,0,0,0.12);border-radius:6px;height:8px;overflow:hidden">
-            <div id="sayac-sb-geri" style="background:#FF6600;height:100%;border-radius:6px;width:100%;transition:none"></div>
-          </div>
-          <span id="sayac-sb-sn" style="font-size:12px;color:#FF6600;font-weight:700;min-width:26px;text-align:right">—</span>
-        </div>
-      </div>
-
-      <!-- ARB tüp -->
-      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <span style="font-size:10px;background:#E31837;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">ARB</span>
-          <span style="font-size:11px;color:var(--mut)" id="sayac-ar-durum">Bekliyor</span>
-          <button id="btn-site-ar" data-site="ar" data-site-btn="ar"
-            style="margin-left:auto;padding:2px 8px;font-size:10px;border-radius:10px;border:1px solid #E31837;
-            background:transparent;color:#E31837;cursor:pointer;font-weight:600;display:none;transition:all .2s;font-family:inherit">
-          ⏸ Beklet</button>
-        </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px">
-          <span style="font-size:26px;font-weight:300;color:var(--grn);line-height:1" id="sayac-ar-yeni">0</span>
-          <span style="font-size:11px;color:var(--mut)">yeni eklendi</span>
-        </div>
-        <div id="sayac-ar-gunc" style="font-size:10px;color:#E31837;opacity:0.8;min-height:14px;margin-bottom:2px"></div>
-        <div style="font-size:11px;color:var(--mut);margin-bottom:4px"><span id="sayac-ar-sayfa-lbl">Sayfa:</span> <span id="sayac-ar-sayfa">—</span> / <span id="sayac-ar-toplam">—</span></div>
-        <div style="background:rgba(0,0,0,0.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:5px">
-          <div id="sayac-ar-bar" style="background:#E31837;height:100%;border-radius:4px;width:0%;transition:width 0.8s ease"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <span style="font-size:10px;color:var(--mut)">Sonraki:</span>
-          <div style="flex:1;background:rgba(0,0,0,0.12);border-radius:6px;height:8px;overflow:hidden">
-            <div id="sayac-ar-geri" style="background:#E31837;height:100%;border-radius:6px;width:100%;transition:none"></div>
-          </div>
-          <span id="sayac-ar-sn" style="font-size:12px;color:#E31837;font-weight:700;min-width:26px;text-align:right">—</span>
-        </div>
-      </div>
-
-      <!-- LTG tüp -->
-      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <span style="font-size:10px;background:#6B3FA0;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">LTG</span>
-          <span style="font-size:11px;color:var(--mut)" id="sayac-lg-durum">Bekliyor</span>
-          <button id="btn-site-lg" data-site="lg" data-site-btn="lg"
-            style="margin-left:auto;padding:2px 8px;font-size:10px;border-radius:10px;border:1px solid #6B3FA0;
-            background:transparent;color:#6B3FA0;cursor:pointer;font-weight:600;display:none;transition:all .2s;font-family:inherit">
-          ⏸ Beklet</button>
-        </div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px">
-          <span style="font-size:26px;font-weight:300;color:var(--grn);line-height:1" id="sayac-lg-yeni">0</span>
-          <span style="font-size:11px;color:var(--mut)">yeni eklendi</span>
-        </div>
-        <div id="sayac-lg-gunc" style="font-size:10px;color:#6B3FA0;opacity:0.8;min-height:14px;margin-bottom:2px"></div>
-        <div style="font-size:11px;color:var(--mut);margin-bottom:4px"><span id="sayac-lg-sayfa-lbl">Sayfa:</span> <span id="sayac-lg-sayfa">—</span> / <span id="sayac-lg-toplam">—</span></div>
-        <div style="background:rgba(0,0,0,0.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:5px">
-          <div id="sayac-lg-bar" style="background:#6B3FA0;height:100%;border-radius:4px;width:0%;transition:width 0.8s ease"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <span style="font-size:10px;color:var(--mut)">Sonraki:</span>
-          <div style="flex:1;background:rgba(0,0,0,0.12);border-radius:6px;height:8px;overflow:hidden">
-            <div id="sayac-lg-geri" style="background:#6B3FA0;height:100%;border-radius:6px;width:100%;transition:none"></div>
-          </div>
-          <span id="sayac-lg-sn" style="font-size:12px;color:#6B3FA0;font-weight:700;min-width:26px;text-align:right">—</span>
-        </div>
-      </div>
-
+    <div style="display:flex;gap:20px;font-size:11px">
+      <span>Bu tur: <b style="color:#3fb950" id="sayac-toplam-yeni">0</b> yeni &nbsp;·&nbsp; <span style="color:var(--mut)" id="sayac-toplam-gunc">0 güncellendi</span></span>
+      <span>Veritabanı: <b style="color:#58a6ff" id="sayac-db-toplam">—</b> ilan</span>
     </div>
-    <div id="sayac-dinamik" style="display:none;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px"></div>
   </div>
+  <!-- Tüp grid -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--yuz);border:1px solid rgba(31,111,235,0.2);border-radius:0 0 12px 12px;overflow:hidden">
+    <!-- SHB Tüpü -->
+    <div class="tup-kart" id="tup-sb" style="padding:14px 16px;border-right:1px solid var(--brd);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#f0883e;opacity:0.8" id="tup-sb-topbar"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:800;background:#f0883e;color:#fff;padding:2px 8px;border-radius:5px;letter-spacing:.04em">SHB</span>
+        <span style="font-size:10px;color:var(--mut);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sayac-sb-url-kisa">Sahibinden</span>
+        <span class="tup-durum-badge" id="tup-sb-durum" style="font-size:9px;padding:1px 7px;border-radius:10px;border:1px solid var(--brd2);color:var(--mut)">Bekliyor</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#3fb950;line-height:1" id="sayac-sb-yeni">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Yeni</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#f0883e;line-height:1" id="sayac-sb-gunc">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Güncellendi</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#58a6ff;line-height:1" id="sayac-sb-sayfa">0/?</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Sayfa</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:3px;height:3px;margin-bottom:8px;overflow:hidden">
+        <div style="height:100%;border-radius:3px;background:#f0883e;transition:width .4s ease;width:0%" id="tup-sb-prog"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:var(--mut)" id="sayac-sb-durum-txt">Başlıyor...</span>
+        <div style="flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden">
+          <div style="height:100%;border-radius:3px;background:#f0883e;width:100%;transition:width 1s linear" id="sayac-sb-bar"></div>
+        </div>
+        <span style="font-size:11px;font-weight:700;min-width:30px;text-align:right;color:#f0883e" id="sayac-sb-sn">—</span>
+      </div>
+    </div>
+    <!-- ARB Tüpü -->
+    <div class="tup-kart" id="tup-ar" style="padding:14px 16px;border-right:1px solid var(--brd);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#f85149;opacity:0.8" id="tup-ar-topbar"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:800;background:#E31837;color:#fff;padding:2px 8px;border-radius:5px;letter-spacing:.04em">ARB</span>
+        <span style="font-size:10px;color:var(--mut);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sayac-ar-url-kisa">Arabam</span>
+        <span class="tup-durum-badge" id="tup-ar-durum" style="font-size:9px;padding:1px 7px;border-radius:10px;border:1px solid var(--brd2);color:var(--mut)">Bekliyor</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#3fb950;line-height:1" id="sayac-ar-yeni">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Yeni</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#f0883e;line-height:1" id="sayac-ar-gunc">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Güncellendi</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#58a6ff;line-height:1" id="sayac-ar-sayfa">0/?</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Sayfa</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:3px;height:3px;margin-bottom:8px;overflow:hidden">
+        <div style="height:100%;border-radius:3px;background:#f85149;transition:width .4s ease;width:0%" id="tup-ar-prog"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:var(--mut)" id="sayac-ar-durum-txt">Başlıyor...</span>
+        <div style="flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden">
+          <div style="height:100%;border-radius:3px;background:#f85149;width:100%;transition:width 1s linear" id="sayac-ar-bar"></div>
+        </div>
+        <span style="font-size:11px;font-weight:700;min-width:30px;text-align:right;color:#f85149" id="sayac-ar-sn">—</span>
+      </div>
+    </div>
+    <!-- LTG Tüpü -->
+    <div class="tup-kart" id="tup-lg" style="padding:14px 16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#bc8cff;opacity:0.8" id="tup-lg-topbar"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:800;background:#6e40c9;color:#fff;padding:2px 8px;border-radius:5px;letter-spacing:.04em">LTG</span>
+        <span style="font-size:10px;color:var(--mut);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sayac-lg-url-kisa">Letgo</span>
+        <span class="tup-durum-badge" id="tup-lg-durum" style="font-size:9px;padding:1px 7px;border-radius:10px;border:1px solid var(--brd2);color:var(--mut)">Bekliyor</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#3fb950;line-height:1" id="sayac-lg-yeni">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Yeni</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#f0883e;line-height:1" id="sayac-lg-gunc">0</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Güncellendi</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:200;color:#58a6ff;line-height:1" id="sayac-lg-sayfa">0/?</div>
+          <div style="font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Sayfa</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:3px;height:3px;margin-bottom:8px;overflow:hidden">
+        <div style="height:100%;border-radius:3px;background:#bc8cff;transition:width .4s ease;width:0%" id="tup-lg-prog"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:var(--mut)" id="sayac-lg-durum-txt">Başlıyor...</span>
+        <div style="flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden">
+          <div style="height:100%;border-radius:3px;background:#bc8cff;width:100%;transition:width 1s linear" id="sayac-lg-bar"></div>
+        </div>
+        <span style="font-size:11px;font-weight:700;min-width:30px;text-align:right;color:#bc8cff" id="sayac-lg-sn">—</span>
+      </div>
+    </div>
+  </div>
+  <!-- DURDUR BUTONLARI SATIRI — tüplerin hemen altında, tarama aktifken gösterilir -->
+  <div id="dur-satiri" style="display:none;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:10px 0 4px 0">
+    <button class="site-dur-btn" data-site="sahibinden" style="padding:6px 0;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(240,136,62,0.5);background:rgba(240,136,62,0.12);color:#f0883e;cursor:pointer;width:100%">⏹ SHB Durdur</button>
+    <button class="site-dur-btn" data-site="arabam"     style="padding:6px 0;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(248,81,73,0.5);background:rgba(248,81,73,0.12);color:#f85149;cursor:pointer;width:100%">⏹ ARB Durdur</button>
+    <button class="site-dur-btn" data-site="letgo"      style="padding:6px 0;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(188,140,255,0.5);background:rgba(188,140,255,0.12);color:#bc8cff;cursor:pointer;width:100%">⏹ LTG Durdur</button>
+    <button id="btn-dur-hepsi" style="padding:6px 0;font-size:11px;font-weight:800;border-radius:7px;border:2px solid rgba(239,68,68,0.7);background:rgba(239,68,68,0.2);color:#f87171;cursor:pointer;width:100%">⏹ HEPSİNİ DURDUR</button>
+  </div>
+</div>
+
+<style>
+@keyframes tup-pulse {0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.2)}}
+@keyframes tup-shimmer {0%{background-position:200% 0}100%{background-position:-200% 0}}
+.tup-kart{transition:background .3s}
+.tup-kart.aktif{background:rgba(31,111,235,0.04)}
+.tup-durum-badge.aktif{color:#3fb950!important;border-color:rgba(63,185,80,0.3)!important;background:rgba(63,185,80,0.08)}
+.tup-durum-badge.hata{color:#f85149!important;border-color:rgba(248,81,73,0.3)!important;background:rgba(248,81,73,0.08)}
+.tup-durum-badge.bitti{color:#58a6ff!important;border-color:rgba(88,166,255,0.3)!important;background:rgba(88,166,255,0.08)}
+</style>
 
   <!-- ANA SEKMELER -->
   <div class="ana-sekmeler">
@@ -312,6 +344,9 @@ button.kirmizi:hover{background:var(--redl)}
 
   <!-- İLAN TAKİP İÇERİĞİ -->
   <div class="ana-icerik aktif" id="icerik-takip">
+
+
+
     <div class="filtre-panel">
       <div class="filtre-grid">
         <div>
@@ -616,119 +651,242 @@ button.kirmizi:hover{background:var(--redl)}
     </div>
   </div>
 
-
   <!-- AYARLAR & TARAMA -->
+  <!-- ANALİZ -->
+  <div class="ana-icerik" id="icerik-analiz" style="display:none">
+    <div id="analiz-panel"></div>
+  </div>
+
   <div class="ana-icerik" id="icerik-ayarlar">
-    <div style="max-width:900px;margin:0 auto;padding:16px 8px">
+<div style="background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:16px">
+  <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+    <span>🗑</span> İlan Yönetimi
+  </div>
+  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">
+    Yayından kalkmış veya eski ilanları silin. Tüm silme işlemleri GitHub'a da yansır.
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <button class="sil-btn" data-gun="30" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">
+      📅 30 Gün Eskisini Sil
+    </button>
+    <button class="sil-btn" data-gun="45" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">
+      📅 45 Gün Eskisini Sil
+    </button>
+    <button class="sil-btn" data-gun="60" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">
+      📅 60 Gün Eskisini Sil
+    </button>
+    <button class="sil-btn" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">
+      💰 Sıfır TL Olanları Sil
+    </button>
+    <button class="sil-btn" data-gun="30" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">
+      🔥 30 Gün + Sıfır TL
+    </button>
+    <button class="sil-btn" data-gun="45" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">
+      🔥 45 Gün + Sıfır TL
+    </button>
+    <button class="sil-btn" data-gun="60" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">
+      🔥 60 Gün + Sıfır TL
+    </button>
+    <button id="btn-aktif-kontrol" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(251,146,60,0.4);background:rgba(251,146,60,0.1);color:#fb923c;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">
+      🔗 Aktif Olmayan İlanları Sil (Tümü)
+    </button>
+  </div>
+  <button id="btn-tumunu-sil-gh" style="padding:7px 14px;border-radius:8px;border:2px solid rgba(239,68,68,0.7);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:800;margin-top:4px">
+      ☢️ TÜM İLANLARI SİL + GitHub Sıfırla
+    </button>
+    <div id="sil-durum" style="margin-top:10px;font-size:12px;color:var(--mut);min-height:18px"></div>
+</div>
 
-      <!-- Durum kutusu -->
-      <div id="ay-ext-durum" style="border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;line-height:1.6;display:flex;align-items:center;gap:10px">
-        <span id="ay-ext-ikon" style="font-size:20px">⏳</span>
-        <div><div id="ay-ext-baslik" style="font-weight:600">Kontrol ediliyor...</div>
-        <div id="ay-ext-aciklama" style="font-size:11px;opacity:.8"></div></div>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
 
-      <!-- Otomatik Tarama — 3 Site (extension popup ile birebir) -->
-      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div style="font-size:13px;font-weight:700">⏰ Otomatik Tarama — 3 Site</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);cursor:pointer">
-            Otomatik tarama
-            <span style="position:relative;display:inline-block;width:38px;height:20px">
-              <input type="checkbox" id="ay-toggle-aktif" style="opacity:0;width:0;height:0;position:absolute">
-              <span id="ay-toggle-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:.3s;cursor:pointer">
-                <span id="ay-toggle-knob" style="position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s"></span>
-              </span>
-            </span>
-          </label>
-        </div>
+      <!-- SOL: Otomatik Tarama -->
+      <div>
+        <div class="kart" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:500">Otomatik Tarama</div>
+            <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;gap:8px">
+              <input type="checkbox" id="p-toggle-aktif" checked style="width:0;height:0;opacity:0;position:absolute">
+              <div id="p-slider-bg" style="width:38px;height:20px;background:#ccc;border-radius:20px;position:relative;transition:.3s;flex-shrink:0">
+                <div id="p-slider-knob" style="position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.3s"></div>
+              </div>
+            </label>
+          </div>
+          <div id="p-otarama-durum" style="display:none;background:var(--grnl);color:var(--grn);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:10px"></div>
 
-        <!-- SHB -->
-        <div style="background:rgba(255,102,0,0.07);border:1px solid rgba(255,102,0,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-            <span style="font-size:11px;background:#FF6600;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">SHB</span>
-            <input type="text" id="ot-url-sb" value="https://www.sahibinden.com/kategori/otomobil" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em">Site URL'leri</div>
+            <button id="p-ot-site-ekle" style="padding:3px 9px;background:var(--blu);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">+ Site Ekle</button>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
-            <select id="ot-aralik-sb" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
-              <option value="30">30 sn</option>
-              <option value="60">1 dk</option>
-              <option value="90">1.5 dk</option>
-              <option value="120">2 dk</option>
-              <option value="180">3 dk</option>
-              <option value="210" selected>3.5 dk</option>
-              <option value="240">4 dk</option>
-              <option value="300">5 dk</option>
-            </select>
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
-            <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
-            <button id="btn-tara-sb" style="margin-left:auto;padding:6px 14px;background:#FF6600;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
-          </div>
-          <div id="tara-sb-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
-        </div>
 
-        <!-- ARB -->
-        <div style="background:rgba(227,24,55,0.07);border:1px solid rgba(227,24,55,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-            <span style="font-size:11px;background:#E31837;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">ARB</span>
-            <input type="text" id="ot-url-ar" value="https://www.arabam.com/ikinci-el/otomobil" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          <div style="font-size:10px;color:var(--mut);display:grid;grid-template-columns:30px 1fr 60px 70px;gap:4px;align-items:center;margin-bottom:3px;padding:0 2px">
+            <span></span><span>URL</span><span style="text-align:center">Sayfa</span><span style="text-align:center">Max İlan</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
-            <select id="ot-aralik-ar" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
-              <option value="30">30 sn</option>
-              <option value="60">1 dk</option>
-              <option value="90" selected>1.5 dk</option>
-              <option value="120">2 dk</option>
-              <option value="180">3 dk</option>
-              <option value="210">3.5 dk</option>
-              <option value="240">4 dk</option>
-              <option value="300">5 dk</option>
-            </select>
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
-            <input type="number" id="ot-sayfa-ar" value="50" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
-            <button id="btn-tara-ar" style="margin-left:auto;padding:6px 14px;background:#E31837;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
+          <div id="p-ot-url-listesi">
+            <div class="p-ot-url-satir" style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+              <span style="font-size:10px;background:#FF6600;color:#fff;padding:2px 7px;border-radius:3px;flex-shrink:0;font-weight:700">SHB</span>
+              <input id="p-ot-url-sb" placeholder="https://www.sahibinden.com/otomobil" style="flex:1">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Sayfa</span>
+                <input type="number" id="p-ot-sayfa-sb" min="0" style="width:48px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">MaxİL</span>
+                <input type="number" id="p-ot-ilan-sb" min="0" style="width:52px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--blu);font-weight:600">⏱ Aralik</span>
+                <select id="p-ot-aralik-sb" style="width:80px;font-size:11px;padding:3px;border:1px solid var(--blu);border-radius:5px;background:var(--yuz);color:var(--txt);font-weight:600">
+                  <option value="0">🌐 Global</option>
+        <option value="5">5 sn</option>
+        <option value="10">10 sn</option>
+        <option value="15">15 sn</option>
+        <option value="20">20 sn</option>
+        <option value="25">25 sn</option>
+        <option value="30">30 sn</option>
+        <option value="45">45 sn</option>
+        <option value="60">1 dk</option>
+        <option value="90">1.5 dk</option>
+        <option value="120">2 dk</option>
+        <option value="180">3 dk</option>
+        <option value="240">4 dk</option>
+        <option value="300">5 dk</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Etiket</span>
+                <select id="p-ot-etiket-sb" class="ot-satir-etiket" style="width:105px;font-size:11px;padding:3px;border:1px solid var(--brd);border-radius:5px;background:var(--bg);color:var(--txt)"><option value="">-- Seçin --</option></select>
+              </div>
+            </div>
+            <div class="p-ot-url-satir" style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+              <span style="font-size:10px;background:#E31837;color:#fff;padding:2px 7px;border-radius:3px;flex-shrink:0;font-weight:700">ARB</span>
+              <input id="p-ot-url-ar" placeholder="https://www.arabam.com/ikinci-el/otomobil" style="flex:1">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Sayfa</span>
+                <input type="number" id="p-ot-url-ar-sayfa" min="0" style="width:48px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">MaxİL</span>
+                <input type="number" id="p-ot-ilan-ar" min="0" style="width:52px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--blu);font-weight:600">⏱ Aralik</span>
+                <select id="p-ot-aralik-ar" style="width:80px;font-size:11px;padding:3px;border:1px solid var(--blu);border-radius:5px;background:var(--yuz);color:var(--txt);font-weight:600">
+                  <option value="0">🌐 Global</option>
+        <option value="5">5 sn</option>
+        <option value="10">10 sn</option>
+        <option value="15">15 sn</option>
+        <option value="20">20 sn</option>
+        <option value="25">25 sn</option>
+        <option value="30">30 sn</option>
+        <option value="45">45 sn</option>
+        <option value="60">1 dk</option>
+        <option value="90">1.5 dk</option>
+        <option value="120">2 dk</option>
+        <option value="180">3 dk</option>
+        <option value="240">4 dk</option>
+        <option value="300">5 dk</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Etiket</span>
+                <select id="p-ot-etiket-ar" class="ot-satir-etiket" style="width:105px;font-size:11px;padding:3px;border:1px solid var(--brd);border-radius:5px;background:var(--bg);color:var(--txt)"><option value="">-- Seçin --</option></select>
+              </div>
+            </div>
+            <div class="p-ot-url-satir" style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+              <span style="font-size:10px;background:#6B3FA0;color:#fff;padding:2px 7px;border-radius:3px;flex-shrink:0;font-weight:700">LTG</span>
+              <input id="p-ot-url-lg" placeholder="https://www.letgo.com/arabalar_c15706" style="flex:1">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Sayfa</span>
+                <input type="number" id="p-ot-url-lg-sayfa" min="0" style="width:48px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">MaxİL</span>
+                <input type="number" id="p-ot-ilan-lg" min="0" style="width:52px;text-align:center">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--blu);font-weight:600">⏱ Aralik</span>
+                <select id="p-ot-aralik-lg" style="width:80px;font-size:11px;padding:3px;border:1px solid var(--blu);border-radius:5px;background:var(--yuz);color:var(--txt);font-weight:600">
+                  <option value="0">🌐 Global</option>
+        <option value="5">5 sn</option>
+        <option value="10">10 sn</option>
+        <option value="15">15 sn</option>
+        <option value="20">20 sn</option>
+        <option value="25">25 sn</option>
+        <option value="30">30 sn</option>
+        <option value="45">45 sn</option>
+        <option value="60">1 dk</option>
+        <option value="90">1.5 dk</option>
+        <option value="120">2 dk</option>
+        <option value="180">3 dk</option>
+        <option value="240">4 dk</option>
+        <option value="300">5 dk</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <span style="font-size:9px;color:var(--mut)">Etiket</span>
+                <select id="p-ot-etiket-lg" class="ot-satir-etiket" style="width:105px;font-size:11px;padding:3px;border:1px solid var(--brd);border-radius:5px;background:var(--bg);color:var(--txt)"><option value="">-- Seçin --</option></select>
+              </div>
+            </div>
           </div>
-          <div id="tara-ar-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
-        </div>
+          <!-- Dinamik eklenen siteler buraya gelir -->
+          <div id="p-ot-extra-listesi" style="margin-bottom:7px"></div>
 
-        <!-- LTG -->
-        <div style="background:rgba(107,63,160,0.07);border:1px solid rgba(107,63,160,0.2);border-radius:8px;padding:10px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-            <span style="font-size:11px;background:#6B3FA0;color:#fff;padding:3px 8px;border-radius:4px;flex-shrink:0;font-weight:700">LTG</span>
-            <input type="text" id="ot-url-lg" value="https://www.letgo.com/arabalar_c15706" style="flex:1;padding:6px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          <!-- Toplu link yapıştırma -->
+          <div style="margin-bottom:8px">
+            <button id="btn-ot-toplu-ac" style="width:100%;padding:7px 12px;background:var(--bg);border:1px dashed var(--brd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--mut);text-align:left;font-family:inherit">
+              📋 Word'den linkleri buraya yapıştır / sürükle-bırak
+            </button>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Sayfa arası:</span>
-            <select id="ot-aralik-lg" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
-              <option value="30">30 sn</option>
-              <option value="60">1 dk</option>
-              <option value="90" selected>1.5 dk</option>
-              <option value="120">2 dk</option>
-              <option value="180">3 dk</option>
-              <option value="210">3.5 dk</option>
-              <option value="240">4 dk</option>
-              <option value="300">5 dk</option>
-            </select>
-            <span style="font-size:11px;color:var(--mut);white-space:nowrap">Max sayfa:</span>
-            <input type="number" id="ot-sayfa-lg" value="50" min="0" style="width:60px;padding:5px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;text-align:center">
-            <button id="btn-tara-lg" style="margin-left:auto;padding:6px 14px;background:#6B3FA0;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Tara</button>
+          <div id="ot-toplu-alan" style="display:none;margin-bottom:8px">
+            <textarea id="ot-toplu-txt" placeholder="Linkleri buraya yapıştırın (Ctrl+V)...&#10;https://www.sahibinden.com/...&#10;https://www.arabam.com/..." style="width:100%;height:80px;box-sizing:border-box;resize:vertical;font-size:11px;border:1px solid var(--blu);border-radius:6px;background:var(--bg);color:var(--txt);padding:8px;font-family:monospace"></textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button id="btn-ot-toplu-uygula" class="mavi" style="flex:1;padding:7px">✓ Linkleri Ekle</button>
+              <button id="btn-ot-toplu-kapat" style="padding:7px 12px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;cursor:pointer;color:var(--mut);font-family:inherit">İptal</button>
+            </div>
           </div>
-          <div id="tara-lg-durum" style="font-size:11px;color:var(--mut);margin-top:5px;min-height:16px"></div>
-        </div>
 
-        <hr style="border:none;border-top:1px solid var(--brd);margin:10px 0">
-
-        <!-- Etiket + Tarama sıklığı -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          <div>
-            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Etiket</div>
-            <input type="text" id="ot-etiket" placeholder='örn: "Otomobil"' style="width:100%;padding:7px 9px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:3px">Etiket</div>
+              <div style="display:flex;gap:4px">
+                <select id="p-ot-etiket" style="flex:1"><option value="">-- Seçin --</option></select>
+                <button id="p-ot-etiket-yonet" title="Etiket Yönet" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mut)">⚙</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:3px">Sayfa arası</div>
+              <select id="p-ot-aralik">
+                <option value="3">3 sn</option>
+                <option value="5">5 sn</option>
+                <option value="10">10 sn</option>
+                <option value="15">15 sn</option>
+                <option value="20">20 sn</option>
+                <option value="25">25 sn</option>
+                <option value="30">30 sn</option>
+                <option value="45" selected>45 sn</option>
+                <option value="60">1 dk</option>
+                <option value="75">1 dk 15 sn</option>
+                <option value="90">1 dk 30 sn</option>
+                <option value="105">1 dk 45 sn</option>
+                <option value="120">2 dk</option>
+                <option value="135">2 dk 15 sn</option>
+                <option value="150">2 dk 30 sn</option>
+                <option value="165">2 dk 45 sn</option>
+                <option value="180">3 dk</option>
+                <option value="195">3 dk 15 sn</option>
+                <option value="210">3 dk 30 sn</option>
+                <option value="225">3 dk 45 sn</option>
+                <option value="240">4 dk</option>
+                <option value="255">4 dk 15 sn</option>
+                <option value="270">4 dk 30 sn</option>
+                <option value="285">4 dk 45 sn</option>
+                <option value="300">5 dk</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Tarama sıklığı</div>
-            <select id="ay-periyot" style="width:100%;padding:7px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px">
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;color:var(--mut);margin-bottom:3px">Tarama sıklığı</div>
+            <select id="p-ot-periyot" style="width:100%">
               <option value="15">15 dakikada bir</option>
               <option value="30" selected>30 dakikada bir</option>
               <option value="60">Saatte bir</option>
@@ -736,75 +894,172 @@ button.kirmizi:hover{background:var(--redl)}
               <option value="360">6 saatte bir</option>
             </select>
           </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="mavi" id="p-btn-ot-kaydet" style="flex:1">💾 Kaydet & Hemen Tara</button>
+            <button class="kirmizi" id="p-btn-ot-dur" style="display:none;flex:1">■ Durdur</button>
+            <button id="p-btn-ot-bekle" style="display:none;flex:1;background:#BA7517;color:#fff;border:none;border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer">⏸ Bekle</button>
+            <button class="mavi" id="p-btn-ot-devam" style="display:none;flex:1">▶ Devam</button>
+            <button class="kirmizi" id="p-btn-ot-sil" style="padding:8px 12px" title="Sıfırla">✕</button>
+          </div>
+          <div id="p-ot-progress" style="display:none;background:var(--bg);border-radius:7px;padding:9px 11px">
+            <div id="p-ot-prog-txt" style="font-size:12px;color:var(--mut);margin-bottom:5px">Tarama devam ediyor...</div>
+            <div style="background:var(--brd);border-radius:3px;height:5px;overflow:hidden">
+              <div id="p-ot-prog-bar" style="background:var(--blu);height:100%;border-radius:3px;width:0%;transition:width .5s"></div>
+            </div>
+          </div>
         </div>
-
-        <!-- Toplu Tara + Kaydet + Durdur butonları -->
-        <div style="display:flex;gap:8px">
-          <button id="btn-toplu-tara" style="flex:1;padding:9px;background:#185FA5;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">🔄 Toplu Tara (3 Site)</button>
-          <button id="ay-kaydet" style="flex:1;padding:9px;background:#2a7a3b;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">💾 Ayarları Kaydet</button>
-          <button id="ay-ot-sil" style="padding:9px 14px;background:#A32D2D;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer" title="Otaramayı durdur">✕</button>
-        </div>
-        <div id="ay-kaydet-durum" style="font-size:11px;margin-top:6px;color:var(--mut)"></div>
       </div>
 
-      <!-- İlan Yönetimi -->
-      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span>🗑</span> İlan Yönetimi</div>
-        <div style="font-size:11px;color:var(--mut);margin-bottom:12px">Yayından kalkmış veya eski ilanları silin. Tüm silme işlemleri yerel DB'ye yansır.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <button class="sil-btn" data-gun="30" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 30 Gün Eskisini Sil</button>
-          <button class="sil-btn" data-gun="45" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 45 Gün Eskisini Sil</button>
-          <button class="sil-btn" data-gun="60" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">📅 60 Gün Eskisini Sil</button>
-          <button class="sil-btn" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600">💰 Sıfır TL Olanları Sil</button>
-          <button class="sil-btn" data-gun="30" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 30 Gün + Sıfır TL</button>
-          <button class="sil-btn" data-gun="45" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 45 Gün + Sıfır TL</button>
-          <button class="sil-btn" data-gun="60" data-sifir="1" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔥 60 Gün + Sıfır TL</button>
-          <button id="btn-aktif-kontrol" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(251,146,60,0.4);background:rgba(251,146,60,0.1);color:#fb923c;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">🔗 Aktif Olmayan İlanları Sil (Tümü)</button>
-        </div>
-        <button id="btn-tumunu-sil-gh" style="padding:7px 14px;border-radius:8px;border:2px solid rgba(239,68,68,0.7);background:rgba(239,68,68,0.15);color:#f87171;font-size:12px;cursor:pointer;font-family:inherit;font-weight:800">☢️ TÜM İLANLARI SİL + GitHub Sıfırla</button>
-        <div id="sil-durum" style="margin-top:10px;font-size:12px;color:var(--mut);min-height:18px"></div>
-      </div>
+      <!-- SAĞ: Manuel + Veri -->
+      <div>
 
-      <!-- Gizli ay-aralik ve ay-url-listesi — eski JS kodu için geriye dönük uyum -->
-      <select id="ay-aralik" style="display:none"><option value="210000" selected>3.5 dk</option></select>
-      <div id="ay-url-listesi" style="display:none"></div>
-      <button id="ay-url-ekle" style="display:none"></button>
 
-      <!-- GitHub Token -->
-      <div style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔑 GitHub Token (Kaydetmek için)</div>
-        <div style="display:flex;gap:8px">
-          <input type="password" id="ay-gh-token" placeholder="ghp_..." style="flex:1;padding:8px;border:1px solid var(--brd);border-radius:6px;background:var(--bg);color:var(--txt);font-size:12px;font-family:monospace">
-          <button id="ay-token-kaydet" style="padding:8px 14px;font-size:12px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">Kaydet</button>
-        </div>
-        <div style="font-size:11px;color:var(--mut);margin-top:5px">Token sadece bu tarayıcıda saklanır (localStorage). Extension da buradan okur.</div>
-        <div id="ay-token-durum" style="font-size:11px;margin-top:4px"></div>
-      </div>
-
-      <!-- Extension Yükle -->
-      <div id="ay-ext-indir" style="background:var(--yuz);border:1px solid var(--brd);border-radius:10px;padding:14px;display:none">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔌 Extension Kurulumu</div>
-        <div style="font-size:12px;color:var(--mut);margin-bottom:10px">AraçRadar tarama extension'ı henüz kurulu değil. Chrome/Edge'e eklemek için:</div>
-        <ol style="font-size:12px;line-height:2;padding-left:18px;color:var(--txt)">
-          <li>Aşağıdaki ZIP'i indir</li>
-          <li>ZIP'i bir klasöre çıkart — içinde <code>manifest.json</code> olan <strong>extension</strong> klasörünü bul</li>
-          <li>Chrome'da <code>chrome://extensions</code> aç</li>
-          <li>Sağ üstte <strong>"Geliştirici modu"</strong>nu aç</li>
-          <li><strong>"Paketlenmemiş öğe yükle"</strong> → <code>extension</code> klasörünü seç (manifest.json olan klasör)</li>
-        </ol>
-        <a href="https://github.com/tasiyicihesap/aracradar/archive/refs/heads/main.zip"
-           style="display:inline-block;margin-top:8px;padding:8px 16px;background:#E31837;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-weight:600">
-          ⬇️ Extension ZIP İndir
-        </a>
-        <div style="font-size:11px;color:var(--mut);margin-top:8px">⚠️ ZIP içindeki <code>extension/</code> klasörünü seç — ana klasörü değil</div>
-      </div>
-
+<div style="background:linear-gradient(135deg,rgba(31,111,235,0.1),rgba(31,111,235,0.04));border:1px solid rgba(31,111,235,0.25);border-radius:12px;padding:16px;margin-bottom:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#58a6ff;margin-bottom:2px">⚡ Hızlı Kurulum — Hazır Tarama Linkleri</div>
+      <div style="font-size:11px;color:var(--mut)">Linkleri düzenleyip kaydedin. "Yükle ve Tara" butonuyla tarama başlar.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="btn-hizli-kaydet" style="padding:6px 14px;background:rgba(31,111,235,0.15);color:#58a6ff;border:1px solid rgba(31,111,235,0.3);border-radius:7px;font-size:11px;cursor:pointer;font-family:inherit">💾 Kaydet</button>
+      <button id="btn-hizli-kur" style="padding:6px 16px;background:#1f6feb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⬇ Yükle ve Tara</button>
     </div>
   </div>
+  <div id="hizli-link-listesi" style="display:flex;flex-direction:column;gap:6px"></div>
+  <button id="btn-hizli-ekle" style="margin-top:8px;padding:5px 12px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:7px;color:var(--mut);font-size:11px;cursor:pointer;font-family:inherit;width:100%">+ Link Ekle</button>
+</div>
 
-  <!-- ANALİZ -->
-  <div class="ana-icerik" id="icerik-analiz" style="display:none">
-    <div id="analiz-panel"></div>
+        <div class="kart" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:500">Manuel Toplu Tarama</div>
+            <button id="p-btn-url-ekle" style="padding:4px 10px;background:var(--blu);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">+ Site Ekle</button>
+          </div>
+
+          <div id="p-manuel-url-listesi" style="min-height:40px;border-radius:6px;transition:background .2s"
+            ondragover="this.style.background='rgba(24,95,165,0.12)'"
+            ondragleave="this.style.background=''"
+            ondrop="this.style.background=''">
+            <!-- URL satırları buraya dinamik eklenecek -->
+          </div>
+          <div style="margin-bottom:8px;display:flex;gap:6px;align-items:center">
+            <button id="btn-toplu-link-ac" style="flex:1;padding:7px 12px;background:var(--bg);border:1px dashed var(--brd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--mut);text-align:left;font-family:inherit">
+              📋 Word'den linkleri buraya yapıştır / sürükle-bırak
+            </button>
+          </div>
+          <div id="toplu-link-alan" style="display:none;margin-bottom:8px">
+            <textarea id="toplu-link-txt" placeholder="Linkleri buraya yapıştırın (Ctrl+V)...&#10;https://www.sahibinden.com/...&#10;https://www.arabam.com/...&#10;https://www.letgo.com/..." style="width:100%;height:100px;box-sizing:border-box;resize:vertical;font-size:11px;border:1px solid var(--blu);border-radius:6px;background:var(--bg);color:var(--txt);padding:8px;font-family:monospace"></textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button id="btn-toplu-link-uygula" class="mavi" style="flex:1;padding:7px">✓ Linkleri Ekle</button>
+              <button id="btn-toplu-link-kapat" style="padding:7px 12px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;cursor:pointer;color:var(--mut);font-family:inherit">İptal</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 80px;gap:8px;margin-bottom:8px">
+            <div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:3px">Etiket</div>
+              <div style="display:flex;gap:4px">
+                <select id="p-inp-etiket" style="flex:1"><option value="">-- Seçin --</option></select>
+                <button id="p-inp-etiket-yonet" title="Etiket Yönet" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mut)">⚙</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:3px">Sayfa/site</div>
+              <input type="number" id="p-inp-bitis" value="9999" min="1">
+            </div>
+          </div>
+          <div style="margin-bottom:10px" id="global-aralik-div">
+            <div style="font-size:11px;color:var(--mut);margin-bottom:3px">
+              Sayfa arası (Global) 
+              <span style="color:var(--blu);font-size:10px">(Site aralik = "Global" ise bu değer kullanılır)</span>
+              <span id="global-aralik-durum" style="font-size:10px;color:var(--grn);font-weight:600;margin-left:4px"></span>
+            </div>
+            <select id="p-inp-aralik">
+              <option value="3">3 sn</option>
+              <option value="5">5 sn</option>
+              <option value="10">10 sn</option>
+              <option value="15">15 sn</option>
+              <option value="20">20 sn</option>
+              <option value="25">25 sn</option>
+              <option value="30">30 sn</option>
+              <option value="45" selected>45 sn</option>
+              <option value="60">1 dk</option>
+              <option value="75">1 dk 15 sn</option>
+              <option value="90">1 dk 30 sn</option>
+              <option value="105">1 dk 45 sn</option>
+              <option value="120">2 dk</option>
+              <option value="135">2 dk 15 sn</option>
+              <option value="150">2 dk 30 sn</option>
+              <option value="165">2 dk 45 sn</option>
+              <option value="180">3 dk</option>
+              <option value="195">3 dk 15 sn</option>
+              <option value="210">3 dk 30 sn</option>
+              <option value="225">3 dk 45 sn</option>
+              <option value="240">4 dk</option>
+              <option value="255">4 dk 15 sn</option>
+              <option value="270">4 dk 30 sn</option>
+              <option value="285">4 dk 45 sn</option>
+              <option value="300">5 dk</option>
+            <option value="600">10 dk</option>
+            <option value="900">15 dk</option>
+            <option value="1800">30 dk</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="mavi" id="p-btn-tarama" style="flex:1">▶ Toplu Tara</button>
+            <button class="kirmizi" id="p-btn-dur" style="display:none;flex:1">■ Durdur</button>
+            <button id="p-btn-bekle" style="display:none;flex:1;background:#BA7517;color:#fff;border:none;border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer">⏸ Bekle</button>
+            <button class="mavi" id="p-btn-devam" style="display:none;flex:1">▶ Devam</button>
+          </div>
+          <div id="p-progress" style="display:none;background:var(--bg);border-radius:7px;padding:9px 11px">
+            <div id="p-prog-txt" style="font-size:12px;color:var(--mut);margin-bottom:5px">Hazırlanıyor...</div>
+            <div style="background:var(--brd);border-radius:3px;height:5px;overflow:hidden">
+              <div id="p-prog-bar" style="background:var(--blu);height:100%;border-radius:3px;width:0%;transition:width .5s"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kart">
+          <div style="font-size:14px;font-weight:500;margin-bottom:12px">Veri Yönetimi</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="yesil" id="p-btn-yedekle">⬇ Yedekle</button>
+            <button class="yesil" id="p-btn-yukle-ac">⬆ Yükle</button>
+            <input type="file" id="p-yukle-inp" accept=".json" style="display:none">
+            <button class="mavi" id="p-btn-yenile2">↻ Yenile</button>
+            <button class="kirmizi" id="p-btn-hepsisil2">Temizle</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arşiv ayrı satırda tam genişlik -->
+      
+
+    </div>
+
+    <!-- LİNK EXPORT / IMPORT -->
+    <div class="kart" style="margin-top:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--txt)">🔗 Link Export / Import</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button id="btn-link-export" style="flex:1;padding:9px;background:var(--grn,#22c55e);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">⬇ Linkleri İndir</button>
+        <label style="flex:1;padding:9px;background:var(--blu);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center">
+          ⬆ Linkleri Yükle
+          <input type="file" id="btn-link-import-file" accept=".json" style="display:none">
+        </label>
+        <button id="btn-link-paste-ac" style="padding:9px 12px;background:var(--bg2,var(--bg));border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:12px;color:var(--mut);font-family:inherit" title="Kopyala-Yapıştır ile yükle">📋</button>
+      </div>
+      <div id="link-import-paste-wrap" style="display:none;margin-bottom:10px">
+        <textarea id="link-import-paste-txt" placeholder="JSON içeriğini buraya yapıştırın..." style="width:100%;height:80px;box-sizing:border-box;font-size:11px;border:1px solid var(--blu);border-radius:6px;background:var(--bg);color:var(--txt);padding:8px;font-family:monospace;resize:vertical"></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button id="btn-link-import-uygula" class="mavi" style="flex:1;padding:7px">✓ Uygula</button>
+          <button id="btn-link-import-kapat" style="padding:7px 12px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;cursor:pointer;color:var(--mut);font-family:inherit">İptal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LİNK ARŞİVİ -->
+    <div class="kart" style="margin-top:14px">
+      <div style="font-size:14px;font-weight:500;margin-bottom:12px">📁 Link Arşivi <span style="font-size:11px;color:var(--mut);font-weight:400">— Önceki tarama URL'leri (max 20)</span></div>
+      <div id="arsiv-liste"><div style="font-size:12px;color:var(--mut)">Yükleniyor...</div></div>
+    </div>
   </div>
 
 
@@ -829,21 +1084,7 @@ button.kirmizi:hover{background:var(--redl)}
   <span>&#x1F4C9;</span><span id="kose-sayi">0 bildirim</span>
 </div>
 
-
-<!-- Web Yükleme Ekranı -->
-<div id="web-yukleme" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
-  <div style="font-size:40px">📡</div>
-  <div style="color:#fff;font-size:16px;font-weight:600">GitHub'dan veriler yükleniyor...</div>
-  <div id="web-yukleme-prog" style="color:#6b7d8f;font-size:13px">Bağlanıyor...</div>
-  <div style="width:200px;height:4px;background:#1e2a38;border-radius:2px;overflow:hidden;margin-top:8px">
-    <div id="web-yukleme-bar" style="height:100%;background:#2ecc8a;border-radius:2px;width:0%;transition:width 0.3s;animation:pulse 1.5s ease-in-out infinite"></div>
-  </div>
-</div>
-<style>
-@keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
-#web-yukleme.visible { display:flex!important; }
-</style>
-
+<script src="panel.js"></script>
 
 <!-- Şehir Seçim Paneli -->
 <div id="sehir-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
@@ -876,6 +1117,5 @@ button.kirmizi:hover{background:var(--redl)}
     <p style="font-size:11px;color:var(--mut);margin-top:8px">Etiket silindiğinde ilanlar etkilenmez.</p>
   </div>
 </div>
-<script src="panel.js"></script>
 </body>
 </html>
