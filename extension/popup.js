@@ -286,22 +286,18 @@ document.getElementById('btn-dur').addEventListener('click', function() {
 
 // ——— Paneli Aç ———
 document.getElementById('btn-panel').addEventListener('click', function() {
-  chrome.windows.getAll({ populate: true }, function(windows) {
-    for (var i = 0; i < windows.length; i++) {
-      var tabs = windows[i].tabs || [];
-      for (var j = 0; j < tabs.length; j++) {
-        if (tabs[j].url && tabs[j].url.indexOf('panel.html') !== -1) {
-          chrome.windows.update(windows[i].id, { focused: true });
-          return;
-        }
+  // Zaten açık sekme var mı kontrol et
+  chrome.tabs.query({}, function(tabs) {
+    var panelUrl = chrome.runtime.getURL('panel.html');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].url && tabs[i].url.indexOf('panel.html') !== -1) {
+        chrome.tabs.update(tabs[i].id, { active: true });
+        chrome.windows.update(tabs[i].windowId, { focused: true });
+        return;
       }
     }
-    chrome.windows.create({
-      url: chrome.runtime.getURL('panel.html'),
-      type: 'popup',
-      width: 1400,
-      height: 900
-    });
+    // Yeni sekme olarak aç (tam ekran, tüm özellikler erişilebilir)
+    chrome.tabs.create({ url: panelUrl });
   });
 });
 

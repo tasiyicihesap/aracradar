@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ARA\u00c7RADAR \u2014 Ara\u00e7 Fiyat Takip",
-  "version": "17.9",
+  "version": "17.10",
   "description": "Sahibinden, Arabam.com, Letgo ara\u00e7 fiyatlar\u0131n\u0131 otomatik takip eder.",
   "permissions": [
     "storage",
