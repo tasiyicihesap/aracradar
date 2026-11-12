@@ -874,7 +874,8 @@ function idbOku(key, cb) {
   });
 }
 
-// chrome.storage.local → localStorage
+// chrome.storage.local → localStorage (SADECE web modunda; extension içinde gerçek chrome API kullanılır)
+if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
 window.chrome = {
   storage: {
     local: {
@@ -951,6 +952,7 @@ window.chrome = {
     }
   }
 };
+} // end: web modu chrome shim
 
 // GitHub'dan tüm ilanları çek
 function webGitHubdanAl(cb, zorlaIndir) {
