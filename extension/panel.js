@@ -3733,13 +3733,18 @@ function panelOtaramayiKaydet(hemenTara) {
   var ilanAr = parseInt((document.getElementById('p-ot-ilan-ar')||{value:''}).value)||0;
   var ilanLg = parseInt((document.getElementById('p-ot-ilan-lg')||{value:''}).value)||0;
 
+  // Her site için kendi aralığını oku (0 = global aralık kullan)
+  var aralikSnSb = parseInt((document.getElementById('p-ot-aralik-sb')||{value:'0'}).value)||0;
+  var aralikSnAr = parseInt((document.getElementById('p-ot-aralik-ar')||{value:'0'}).value)||0;
+  var aralikSnLg = parseInt((document.getElementById('p-ot-aralik-lg')||{value:'0'}).value)||0;
+
   var etSb = (document.getElementById('p-ot-etiket-sb')||{value:''}).value.trim();
   var etAr = (document.getElementById('p-ot-etiket-ar')||{value:''}).value.trim();
   var etLg = (document.getElementById('p-ot-etiket-lg')||{value:''}).value.trim();
   var urls = [];
-  if (urlSb) urls.push({ url: urlSb, sayfa: sayfaSb, site: 'sahibinden', maxIlan: ilanSb||0, etiket: etSb||etiket });
-  if (urlAr) urls.push({ url: urlAr, sayfa: sayfaAr, site: 'arabam',     maxIlan: ilanAr||0, etiket: etAr||etiket });
-  if (urlLg) urls.push({ url: urlLg, sayfa: sayfaLg, site: 'letgo',      maxIlan: ilanLg||0, etiket: etLg||etiket });
+  if (urlSb) urls.push({ url: urlSb, sayfa: sayfaSb, site: 'sahibinden', maxIlan: ilanSb||0, aralik: (aralikSnSb||aralikSn)*1000, etiket: etSb||etiket });
+  if (urlAr) urls.push({ url: urlAr, sayfa: sayfaAr, site: 'arabam',     maxIlan: ilanAr||0, aralik: (aralikSnAr||aralikSn)*1000, etiket: etAr||etiket });
+  if (urlLg) urls.push({ url: urlLg, sayfa: sayfaLg, site: 'letgo',      maxIlan: ilanLg||0, aralik: (aralikSnLg||aralikSn)*1000, etiket: etLg||etiket });
 
   // Extra URL'ler (aralik ve etiket de dahil)
   document.querySelectorAll('.ot-extra-url').forEach(function(el) {
@@ -4262,7 +4267,7 @@ function linkImport(jsonMetin) {
       sv(ids.url, l.url);
       sv(ids.sayfa, l.sayfa||'');
       sv(ids.max,   l.maxIlan||'');
-      if (l.aralik) { var el=document.getElementById(ids.aralik); if(el) el.value=String(l.aralik); }
+      if (l.aralik) { var el=document.getElementById(ids.aralik); if(el) el.value=String(Math.round(l.aralik/1000)); }
       if (l.etiket) { var el2=document.getElementById(ids.etiket); if(el2){ for(var i=0;i<el2.options.length;i++){if(el2.options[i].value===l.etiket){el2.value=l.etiket;break;}} } }
       dolu[site] = true;
     } else {
