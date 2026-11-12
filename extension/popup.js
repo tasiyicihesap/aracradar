@@ -32,10 +32,13 @@ function guncelle() {
       function _sv(id, v) { var el=document.getElementById(id); if(el&&v!==undefined) el.value=v; }
       _sv('ot-url-sb',       sb.url   || ot.baseUrl || '');
       _sv('ot-sayfa-sb',     sb.sayfa || ot.toplamSayfa || 100);
+      _sv('ot-aralik-sb',    sb.aralikSn || 300);
       _sv('ot-url-ar',       ar.url   || '');
       _sv('ot-url-ar-sayfa', ar.sayfa || 50);
+      _sv('ot-aralik-ar',    ar.aralikSn || 90);
       _sv('ot-url-lg',       lg.url   || '');
       _sv('ot-url-lg-sayfa', lg.sayfa || 50);
+      _sv('ot-aralik-lg',    lg.aralikSn || 60);
       _sv('ot-etiket',       ot.etiket || '');
     } else {
       otDurumEl.style.display = 'none';
@@ -94,13 +97,16 @@ document.getElementById('btn-ot-kaydet').addEventListener('click', function() {
   function _gi(id,def){ return parseInt(_gv(id))||def; }
   var urlSb = _gv('ot-url-sb'), urlAr = _gv('ot-url-ar'), urlLg = _gv('ot-url-lg');
   var etiket = _gv('ot-etiket') || 'Genel';
-  var aralik = _gi('ot-aralik', 5);
   var periyot = _gi('ot-periyot', 30);
   if (!urlSb && !urlAr && !urlLg) { alert('En az bir URL girin.'); return; }
+  var aralikSb = _gi('ot-aralik-sb', 300);
+  var aralikAr = _gi('ot-aralik-ar', 90);
+  var aralikLg = _gi('ot-aralik-lg', 60);
   var urls = [];
-  if (urlSb) urls.push({ url:urlSb, sayfa:_gi('ot-sayfa-sb',100),     site:'sahibinden' });
-  if (urlAr) urls.push({ url:urlAr, sayfa:_gi('ot-url-ar-sayfa',50),  site:'arabam' });
-  if (urlLg) urls.push({ url:urlLg, sayfa:_gi('ot-url-lg-sayfa',50),  site:'letgo' });
+  if (urlSb) urls.push({ url:urlSb, sayfa:_gi('ot-sayfa-sb',100),    site:'sahibinden', aralikSn:aralikSb, aralik:aralikSb*1000 });
+  if (urlAr) urls.push({ url:urlAr, sayfa:_gi('ot-url-ar-sayfa',50), site:'arabam',     aralikSn:aralikAr, aralik:aralikAr*1000 });
+  if (urlLg) urls.push({ url:urlLg, sayfa:_gi('ot-url-lg-sayfa',50), site:'letgo',      aralikSn:aralikLg, aralik:aralikLg*1000 });
+  var aralik = aralikSb; // birincil site aralığı (geriye dönük uyumluluk)
   var ayarlar = { baseUrl: urlSb||urlAr||urlLg, urls: urls, etiket: etiket, toplamSayfa: _gi('ot-sayfa-sb',100), aralik: aralik*1000, periyot: periyot };
   chrome.runtime.sendMessage({ action: 'otaramaKaydet', ayarlar: ayarlar }, function() {
     chrome.runtime.sendMessage({ action: 'otaramaBaslat', ayarlar: ayarlar });

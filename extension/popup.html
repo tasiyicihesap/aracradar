@@ -72,36 +72,39 @@ button{flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;font-fami
 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
   <span style="font-size:10px;background:#FF6600;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">SHB</span>
   <input type="text" id="ot-url-sb" placeholder="https://www.sahibinden.com/otomobil" value="https://www.sahibinden.com/kategori/otomobil" style="flex:1;font-size:11px">
-  <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
+  <input type="number" id="ot-sayfa-sb" value="100" min="0" style="width:40px;font-size:11px" title="Sayfa sayısı">
+  <select id="ot-aralik-sb" style="width:68px;font-size:11px;padding:3px 2px" title="Sayfa arası bekleme">
+    <option value="3">3 sn</option><option value="5">5 sn</option><option value="10">10 sn</option>
+    <option value="15">15 sn</option><option value="20">20 sn</option><option value="30">30 sn</option>
+    <option value="45">45 sn</option><option value="60">1 dk</option><option value="90">1.5 dk</option>
+    <option value="120">2 dk</option><option value="180">3 dk</option><option value="300" selected>5 dk</option>
+  </select>
 </div>
 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
   <span style="font-size:10px;background:#E31837;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">ARB</span>
   <input type="text" id="ot-url-ar" placeholder="https://www.arabam.com/ikinci-el/otomobil" value="https://www.arabam.com/ikinci-el/otomobil" style="flex:1;font-size:11px">
-  <input type="number" id="ot-url-ar-sayfa" value="50" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
+  <input type="number" id="ot-url-ar-sayfa" value="50" min="0" style="width:40px;font-size:11px" title="Sayfa sayısı">
+  <select id="ot-aralik-ar" style="width:68px;font-size:11px;padding:3px 2px" title="Sayfa arası bekleme">
+    <option value="3">3 sn</option><option value="5">5 sn</option><option value="10">10 sn</option>
+    <option value="15">15 sn</option><option value="20">20 sn</option><option value="30">30 sn</option>
+    <option value="45">45 sn</option><option value="60">1 dk</option><option value="90" selected>1.5 dk</option>
+    <option value="120">2 dk</option><option value="180">3 dk</option><option value="300">5 dk</option>
+  </select>
 </div>
 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
   <span style="font-size:10px;background:#6B3FA0;color:#fff;padding:2px 5px;border-radius:3px;flex-shrink:0">LTG</span>
   <input type="text" id="ot-url-lg" placeholder="https://www.letgo.com/arabalar_c15706" value="https://www.letgo.com/arabalar_c15706" style="flex:1;font-size:11px">
-  <input type="number" id="ot-url-lg-sayfa" value="50" min="0" style="width:45px;font-size:11px" title="Sayfa sayısı (0=devre dışı)">
+  <input type="number" id="ot-url-lg-sayfa" value="50" min="0" style="width:40px;font-size:11px" title="Sayfa sayısı">
+  <select id="ot-aralik-lg" style="width:68px;font-size:11px;padding:3px 2px" title="Sayfa arası bekleme">
+    <option value="3">3 sn</option><option value="5">5 sn</option><option value="10">10 sn</option>
+    <option value="15">15 sn</option><option value="20">20 sn</option><option value="30">30 sn</option>
+    <option value="45">45 sn</option><option value="60" selected>1 dk</option><option value="90">1.5 dk</option>
+    <option value="120">2 dk</option><option value="180">3 dk</option><option value="300">5 dk</option>
+  </select>
 </div>
 <div class="row" style="font-size:10px;color:#888;gap:4px;margin-top:-2px">
   <span>Etiket:</span>
   <input type="text" id="ot-etiket" placeholder='örn: "Otomobil"' style="flex:1">
-</div>
-<div class="row">
-  <span style="font-size:11px;color:#888">Sayfa arası:</span>
-  <select id="ot-aralik">
-    <option value="3">3 sn (hızlı)</option>
-    <option value="3">3 sn</option>
-    <option value="5" selected>5 sn</option>
-    <option value="10">10 sn</option>
-    <option value="15">15 sn</option>
-    <option value="20">20 sn</option>
-    <option value="25">25 sn</option>
-    <option value="30">30 sn</option>
-    <option value="45">45 sn</option>
-    <option value="60">1 dk</option>
-  </select>
 </div>
 <div class="row">
   <span style="font-size:11px;color:#888">Tarama sıklığı:</span>
