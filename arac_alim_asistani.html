@@ -246,8 +246,8 @@
   <div class="view" id="v-mesafe">
     <div class="card">
       <h2><span class="n">4</span> Mesafe / Rota Yardımcısı <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted);">(kuş uçuşu, deneysel)</span></h2>
-      <div class="not-kutu">
-        AraçRadar'daki ilanlarda henüz şehir/ilçe bilgisi tutulmuyor, o yüzden bu bölümdeki konum/rota hesabı ile 🎯 Fırsat Taraması sonuçları şu an birbirine bağlı değil — ilan verisinde "hangi ilçede" bilgisi olmadığı için ilanları konuma göre filtreleyemiyorum. Bu sekme bağımsız çalışıyor: Türkiye'nin 81 il / 972 ilçesi aşağı gömülü, internete gerek kalmadan seçip mesafe/rota hesaplayabilirsin.
+      <div class="not-kutu" style="background:#e8f4ec;border-color:#a8d5b5;color:#1a5c33;">
+        📍 Bu sekme bağımsız çalışır: Türkiye'nin 81 il / 972 ilçesi gömülü — internet gerekmez, konum seçip mesafe/rota hesaplayabilirsin. Aşağıda konum seçtiğinde açılan <b>"🚗 Bu Bölgedeki Araçlar"</b> bölümü AraçRadar'ın canlı verisini çekip o bölgeye düşen ilanları gösterir — ancak AraçRadar'ın tarama koduna şehir bilgisini düzgün kaydetmesi için bir düzeltme gerekiyor (ayrıca iletildi); o düzeltme repo'ya yüklenip taramalar birikmeye başlayana kadar burada "henüz ilan yok" görebilirsin, bu normaldir.
       </div>
 
       <div class="search-grid" style="grid-template-columns:1fr 1fr;">
@@ -322,6 +322,17 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div id="bolgeAraclarBlok" style="display:none;margin-top:24px;">
+        <h2 style="margin-top:0;"><span class="n">🚗</span> Bu Bölgedeki Araçlar <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted);">(AraçRadar)</span></h2>
+        <p class="alt">"Aracın Bulunduğu İlçe" (yoksa "Kişinin Konumu") merkez alınarak, AraçRadar'ın taradığı ilanlardan şehir bilgisi bu bölgeye düşenler burada listelenir.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+          <button class="btn primary" id="btnBolgeTara">Bu Bölgedeki Araçları Tara</button>
+          <label style="font-size:12px;color:var(--muted);">Yarıçap: <input type="number" id="bolgeYaricap" value="75" min="5" max="500" style="width:70px;"> km</label>
+        </div>
+        <div class="yardim" id="bolgeDurum" style="margin-bottom:8px;"></div>
+        <div id="bolgeSonuc"></div>
       </div>
     </div>
   </div>
@@ -713,40 +724,83 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>{
 
 /* ============ TAB3: FIRSAT TARAMASI ============ */
 let RADAR_DATA = null;
+let RADAR_YUKLEME_BILGI = null; // {toplamParca, basarisizParca, ilanSayisi}
 const progressWrap=document.getElementById('progressWrap'), progressBar=document.getElementById('progressBar'), progressLabel=document.getElementById('progressLabel');
 
+async function fetchJsonConTimeout(url, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms);
+  try{
+    const r = await fetch(url, {cache:'no-store', signal:ctrl.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
 async function fetchRadarData(){
-  const bases=['https://raw.githubusercontent.com/tasiyicihesap/aracradar/main/data/','https://cdn.jsdelivr.net/gh/tasiyicihesap/aracradar@main/data/'];
+  const bases=[
+    'https://raw.githubusercontent.com/tasiyicihesap/aracradar/main/data/',
+    'https://cdn.jsdelivr.net/gh/tasiyicihesap/aracradar@main/data/',
+    'https://rawcdn.githack.com/tasiyicihesap/aracradar/main/data/',
+    'https://fastly.jsdelivr.net/gh/tasiyicihesap/aracradar@main/data/'
+  ];
   const cacheBust = '?t='+Date.now();
-  let meta=null, base=null;
+  let meta=null, base=null, sonHata=null;
   for(const b of bases){
-    try{ const r=await fetch(b+'meta.json'+cacheBust,{cache:'no-store'}); if(r.ok){ meta=await r.json(); base=b; break; } }catch(e){}
+    try{ meta = await fetchJsonConTimeout(b+'meta.json'+cacheBust, 12000); base=b; break; }
+    catch(e){ sonHata = e; }
   }
-  if(!meta) throw new Error('AraçRadar verisine ulaşılamadı (internet/CORS sorunu olabilir).');
+  if(!meta) throw new Error('AraçRadar verisine ulaşılamadı (' + (sonHata?sonHata.message:'bilinmeyen hata') + '). İnternet bağlantını kontrol et ya da birkaç dakika sonra tekrar dene. İpucu: önce "🎯 Fırsat Taraması" sekmesinde "Taramayı Başlat"ı dene — orada başarılı olursa veri burada da hazır olur.');
 
   const parcalar = meta.parcalar || [];
   const total = parcalar.length;
   progressWrap.classList.add('show');
   const all=[];
+  const basarisizParcalar=[];
+  async function parcaYukle(i){
+    const fname = parcalar[i].split('/').pop();
+    const denemeSirasi = base ? [base, ...bases.filter(b=>b!==base)] : bases;
+    for(const b of denemeSirasi){
+      try{ return await fetchJsonConTimeout(b+fname+cacheBust, 15000); }catch(e){}
+    }
+    return null;
+  }
   for(let i=0;i<total;i++){
     progressLabel.textContent = `${i+1}/${total} parça yükleniyor... (${all.length} ilan toplandı)`;
     progressBar.style.width = Math.round((i/total)*100)+'%';
-    const fname = parcalar[i].split('/').pop();
-    let chunk=null;
-    for(const b of bases){
-      try{ const r=await fetch(b+fname+cacheBust,{cache:'no-store'}); if(r.ok){ chunk=await r.json(); break; } }catch(e){}
-    }
+    const chunk = await parcaYukle(i);
     if(chunk){
       chunk.forEach(rec=>{
         if(!rec || (!rec.marka && !rec.ad) || !(rec.fiyat>0)) return;
         const brand = detectBrand(rec);
         if(!brand) return;
-        all.push({marka:brand, seri:rec.seri||'', model:rec.model||'', ad:rec.ad||'', yil:rec.yil||null, km:rec.km||'', fiyat:rec.fiyat, kaynak:rec.kaynak||'', url:rec.url||''});
+        all.push({marka:brand, seri:rec.seri||'', model:rec.model||'', ad:rec.ad||'', yil:rec.yil||null, km:rec.km||'', fiyat:rec.fiyat, kaynak:rec.kaynak||'', url:rec.url||'', sehir:rec.sehir||''});
       });
+    } else {
+      basarisizParcalar.push(i);
+    }
+  }
+  // Başarısız parçalar için bir kez daha dene (geçici ağ hatası olabilir)
+  if(basarisizParcalar.length){
+    progressLabel.textContent = `${basarisizParcalar.length} parça başarısız oldu, yeniden deneniyor...`;
+    for(const i of basarisizParcalar.slice()){
+      const chunk = await parcaYukle(i);
+      if(chunk){
+        chunk.forEach(rec=>{
+          if(!rec || (!rec.marka && !rec.ad) || !(rec.fiyat>0)) return;
+          const brand = detectBrand(rec);
+          if(!brand) return;
+          all.push({marka:brand, seri:rec.seri||'', model:rec.model||'', ad:rec.ad||'', yil:rec.yil||null, km:rec.km||'', fiyat:rec.fiyat, kaynak:rec.kaynak||'', url:rec.url||'', sehir:rec.sehir||''});
+        });
+        basarisizParcalar.splice(basarisizParcalar.indexOf(i),1);
+      }
     }
   }
   progressBar.style.width='100%';
-  progressLabel.textContent = `Tamamlandı: ${all.length} geçerli ilan yüklendi.`;
+  RADAR_YUKLEME_BILGI = {toplamParca: total, basarisizParca: basarisizParcalar.length, ilanSayisi: all.length};
+  progressLabel.textContent = basarisizParcalar.length
+    ? `Tamamlandı: ${all.length} geçerli ilan yüklendi (${basarisizParcalar.length}/${total} parça hâlâ yüklenemedi — ağ sorunu olabilir, "Yenile" ile tekrar dene).`
+    : `Tamamlandı: ${all.length} geçerli ilan yüklendi.`;
   return all;
 }
 
@@ -840,12 +894,55 @@ IL_ILCE.forEach(r=>{
 ILLER.sort((a,b)=>a.localeCompare(b,'tr'));
 Object.values(ILCELER_BY_IL).forEach(arr=>arr.sort((a,b)=>a.localeCompare(b,'tr')));
 
+// "— Tümü (il geneli) —" seçimi için: her ilin tüm ilçelerinin ortalama konumu,
+// o ilin genel merkezi olarak kullanılıyor (spesifik ilçe seçmeden il bazında arama/mesafe).
+const IL_TUM_YER = {};
+Object.keys(ILCELER_BY_IL).forEach(il=>{
+  const noktalar = ILCELER_BY_IL[il].map(ic=> YER_LOOKUP[trUpper(il)+'|'+trUpper(ic)]).filter(Boolean);
+  if(!noktalar.length) return;
+  const lat = noktalar.reduce((s,p)=>s+p.lat,0)/noktalar.length;
+  const lon = noktalar.reduce((s,p)=>s+p.lon,0)/noktalar.length;
+  IL_TUM_YER[il] = {il, ilce:'(Tüm İlçeler)', plaka:noktalar[0].plaka, lat:+lat.toFixed(4), lon:+lon.toFixed(4), tum:true};
+});
+
+// İl adları (ör. "Muş") kısa olup başka kelimelerin içine yanlışlıkla eşleşebileceğinden
+// uzun ilden kısaya doğru sıralı liste kullanıyoruz.
+const _ILLER_UZUNDAN = ILLER.slice().sort((a,b)=> trUpper(b).length - trUpper(a).length);
+const RADAR_SEHIR_CACHE = new Map(); // ham sehir metni -> çözümlenmiş yer (ya da null)
+
+// AraçRadar'dan gelen ham "sehir" metnini (örn. "İstanbul Ümraniye", "KOCAELİ", "izmit/kocaeli")
+// 972 ilçelik embedded listeye eşler. Önce il+ilçe birlikte aranır, bulunamazsa sadece il
+// eşleşir ve o ilin "Merkez" ilçesi (yoksa ilk ilçesi) yaklaşık merkez olarak kullanılır.
+function resolveSehirYer(sehirStr){
+  if(!sehirStr) return null;
+  if(RADAR_SEHIR_CACHE.has(sehirStr)) return RADAR_SEHIR_CACHE.get(sehirStr);
+  const folded = ' ' + trUpper(sehirStr).replace(/[^A-ZÇĞİÖŞÜ0-9]+/g,' ') + ' ';
+  let sonuc = null;
+  for(const il of _ILLER_UZUNDAN){
+    const ilU = trUpper(il);
+    if(folded.includes(' '+ilU+' ')){
+      const ilceler = ILCELER_BY_IL[il] || [];
+      const ilcelerUzundan = ilceler.slice().sort((a,b)=> trUpper(b).length - trUpper(a).length);
+      let bulunanIlce = null;
+      for(const ic of ilcelerUzundan){
+        if(folded.includes(' '+trUpper(ic)+' ')){ bulunanIlce = ic; break; }
+      }
+      if(!bulunanIlce) bulunanIlce = ilceler.includes('Merkez') ? 'Merkez' : ilceler[0];
+      sonuc = YER_LOOKUP[ilU+'|'+trUpper(bulunanIlce)] || null;
+      break;
+    }
+  }
+  RADAR_SEHIR_CACHE.set(sehirStr, sonuc);
+  return sonuc;
+}
+
 function fillIlSelect(sel, placeholder){
   sel.innerHTML = (placeholder?`<option value="">${placeholder}</option>`:'') + ILLER.map(il=>`<option value="${il}">${il}</option>`).join('');
 }
 function fillIlceSelect(sel, il, placeholder){
   const list = ILCELER_BY_IL[il] || [];
-  sel.innerHTML = (placeholder?`<option value="">${placeholder}</option>`:'') + list.map(ic=>`<option value="${ic}">${ic}</option>`).join('');
+  const tumOpt = il ? `<option value="__TUM__">— Tümü (${il} il geneli) —</option>` : '';
+  sel.innerHTML = (placeholder?`<option value="">${placeholder}</option>`:'') + tumOpt + list.map(ic=>`<option value="${ic}">${ic}</option>`).join('');
 }
 function setupYerSecici(ilId, ilceId, opts){
   const ilSel=document.getElementById(ilId), ilceSel=document.getElementById(ilceId);
@@ -861,6 +958,7 @@ function setupYerSecici(ilId, ilceId, opts){
 function getYer(ilId, ilceId){
   const il=document.getElementById(ilId).value, ilce=document.getElementById(ilceId).value;
   if(!il||!ilce) return null;
+  if(ilce==='__TUM__') return IL_TUM_YER[il] || null;
   return YER_LOOKUP[trUpper(il)+'|'+trUpper(ilce)] || null;
 }
 function setYer(ilId, ilceId, il, ilce){
@@ -883,7 +981,11 @@ setupYerSecici('magazaIl','magazaIlce',{onChange:()=>{ magazaKaydet(); kisiKonum
 setupYerSecici('kisiIl','kisiIlce',{zorunlu:false, onChange:()=> kisiKonumuDegisti()});
 setupYerSecici('aracIl','aracIlce',{zorunlu:false, onChange:()=>{
   const m=getYer('magazaIl','magazaIlce'), k=getYer('kisiIl','kisiIlce'), a=getYer('aracIl','aracIlce');
-  if(a) renderMesafeKartlari(m,k,[a]);
+  if(a){
+    renderMesafeKartlari(m,k,[a]);
+    const bolgeBlok=document.getElementById('bolgeAraclarBlok');
+    if(bolgeBlok) bolgeBlok.style.display='block';
+  }
 }});
 
 (function initMagaza(){
@@ -969,7 +1071,9 @@ function kisiKonumuDegisti(){
   const magazaYer = getYer('magazaIl','magazaIlce');
   const kisiYer = getYer('kisiIl','kisiIlce');
   const korEtiket=document.getElementById('korKorHesap');
-  if(!kisiYer){ rotaBlok.style.display='none'; korEtiket.textContent=''; return; }
+  const bolgeBlok=document.getElementById('bolgeAraclarBlok');
+  if(!kisiYer){ rotaBlok.style.display='none'; if(bolgeBlok) bolgeBlok.style.display='none'; korEtiket.textContent=''; return; }
+  if(bolgeBlok) bolgeBlok.style.display='block';
   const korKm = koridorGenisligi(kisiYer, magazaYer);
 
   ROTA_HESAP = IL_ILCE.map(yer=>{
@@ -1030,6 +1134,59 @@ document.getElementById('rotaGrid').addEventListener('click', e=>{
   const aracYer = getYer('aracIl','aracIlce');
   renderMesafeKartlari(magazaYer, kisiYer, aracYer?[aracYer]:[]);
   document.getElementById('mesafeSonuc').scrollIntoView({behavior:'smooth', block:'center'});
+});
+
+document.getElementById('btnBolgeTara').addEventListener('click', async ()=>{
+  const merkez = getYer('aracIl','aracIlce') || getYer('kisiIl','kisiIlce');
+  const durum = document.getElementById('bolgeDurum');
+  const sonuc = document.getElementById('bolgeSonuc');
+  if(!merkez){ durum.textContent = 'Önce "Aracın Bulunduğu İlçe" ya da "Kişinin Konumu" seç.'; return; }
+  const yaricap = parseInt(document.getElementById('bolgeYaricap').value,10) || 75;
+  sonuc.innerHTML = '';
+  durum.textContent = 'AraçRadar verisi yükleniyor...';
+  try{
+    if(!RADAR_DATA) RADAR_DATA = await fetchRadarData();
+  }catch(e){ durum.textContent = 'AraçRadar verisine ulaşılamadı: ' + e.message; return; }
+
+  let sehirliSayisi = 0;
+  const eslesen = [];
+  RADAR_DATA.forEach(r=>{
+    if(!r.sehir) return;
+    sehirliSayisi++;
+    const yer = resolveSehirYer(r.sehir);
+    if(!yer) return;
+    const km = haversine(merkez, yer);
+    if(km <= yaricap) eslesen.push({r, yer, km});
+  });
+  eslesen.sort((a,b)=>a.km-b.km);
+
+  const parcaUyari = (RADAR_YUKLEME_BILGI && RADAR_YUKLEME_BILGI.basarisizParca>0)
+    ? ` ⚠️ ${RADAR_YUKLEME_BILGI.basarisizParca}/${RADAR_YUKLEME_BILGI.toplamParca} parça yüklenemedi, bu yüzden sayı eksik olabilir — "🎯 Fırsat Taraması" sekmesinden "Yenile" ile tekrar çekmeyi dene.`
+    : '';
+  const sehirUyari = sehirliSayisi===0 ? ' ⚠️ Henüz şehir bilgisi yok — uzantıyı güncelleyip yeniden tarama başlatın.' : '';
+  durum.textContent = `AraçRadar: ${RADAR_DATA.length} ilan tarandı · ${sehirliSayisi} ilanda şehir bilgisi var · ${merkez.il}/${merkez.ilce}'ye ${yaricap} km içinde ${eslesen.length} ilan bulundu.${parcaUyari}${sehirUyari}`;
+
+  if(!eslesen.length){
+    sonuc.innerHTML = `<div class="not-kutu" style="background:#fff4e5;border-color:#f0c36d;color:#7a5200;">`
+      + (sehirliSayisi===0
+        ? 'AraçRadar\'ın taradığı ilanların hiçbirinde henüz şehir bilgisi yok. Uzantı güncel sürümde şehir bilgisini otomatik çekiyor; eski ilanlar için yeniden tarama başlatmanız yeterli — yeni gelen ilanlar şehirli görünecek.'
+        : 'Bu yarıçapta şehir bilgisi eşleşen ilan bulunamadı. Yarıçapı artırmayı deneyebilirsin.')
+      + `</div>`;
+    return;
+  }
+
+  sonuc.innerHTML = eslesen.slice(0,60).map(({r,yer,km})=>{
+    const kmSayi = parseInt((r.km||'').toString().replace(/[^\d]/g,''),10);
+    const kmTxt = kmSayi ? new Intl.NumberFormat('tr-TR').format(kmSayi) + ' km' : '';
+    const ad = r.marka + (r.model?(' '+r.model):(r.seri?(' '+r.seri):''));
+    return `<div class="eslesme">
+      <div class="plaka">${yer.il}, ${yer.ilce} <span style="font-weight:400;color:var(--muted);">(${km} km)</span></div>
+      <div class="bilgi">
+        <div class="arac">${ad}${r.yil?(' · '+r.yil):''}${kmTxt?(' · '+kmTxt):''} — ${fmtTL(r.fiyat)}</div>
+        <div class="tarih">${r.kaynak||''}${r.url?` · <a href="${r.url}" target="_blank" rel="noopener">İlanı Aç ↗</a>`:''}</div>
+      </div>
+    </div>`;
+  }).join('') + (eslesen.length>60 ? `<p class="alt">+ ${eslesen.length-60} ilan daha var (yarıçapı küçült).</p>` : '');
 });
 </script>
 </body>
