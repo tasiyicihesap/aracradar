@@ -1089,12 +1089,15 @@ function siteTara(baseUrl,etiket,maxSayfa,aralik,maxIlan,tamamCb,siteKeyOverride
             // Yıl ve KM — td içerikleri
             var tdler=row.match(/<td[^>]*>([^<]*)<\/td>/g)||[];
             var yil=0,km='',sehir='';
+            // Önce searchResultsLocationValue class'ından şehir çek
+            var locM=row.match(/searchResultsLocationValue[^>]*>([^<]{3,40})</);
+            if(locM)sehir=locM[1].trim().split('/')[0].trim();
             tdler.forEach(function(td){
               var v=td.replace(/<[^>]+>/g,'').trim();
               if(/^(19|20)\d{2}$/.test(v))yil=parseInt(v);
               else if(/\d+[.,]\d+ km/i.test(v)||/^\d{1,3}([.,]\d{3})+ km$/i.test(v))km=v;
-              // Şehir: 2-25 harf Türkçe kelime, rakam/TL/km içermeyen
-              else if(!sehir&&v.length>=3&&v.length<=30&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit)$/i.test(v.toLowerCase()))sehir=v;
+              // Şehir class bulunamadıysa fallback: Türkçe kelime
+              else if(!sehir&&v.length>=3&&v.length<=30&&/^[A-Za-zÇçĞğİiÖöŞşÜü\s\/\-]+$/.test(v)&&!/^(sahibinden|otomatik|manuel|benzin|dizel|lpg|hibrit|sedan|hatchback|suv|pickup|minivan|coupe|cabriolet|station)$/i.test(v.toLowerCase()))sehir=v;
             });
             ilanlar.push({url:ilanUrl,fiyat:fiyat,ad:ad,marka:'',seri:'',yil:yil,km:km,sehir:sehir,kaynak:'sahibinden'});
           }

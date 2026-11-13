@@ -3777,6 +3777,8 @@ function panelOtaramayiKaydet(hemenTara) {
   // Arşive kaydet
   arsivKaydet(urls, etiket);
 
+  // Debug: aralik değerlerini konsola yaz
+  console.log('[ARAÇRADAR] Kaydet — URL aralikler:', ayarlar.urls.map(function(u){return u.site+':'+Math.round(u.aralik/1000)+'sn';}));
   chrome.runtime.sendMessage({ action: 'otaramaKaydet', ayarlar: ayarlar }, function() {
     flash('✓ Kaydedildi');
     if (hemenTara) {
